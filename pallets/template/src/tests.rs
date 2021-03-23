@@ -1,6 +1,6 @@
 use crate::{Error, mock::*};
-use crate::*;
 use frame_support::{assert_ok, assert_noop};
+use crate::{DepartmentDetails, RawEvent};
 
 #[test]
 fn it_works_for_default_value() {
@@ -48,8 +48,8 @@ fn peer_department_approve() {
 		assert_ok!(TemplateModule::add_peers_to_deparment(Origin::signed(2), 1));
 		assert_ok!(TemplateModule::add_peers_to_deparment(Origin::signed(2), 0));
 		assert_ok!(TemplateModule::check_peers_deparment(Origin::signed(2), 1));
-		// let expected_event = TestEvent::shivarthu_template(RawEvent::PeerDepartment(1, 2));
-		// assert_eq!(System::events()[4].event, expected_event);
+		let expected_event = Event::pallet_template(RawEvent::PeerDepartment(1, 2));
+		assert_eq!(System::events()[4].event, expected_event);
 		assert_eq!(vec![0,1], TemplateModule::peer_deparments(2));
 	});
 
