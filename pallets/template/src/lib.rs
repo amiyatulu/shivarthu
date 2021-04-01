@@ -1,14 +1,22 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use frame_support::codec::{Decode, Encode};
+use frame_support::sp_runtime::RuntimeDebug;
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// https://substrate.dev/docs/en/knowledgebase/runtime/frame
-
-use frame_support::{decl_module, decl_storage, decl_event, decl_error, dispatch, ensure, traits::Get};
+use frame_support::{
+	decl_error, decl_event, decl_module, decl_storage, dispatch, ensure, traits::Get,
+};
 use frame_system::ensure_signed;
-use frame_support::codec::{Decode, Encode};
 use sp_std::vec::Vec;
-use frame_support::sp_runtime::RuntimeDebug;
+// use rand::distributions::WeightedIndex;
+// use rand::prelude::*;
+// use rand::{rngs::StdRng, SeedableRng};
+
+// Token
+// SchellingGame (Try to make it generic)
+// ApprovalVoting 🖊️
 
 #[cfg(test)]
 mod mock;
@@ -40,7 +48,7 @@ decl_storage! {
 		// https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
 		Something get(fn something): Option<u32>;
 		DepartmentCount get(fn deparment_count): u128;
-		Candidate get(fn candidate_name): map hasher(blake2_128_concat) T::AccountId => Vec<u8>; // Peer account address => Peer Profile Hash
+		Citizen get(fn candidate_name): map hasher(blake2_128_concat) T::AccountId => Vec<u8>; // Peer account address => Peer Profile Hash
 		Department get(fn department_name): map hasher(blake2_128_concat) u128 => DepartmentDetails;// Deparment id => (Name, Location, Details hash)
 		OuterGroup get(fn outergroup): map hasher(blake2_128_concat) u128 => Vec<T::AccountId>; // Department id => Candidate account address set
 		InnerGroup get(fn innergroup): map hasher(blake2_128_concat) u128 => Vec<T::AccountId>; // Department id => Candidate account address set
@@ -60,7 +68,10 @@ decl_storage! {
 // Pallets use events to inform users when important changes are made.
 // https://substrate.dev/docs/en/knowledgebase/runtime/events
 decl_event!(
-	pub enum Event<T> where AccountId = <T as frame_system::Config>::AccountId {
+	pub enum Event<T>
+	where
+		AccountId = <T as frame_system::Config>::AccountId,
+	{
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		SomethingStored(u32, AccountId),
@@ -123,6 +134,7 @@ decl_module! {
 		#[weight = 10_000 + T::DbWeight::get().reads_writes(2,2)]
 		pub fn add_peers_to_deparment(origin, departmentid: u128) -> dispatch::DispatchResult {
 			let who = ensure_signed(origin)?;
+			Self::check_citizen_profile_exists(&who)?;
 			let count = DepartmentCount::get();
 			ensure!(departmentid <= count, Error::<T>::DepartmentDoNotExists);
 			let mut approved_peer_dep = PeerDepartments::<T>::get(&who);
@@ -159,7 +171,7 @@ decl_module! {
 		// Can any one with validate evidence of expertise be nominee? If not what how to decrease the list, if nominees are in thousands
 		// Check the candidate is approved for department. ✔️
 		// Check its the right cycle
-		// add the nominee for department cycle ✔️
+		// add the nominee for department cycle
 
 		#[weight = 10_000 + T::DbWeight::get().reads_writes(2,1)]
 		pub fn add_candidate_nominee(origin, departmentid:u128, voting_cycle: u128) -> dispatch::DispatchResult {
@@ -174,6 +186,17 @@ decl_module! {
 					Ok(())
 				}
 			}
+		}
+
+		// ⭐ Add Citizen Profile ⭐
+		// Create profile ✔️
+		// Update profile ✔️
+		// Validate profile (staking and schelling game)
+		#[weight = 10_000 + T::DbWeight::get().reads_writes(2,1)]
+		pub fn add_citizen(origin, profile_hash:Vec<u8>) -> dispatch::DispatchResult {
+			let who = ensure_signed(origin)?;
+			Citizen::<T>::insert(&who, profile_hash);
+			Ok(())
 		}
 
 
@@ -218,5 +241,12 @@ decl_module! {
 				},
 			}
 		}
+	}
+}
+
+// Helper functions
+impl<T: Config> Module<T> {
+	fn check_citizen_profile_exists(_who: &T::AccountId) -> dispatch::DispatchResult {
+		Ok(())
 	}
 }
