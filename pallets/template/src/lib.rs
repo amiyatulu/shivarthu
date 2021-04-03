@@ -10,6 +10,7 @@ use frame_support::{
 };
 use frame_system::ensure_signed;
 use sp_std::vec::Vec;
+use sha3::{Digest, Keccak256};
 // use rand::distributions::WeightedIndex;
 // use rand::prelude::*;
 // use rand::{rngs::StdRng, SeedableRng};
@@ -50,6 +51,7 @@ decl_storage! {
 		// Learn more about declaring storage items:
 		// https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
 		DepartmentCount get(fn deparment_count): u128;
+		Admin get(fn admin) : T::AccountId;
 		Citizen get(fn candidate_name): map hasher(blake2_128_concat) T::AccountId => Option<Vec<u8>>; // Peer account address => Peer Profile Hash
 		Department get(fn department_name): map hasher(blake2_128_concat) u128 => DepartmentDetails;// Deparment id => (Name, Location, Details hash)
 		OuterGroup get(fn outergroup): map hasher(blake2_128_concat) u128 => Vec<T::AccountId>; // Department id => Candidate account address set
@@ -59,7 +61,10 @@ decl_storage! {
 		GovernorGroup get(fn governor_group): map hasher(blake2_128_concat) u128 => Vec<T::AccountId>; // Department id => Candidate account address set
 		CandidatesNominees get(fn candidate_nominee): map hasher(blake2_128_concat) (u128, u128) => Vec<T::AccountId>; // Department id, Voting cycle => Candidate account address set
 		CandidateApprovalVotes get(fn candidate_approval_votes): map hasher(blake2_128_concat) (T::AccountId, u128) => Option<u128>; // Candidate account address, Department id => Positive Votes
-		CommitPhaseEndBlockTime get(fn commitphase_endblocktime): map hasher(blake2_128_concat) u128 => Option<u32>; // Department id => Time
+		CommitPhaseEndBlockCount get(fn commitphase_endblockcount): map hasher(blake2_128_concat) u128 => Option<u32>; // Department id => Number of blocks after commit phase ends
+		VotingCycleTime get(fn voting_cycle_time): map hasher(blake2_128_concat) u128 => Option<u32>; // Department id => Voting cycle block count
+		DefaultCommitPhaseEndBlockCount get(fn default_commit_phase_blockcount): Option<u32> = Some(216000); // Default commit phase end block count for all departments, 15 days with block time of 6 secs
+		DefaultVotingCycleTime get(fn default_voting_cycle_time): Option<u32> = Some(1296000); // Default voting cycle time for all departments, 3 month with block time of 6 secs
 		VotingCycleCount get(fn voting_cycle_count): map hasher(blake2_128_concat) u128 => Option<u128>; // Department id => Voting Cycle
 		NumberOfVoteCast get(fn number_of_vote_cast): map hasher(blake2_128_concat) (u128, u128) => u128; // (Department id, Voting Cycle) => Number of votes
 		VoteCommits get(fn vote_commits): map hasher(blake2_128_concat) (u128, u128) => Vec<Vec<u8>>; // (Department id, Voting Cycle) => Vote commit set
@@ -202,6 +207,10 @@ decl_module! {
 				}
 			}
 		}
+
+
+
+
 
 
 

@@ -3807,6 +3807,7 @@ dependencies = [
  "parity-scale-codec",
  "rand 0.7.3",
  "serde",
+ "sha3",
  "sp-core",
  "sp-io",
  "sp-runtime",
