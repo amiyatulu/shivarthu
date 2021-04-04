@@ -98,6 +98,7 @@ decl_error! {
 		StorageOverflow,
 		DepartmentExists,
 		DepartmentDoNotExists,
+		DepartmentNotAssociated,
 		NomineeExists,
 		CitizenDoNotExists,
 		AlreadyVoted,
@@ -173,21 +174,15 @@ decl_module! {
 		 }
 
 		#[weight = 10_000 + T::DbWeight::get().reads_writes(1,0)]
-		pub fn check_peers_deparment(origin, departmentid:u128) -> dispatch::DispatchResult {
+		pub fn check_deparment_of_citizen(origin, departmentid:u128) -> dispatch::DispatchResult {
 			let who = ensure_signed(origin)?;
-			let approved_peer_dep = PeerDepartments::<T>::get(&who);
-
-			match approved_peer_dep.binary_search(&departmentid) {
-				Ok(_) => {
-					Self::deposit_event(RawEvent::PeerDepartment(departmentid, who));
-				   Ok(())
-				}
-				Err(_) => Err(Error::<T>::DepartmentDoNotExists.into())
-			 }
-
+			Self::check_citizen_associated_department(who, departmentid)?;
+			Ok(())
 		}
 
 		// ⭐ Approval Voting ⭐
+
+		// Create or increment Voting cycle function
 
 		// ⭐ Appoint Nominee ⭐
 		// Can any one with validate evidence of expertise be nominee? If not what how to decrease the list, if nominees are in thousands
@@ -197,13 +192,13 @@ decl_module! {
 
 		#[weight = 10_000 + T::DbWeight::get().reads_writes(2,1)]
 		pub fn add_candidate_nominee(origin, departmentid:u128, voting_cycle: u128) -> dispatch::DispatchResult {
-			let who = ensure_signed(origin.clone())?;
-			Self::check_peers_deparment(origin, departmentid)?; // May need to change it into helper method
+			let who = ensure_signed(origin)?;
+			Self::check_citizen_associated_department(who.clone(), departmentid)?; 
 			let mut candidate_nominees = CandidatesNominees::<T>::get((departmentid, voting_cycle));
 			match candidate_nominees.binary_search(&who) {
 				Ok(_) => Err(Error::<T>::NomineeExists.into()),
 				Err(index) => {
-					candidate_nominees.insert(index, who.clone());
+					candidate_nominees.insert(index, who);
 					CandidatesNominees::<T>::insert((departmentid, voting_cycle), candidate_nominees);
 					Ok(())
 				}
@@ -212,13 +207,14 @@ decl_module! {
 
 		// ⭐ Commit Vote ⭐
 		// Check blocknumber has not passed the reveal time
-		// Check user has been approved to vote
-		// Check voting status is false or None to vote
-		// Add the commit to vote commit
+		// Check user is associated with department ✔️
+		// Check voting status is false or None to vote ✔️
+		// Add the commit to vote commit ✔️
 
-		#[weight = 10_000 + T::DbWeight::get().reads_writes(1,1)]
+		#[weight = 10_000 + T::DbWeight::get().reads_writes(3,3)]
 		pub fn commit_vote(origin, departmentid:u128, voting_cycle:u128, vote_commit:Vec<u8>) -> dispatch::DispatchResult  {
-			let _who = ensure_signed(origin.clone())?;
+			let who = ensure_signed(origin.clone())?;
+			Self::check_citizen_associated_department(who.clone(), departmentid)?;
 			let status = VoteStatus::get((departmentid, voting_cycle, vote_commit.clone()));
 			match status {
 				Some(value) => {
@@ -251,6 +247,20 @@ impl<T: Config> Module<T> {
 			None => Err(Error::<T>::CitizenDoNotExists.into()),
 		}
 	}
+	fn check_citizen_associated_department(
+		who: T::AccountId,
+		departmentid: u128,
+	) -> dispatch::DispatchResult {
+		let approved_peer_dep = PeerDepartments::<T>::get(&who);
+
+		match approved_peer_dep.binary_search(&departmentid) {
+			Ok(_) => {
+				Self::deposit_event(RawEvent::PeerDepartment(departmentid, who));
+				Ok(())
+			}
+			Err(_) => Err(Error::<T>::DepartmentNotAssociated.into()),
+		}
+	}
 
 	fn add_vote(
 		departmentid: u128,
@@ -262,8 +272,9 @@ impl<T: Config> Module<T> {
 		VoteCommits::insert((departmentid, voting_cycle), vote_commit_vec);
 		VoteStatus::insert((departmentid, voting_cycle, vote_commit), true);
 		let count = NumberOfVoteCast::get((departmentid, voting_cycle));
-		NumberOfVoteCast::insert((departmentid, voting_cycle), count + 1);
-		Self::deposit_event(RawEvent::VoteCast(departmentid, voting_cycle, count+1));
+		let newcount = count.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
+		NumberOfVoteCast::insert((departmentid, voting_cycle), newcount);
+		Self::deposit_event(RawEvent::VoteCast(departmentid, voting_cycle, newcount));
 		Ok(())
 	}
 }
