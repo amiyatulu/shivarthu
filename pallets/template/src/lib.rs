@@ -9,8 +9,8 @@ use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, dispatch, ensure, traits::Get,
 };
 use frame_system::ensure_signed;
-use sp_std::vec::Vec;
 use sha3::{Digest, Keccak256};
+use sp_std::vec::Vec;
 // use rand::distributions::WeightedIndex;
 // use rand::prelude::*;
 // use rand::{rngs::StdRng, SeedableRng};
@@ -85,6 +85,7 @@ decl_event!(
 		CreateDepartment(u128, AccountId),
 		PeerDepartment(u128, AccountId),
 		CreateCitizen(AccountId, Vec<u8>),
+		VoteCast(u128, u128, u128), // Departement id, cycle, department vote count
 	}
 );
 
@@ -99,6 +100,7 @@ decl_error! {
 		DepartmentDoNotExists,
 		NomineeExists,
 		CitizenDoNotExists,
+		AlreadyVoted,
 	}
 }
 
@@ -185,7 +187,7 @@ decl_module! {
 
 		}
 
-	    // ⭐ Approval Voting ⭐
+		// ⭐ Approval Voting ⭐
 
 		// ⭐ Appoint Nominee ⭐
 		// Can any one with validate evidence of expertise be nominee? If not what how to decrease the list, if nominees are in thousands
@@ -208,10 +210,32 @@ decl_module! {
 			}
 		}
 
+		// ⭐ Commit Vote ⭐
+		// Check blocknumber has not passed the reveal time
+		// Check user has been approved to vote
+		// Check voting status is false or None to vote
+		// Add the commit to vote commit
 
+		#[weight = 10_000 + T::DbWeight::get().reads_writes(1,1)]
+		pub fn commit_vote(origin, departmentid:u128, voting_cycle:u128, vote_commit:Vec<u8>) -> dispatch::DispatchResult  {
+			let _who = ensure_signed(origin.clone())?;
+			let status = VoteStatus::get((departmentid, voting_cycle, vote_commit.clone()));
+			match status {
+				Some(value) => {
+					if value == true {
+						Err(Error::<T>::AlreadyVoted.into())
+					} else {
+					  Self::add_vote(departmentid, voting_cycle, vote_commit)?;
+					  Ok(())
+					}
+				}
+				None => {
+					Self::add_vote(departmentid, voting_cycle, vote_commit)?;
+					Ok(())
+				}
+			}
 
-
-
+		}
 
 
 
@@ -226,5 +250,20 @@ impl<T: Config> Module<T> {
 			Some(_) => Ok(()),
 			None => Err(Error::<T>::CitizenDoNotExists.into()),
 		}
+	}
+
+	fn add_vote(
+		departmentid: u128,
+		voting_cycle: u128,
+		vote_commit: Vec<u8>,
+	) -> dispatch::DispatchResult {
+		let mut vote_commit_vec = VoteCommits::get((departmentid, voting_cycle));
+		vote_commit_vec.push(vote_commit.clone());
+		VoteCommits::insert((departmentid, voting_cycle), vote_commit_vec);
+		VoteStatus::insert((departmentid, voting_cycle, vote_commit), true);
+		let count = NumberOfVoteCast::get((departmentid, voting_cycle));
+		NumberOfVoteCast::insert((departmentid, voting_cycle), count + 1);
+		Self::deposit_event(RawEvent::VoteCast(departmentid, voting_cycle, count+1));
+		Ok(())
 	}
 }
