@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::codec::{Decode, Encode};
-use frame_support::sp_runtime::RuntimeDebug;
+use frame_support::sp_runtime::{RuntimeDebug};
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// https://substrate.dev/docs/en/knowledgebase/runtime/frame
@@ -238,14 +238,14 @@ decl_module! {
 		}
 
 		#[weight = 10_000 + T::DbWeight::get().reads_writes(3,3)]
-		pub fn reveal_vote(origin, departmentid:u128, voting_cycle:u128, vote:Vec<u8>, vote_commit:Vec<u8>)-> dispatch::DispatchResult  {
+		pub fn reveal_vote(origin, departmentid:u128, voting_cycle:u128, vote_account:T::AccountId, phrase: Vec<u8>, vote_commit:Vec<u8>)-> dispatch::DispatchResult  {
 			let who = ensure_signed(origin.clone())?;
 			Self::check_citizen_associated_department(who.clone(), departmentid)?;
 			let status = VoteStatus::get((departmentid, voting_cycle, vote_commit.clone()));
 			match status {
 				Some(value) => {
 					if value == true {
-                      Self::reveal_vote_helper(vote, vote_commit)?;
+                      Self::reveal_vote_helper(vote_account, phrase, vote_commit)?;
 					  Ok(())
 					} else {
 						Err(Error::<T>::VoteAlreadyRevealed.into())
@@ -304,20 +304,19 @@ impl<T: Config> Module<T> {
 		Ok(())
 	}
 
-	fn reveal_vote_helper(vote: Vec<u8>, vote_commit: Vec<u8>) -> dispatch::DispatchResult {
-		let vote_string = String::from_utf8(vote.clone()).unwrap();
+	fn reveal_vote_helper(vote_account:T::AccountId, phrase: Vec<u8>, vote_commit:Vec<u8>) -> dispatch::DispatchResult {
+		let phrase_string = String::from_utf8(phrase.clone()).unwrap();
+		let account_string = vote_account.to_owned();
+		let vote_string = format!("{}-{}", account_string, phrase_string);
 		let mut hasher = Keccak256::new();
-		let vote_bytes = &vote[..];
-		hasher.update(vote_bytes);
+		hasher.update(vote_string.as_bytes());
 		let result = hasher.finalize();
 		let vote_hex = format!("{:x}", result);
 		let vote_commit_string = String::from_utf8(vote_commit).unwrap();
 		if vote_hex != vote_commit_string {
 			Err(Error::<T>::CommitVoteMismatch.into())
 		} else {
-			let splitdata = vote_string.split("-");
-			let vec: Vec<&str> = splitdata.collect();
-			let candidata_id= vec[0].parse::<u128>().unwrap();
+
 			Ok(())
 		}
 	}
