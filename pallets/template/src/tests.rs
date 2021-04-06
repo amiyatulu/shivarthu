@@ -52,7 +52,7 @@ fn create_department() {
 	assert_eq!(vec![0, 1], TemplateModule::peer_deparments(2));
 }
 
-fn create_nominees() {
+fn create_commit_vote() {
 	assert_ok!(TemplateModule::create_deparment(
 		Origin::signed(1),
 		"Education".as_bytes().to_vec(),
@@ -104,5 +104,5 @@ fn peer_department_approve() {
 
 #[test]
 fn commit_vote() {
-	new_test_ext().execute_with(|| create_nominees());
+	new_test_ext().execute_with(|| create_commit_vote());
 }

@@ -20,7 +20,7 @@ use sp_std::vec::Vec;
 // ApprovalVoting 🖊️
 // Peer review of projects
 // Escrow for projects
-// Negative threhold votes to reclaim project funds
+// Negative threshold votes to reclaim project funds
 
 #[cfg(test)]
 mod mock;
@@ -101,7 +101,10 @@ decl_error! {
 		DepartmentNotAssociated,
 		NomineeExists,
 		CitizenDoNotExists,
-		AlreadyVoted,
+		AlreadyCommitUsed,
+		VoteAlreadyRevealed,
+		VoteCommitNotPresent,
+		CommitVoteMismatch,
 	}
 }
 
@@ -193,7 +196,7 @@ decl_module! {
 		#[weight = 10_000 + T::DbWeight::get().reads_writes(2,1)]
 		pub fn add_candidate_nominee(origin, departmentid:u128, voting_cycle: u128) -> dispatch::DispatchResult {
 			let who = ensure_signed(origin)?;
-			Self::check_citizen_associated_department(who.clone(), departmentid)?; 
+			Self::check_citizen_associated_department(who.clone(), departmentid)?;
 			let mut candidate_nominees = CandidatesNominees::<T>::get((departmentid, voting_cycle));
 			match candidate_nominees.binary_search(&who) {
 				Ok(_) => Err(Error::<T>::NomineeExists.into()),
@@ -206,6 +209,7 @@ decl_module! {
 		}
 
 		// ⭐ Commit Vote ⭐
+		// Check its in current voting cycle
 		// Check blocknumber has not passed the reveal time
 		// Check user is associated with department ✔️
 		// Check voting status is false or None to vote ✔️
@@ -219,7 +223,7 @@ decl_module! {
 			match status {
 				Some(value) => {
 					if value == true {
-						Err(Error::<T>::AlreadyVoted.into())
+						Err(Error::<T>::AlreadyCommitUsed.into())
 					} else {
 					  Self::add_vote(departmentid, voting_cycle, vote_commit)?;
 					  Ok(())
@@ -230,6 +234,28 @@ decl_module! {
 					Ok(())
 				}
 			}
+
+		}
+
+		#[weight = 10_000 + T::DbWeight::get().reads_writes(3,3)]
+		pub fn reveal_vote(origin, departmentid:u128, voting_cycle:u128, vote:Vec<u8>, vote_commit:Vec<u8>)-> dispatch::DispatchResult  {
+			let who = ensure_signed(origin.clone())?;
+			Self::check_citizen_associated_department(who.clone(), departmentid)?;
+			let status = VoteStatus::get((departmentid, voting_cycle, vote_commit.clone()));
+			match status {
+				Some(value) => {
+					if value == true {
+                      Self::reveal_vote_helper(vote, vote_commit)?;
+					  Ok(())
+					} else {
+						Err(Error::<T>::VoteAlreadyRevealed.into())
+					}
+				}
+				None => {
+					Err(Error::<T>::VoteCommitNotPresent.into())
+				}
+			}
+
 
 		}
 
@@ -276,5 +302,23 @@ impl<T: Config> Module<T> {
 		NumberOfVoteCast::insert((departmentid, voting_cycle), newcount);
 		Self::deposit_event(RawEvent::VoteCast(departmentid, voting_cycle, newcount));
 		Ok(())
+	}
+
+	fn reveal_vote_helper(vote: Vec<u8>, vote_commit: Vec<u8>) -> dispatch::DispatchResult {
+		let vote_string = String::from_utf8(vote.clone()).unwrap();
+		let mut hasher = Keccak256::new();
+		let vote_bytes = &vote[..];
+		hasher.update(vote_bytes);
+		let result = hasher.finalize();
+		let vote_hex = format!("{:x}", result);
+		let vote_commit_string = String::from_utf8(vote_commit).unwrap();
+		if vote_hex != vote_commit_string {
+			Err(Error::<T>::CommitVoteMismatch.into())
+		} else {
+			let splitdata = vote_string.split("-");
+			let vec: Vec<&str> = splitdata.collect();
+			let candidata_id= vec[0].parse::<u128>().unwrap();
+			Ok(())
+		}
 	}
 }
