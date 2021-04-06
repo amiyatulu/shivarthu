@@ -60,7 +60,7 @@ decl_storage! {
 		PeerDepartments get(fn peer_deparments): map hasher(blake2_128_concat) T::AccountId => Vec<u128>; // Peer account address => Department id set
 		GovernorGroup get(fn governor_group): map hasher(blake2_128_concat) u128 => Vec<T::AccountId>; // Department id => Candidate account address set
 		CandidatesNominees get(fn candidate_nominee): map hasher(blake2_128_concat) (u128, u128) => Vec<T::AccountId>; // Department id, Voting cycle => Candidate account address set
-		CandidateApprovalVotes get(fn candidate_approval_votes): map hasher(blake2_128_concat) (T::AccountId, u128) => Option<u128>; // Candidate account address, Department id => Positive Votes
+		CandidateApprovalVotes get(fn candidate_approval_votes): map hasher(blake2_128_concat) (T::AccountId, u128, u128) => Option<u128>; // Candidate account address, Department id, voting cycle=> Positive Votes
 		CommitPhaseEndBlockCount get(fn commitphase_endblockcount): map hasher(blake2_128_concat) u128 => Option<u32>; // Department id => Number of blocks after commit phase ends
 		VotingCycleTime get(fn voting_cycle_time): map hasher(blake2_128_concat) u128 => Option<u32>; // Department id => Voting cycle block count
 		DefaultCommitPhaseEndBlockCount get(fn default_commit_phase_blockcount): Option<u32> = Some(216000); // Default commit phase end block count for all departments, 15 days with block time of 6 secs
@@ -86,6 +86,7 @@ decl_event!(
 		PeerDepartment(u128, AccountId),
 		CreateCitizen(AccountId, Vec<u8>),
 		VoteCast(u128, u128, u128), // Departement id, cycle, department vote count
+		NomineeDeparment(u128, u128, AccountId), 
 	}
 );
 
@@ -105,6 +106,7 @@ decl_error! {
 		VoteAlreadyRevealed,
 		VoteCommitNotPresent,
 		CommitVoteMismatch,
+		VoteRevealed,
 	}
 }
 
@@ -225,8 +227,7 @@ decl_module! {
 					if value == true {
 						Err(Error::<T>::AlreadyCommitUsed.into())
 					} else {
-					  Self::add_vote(departmentid, voting_cycle, vote_commit)?;
-					  Ok(())
+						Err(Error::<T>::VoteRevealed.into())
 					}
 				}
 				None => {
@@ -236,16 +237,26 @@ decl_module! {
 			}
 
 		}
+       
+		// ⭐ Reveal Vote ⭐
+		// Check right voting cycle
+		// Check its right block number for reveal
+		// Check voter associated with department ✔️
+		// Check voted candidated is nominee of the department ✔️
+		// Check the status of vote, if true reveal vote, if false vote already revealed ✔️
+		// Increment the vote ✔️
+		// Set status to false if reveal vote accepted ✔️
 
 		#[weight = 10_000 + T::DbWeight::get().reads_writes(3,3)]
 		pub fn reveal_vote(origin, departmentid:u128, voting_cycle:u128, vote_account:T::AccountId, phrase: Vec<u8>, vote_commit:Vec<u8>)-> dispatch::DispatchResult  {
-			let who = ensure_signed(origin.clone())?;
-			Self::check_citizen_associated_department(who.clone(), departmentid)?;
+			let who = ensure_signed(origin)?;
+			Self::check_citizen_associated_department(who, departmentid)?;
+			Self::check_nominee_associated_department(vote_account.clone(), departmentid, voting_cycle)?;
 			let status = VoteStatus::get((departmentid, voting_cycle, vote_commit.clone()));
 			match status {
 				Some(value) => {
 					if value == true {
-                      Self::reveal_vote_helper(vote_account, phrase, vote_commit)?;
+                      Self::reveal_vote_helper(departmentid, voting_cycle, vote_account, phrase, vote_commit)?;
 					  Ok(())
 					} else {
 						Err(Error::<T>::VoteAlreadyRevealed.into())
@@ -287,6 +298,20 @@ impl<T: Config> Module<T> {
 			Err(_) => Err(Error::<T>::DepartmentNotAssociated.into()),
 		}
 	}
+	fn check_nominee_associated_department(
+		who:T::AccountId,
+		departmentid: u128,
+		voting_cycle: u128,
+	) -> dispatch::DispatchResult {
+		let nominee = CandidatesNominees::<T>::get((departmentid, voting_cycle));
+		match nominee.binary_search(&who) {
+			Ok(_) => {
+				Self::deposit_event(RawEvent::NomineeDeparment(departmentid, voting_cycle, who));
+				Ok(())
+			}
+			Err(_) => Err(Error::<T>::DepartmentNotAssociated.into()),
+		}
+	}
 
 	fn add_vote(
 		departmentid: u128,
@@ -304,7 +329,7 @@ impl<T: Config> Module<T> {
 		Ok(())
 	}
 
-	fn reveal_vote_helper(vote_account:T::AccountId, phrase: Vec<u8>, vote_commit:Vec<u8>) -> dispatch::DispatchResult {
+	fn reveal_vote_helper(departmentid:u128, voting_cycle:u128, vote_account:T::AccountId, phrase: Vec<u8>, vote_commit:Vec<u8>) -> dispatch::DispatchResult {
 		let phrase_string = String::from_utf8(phrase.clone()).unwrap();
 		let account_string = vote_account.to_owned();
 		let vote_string = format!("{}-{}", account_string, phrase_string);
@@ -312,11 +337,22 @@ impl<T: Config> Module<T> {
 		hasher.update(vote_string.as_bytes());
 		let result = hasher.finalize();
 		let vote_hex = format!("{:x}", result);
-		let vote_commit_string = String::from_utf8(vote_commit).unwrap();
+		let vote_commit_string = String::from_utf8(vote_commit.clone()).unwrap();
 		if vote_hex != vote_commit_string {
 			Err(Error::<T>::CommitVoteMismatch.into())
 		} else {
-
+			let approval_votes_option = CandidateApprovalVotes::<T>::get((vote_account.clone(),departmentid, voting_cycle));
+			match approval_votes_option {
+				Some(votes) => {
+                 let new_votes = votes.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
+				 CandidateApprovalVotes::<T>::insert((vote_account,departmentid, voting_cycle), new_votes);
+				 VoteStatus::insert((departmentid, voting_cycle, vote_commit), false);
+				}
+				None => {
+					CandidateApprovalVotes::<T>::insert((vote_account,departmentid, voting_cycle), 1);
+					VoteStatus::insert((departmentid, voting_cycle, vote_commit), false);
+				}
+			}
 			Ok(())
 		}
 	}
