@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::codec::{Decode, Encode};
-use frame_support::sp_runtime::{RuntimeDebug};
+use frame_support::sp_runtime::RuntimeDebug;
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// https://substrate.dev/docs/en/knowledgebase/runtime/frame
@@ -9,8 +9,8 @@ use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, dispatch, ensure, traits::Get,
 };
 use frame_system::ensure_signed;
-use sha3::{Digest, Keccak256};
-use sp_std::vec::Vec;
+use sp_std::{str, vec::Vec};
+use sp_io;
 // use rand::distributions::WeightedIndex;
 // use rand::prelude::*;
 // use rand::{rngs::StdRng, SeedableRng};
@@ -41,26 +41,33 @@ pub struct DepartmentDetails {
 	pub details: Vec<u8>,
 	pub departmentid: u128,
 }
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, RuntimeDebug)]
+pub struct CitizenDetails {
+	pub profile_hash: Vec<u8>,
+	pub citizenid: u128,
+}
 // The pallet's runtime storage items.
 // https://substrate.dev/docs/en/knowledgebase/runtime/storage
 decl_storage! {
 	// A unique name is used to ensure that the pallet's storage items are isolated.
 	// This name may be updated, but each pallet in the runtime must use a unique name.
-	// ---------------------------------vvvvvvvvvvvvvv
 	trait Store for Module<T: Config> as TemplateModule {
 		// Learn more about declaring storage items:
 		// https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
 		DepartmentCount get(fn deparment_count): u128;
 		Admin get(fn admin) : T::AccountId;
-		Citizen get(fn candidate_name): map hasher(blake2_128_concat) T::AccountId => Option<Vec<u8>>; // Peer account address => Peer Profile Hash
+		CitizenCount get(fn citizen_count): u128;
+		CitizenId get(fn citizen_id): map hasher(blake2_128_concat) T::AccountId => Option<u128> ;
+		CitizenProfile get(fn citizen_details): map hasher(blake2_128_concat) u128 => CitizenDetails; // Peer account address => Peer Profile Hash
 		Department get(fn department_name): map hasher(blake2_128_concat) u128 => DepartmentDetails;// Deparment id => (Name, Location, Details hash)
-		OuterGroup get(fn outergroup): map hasher(blake2_128_concat) u128 => Vec<T::AccountId>; // Department id => Candidate account address set
-		InnerGroup get(fn innergroup): map hasher(blake2_128_concat) u128 => Vec<T::AccountId>; // Department id => Candidate account address set
-		FullGroup get(fn fullgroup): map hasher(blake2_128_concat) u128 => Vec<T::AccountId>; // Department id => Candidate account address set
-		PeerDepartments get(fn peer_deparments): map hasher(blake2_128_concat) T::AccountId => Vec<u128>; // Peer account address => Department id set
-		GovernorGroup get(fn governor_group): map hasher(blake2_128_concat) u128 => Vec<T::AccountId>; // Department id => Candidate account address set
-		CandidatesNominees get(fn candidate_nominee): map hasher(blake2_128_concat) (u128, u128) => Vec<T::AccountId>; // Department id, Voting cycle => Candidate account address set
-		CandidateApprovalVotes get(fn candidate_approval_votes): map hasher(blake2_128_concat) (T::AccountId, u128, u128) => Option<u128>; // Candidate account address, Department id, voting cycle=> Positive Votes
+		OuterGroup get(fn outergroup): map hasher(blake2_128_concat) u128 => Vec<u128>; // Department id => Candidate account address set
+		InnerGroup get(fn innergroup): map hasher(blake2_128_concat) u128 => Vec<u128>; // Department id => Candidate account address set
+		FullGroup get(fn fullgroup): map hasher(blake2_128_concat) u128 => Vec<u128>; // Department id => Candidate account address set
+		CitizenDepartments get(fn citizen_deparments): map hasher(blake2_128_concat) u128 => Vec<u128>; // Peer account address => Department id set
+		GovernorGroup get(fn governor_group): map hasher(blake2_128_concat) u128 => Vec<u128>; // Department id => Candidate account address set
+		CandidatesNominees get(fn candidate_nominee): map hasher(blake2_128_concat) (u128, u128) => Vec<u128>; // Department id, Voting cycle => Candidate account address set
+		CandidateApprovalVotes get(fn candidate_approval_votes): map hasher(blake2_128_concat) (u128, u128, u128) => Option<u128>; // Candidate account address, Department id, voting cycle=> Positive Votes
 		CommitPhaseEndBlockCount get(fn commitphase_endblockcount): map hasher(blake2_128_concat) u128 => Option<u32>; // Department id => Number of blocks after commit phase ends
 		VotingCycleTime get(fn voting_cycle_time): map hasher(blake2_128_concat) u128 => Option<u32>; // Department id => Voting cycle block count
 		DefaultCommitPhaseEndBlockCount get(fn default_commit_phase_blockcount): Option<u32> = Some(216000); // Default commit phase end block count for all departments, 15 days with block time of 6 secs
@@ -83,10 +90,10 @@ decl_event!(
 		/// parameters. [something, who]
 		SomethingStored(u32, AccountId),
 		CreateDepartment(u128, AccountId),
-		PeerDepartment(u128, AccountId),
+		CitizenDepartment(u128, AccountId),
 		CreateCitizen(AccountId, Vec<u8>),
 		VoteCast(u128, u128, u128), // Departement id, cycle, department vote count
-		NomineeDeparment(u128, u128, AccountId), 
+		NomineeDeparment(u128, u128, AccountId),
 	}
 );
 
@@ -100,6 +107,7 @@ decl_error! {
 		DepartmentExists,
 		DepartmentDoNotExists,
 		DepartmentNotAssociated,
+		ProfileExists,
 		NomineeExists,
 		CitizenDoNotExists,
 		AlreadyCommitUsed,
@@ -125,13 +133,31 @@ decl_module! {
 		// Create profile ✔️
 		// Update profile ✔️
 		// Validate profile (staking and schelling game) during add_peers_to_deparment
-		#[weight = 10_000 + T::DbWeight::get().reads_writes(2,1)]
+		#[weight = 10_000 + T::DbWeight::get().reads_writes(2,2)]
 		pub fn add_citizen(origin, profile_hash:Vec<u8>) -> dispatch::DispatchResult {
 			let who = ensure_signed(origin)?;
-			Citizen::<T>::insert(&who, &profile_hash);
-			Self::deposit_event(RawEvent::CreateCitizen(who, profile_hash));
-			Ok(())
+			let count = CitizenCount::get();
+			let citizenid_option = CitizenId::<T>::get(&who);
+			match citizenid_option {
+				Some(_citizen_id) => {
+					Err(Error::<T>::ProfileExists.into())
+				}
+				None => {
+					CitizenId::<T>::insert(&who, count);
+					let citizen_details = CitizenDetails {
+						profile_hash: profile_hash.clone(),
+						citizenid: count
+					};
+					CitizenProfile::insert(&count, citizen_details);
+					let newcount = count.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
+					Self::deposit_event(RawEvent::CreateCitizen(who, profile_hash));
+					CitizenCount::put(newcount);
+					Ok(())
+				}
+			}
 		}
+
+
 
 		// ⭐ To Do ⭐
 		// Who can add a department?
@@ -160,30 +186,31 @@ decl_module! {
 		// Check profile is created  ✔️
 		// Currently, direct approval ✔️
 		#[weight = 10_000 + T::DbWeight::get().reads_writes(3,2)]
-		pub fn add_peers_to_deparment(origin, departmentid: u128) -> dispatch::DispatchResult {
+		pub fn add_citizen_to_deparment(origin, departmentid: u128) -> dispatch::DispatchResult {
 			let who = ensure_signed(origin)?;
-			Self::check_citizen_profile_exists(&who)?;
+			let citizen_id = Self::get_citizen_id(&who)?;
 			let count = DepartmentCount::get();
 			ensure!(departmentid <= count, Error::<T>::DepartmentDoNotExists);
-			let mut approved_peer_dep = PeerDepartments::<T>::get(&who);
+			let mut approved_peer_dep = CitizenDepartments::get(&citizen_id);
 
 			match approved_peer_dep.binary_search(&departmentid) {
 				Ok(_) => Err(Error::<T>::DepartmentExists.into()),
 				Err(index) => {
 					approved_peer_dep.insert(index, departmentid.clone());
-					PeerDepartments::<T>::insert(&who,approved_peer_dep);
-					Self::deposit_event(RawEvent::PeerDepartment(departmentid, who));
+					CitizenDepartments::insert(&citizen_id,approved_peer_dep);
+					Self::deposit_event(RawEvent::CitizenDepartment(departmentid, who));
 					Ok(())
 				 }
 			}
 		 }
 
-		#[weight = 10_000 + T::DbWeight::get().reads_writes(1,0)]
-		pub fn check_deparment_of_citizen(origin, departmentid:u128) -> dispatch::DispatchResult {
-			let who = ensure_signed(origin)?;
-			Self::check_citizen_associated_department(who, departmentid)?;
-			Ok(())
-		}
+		// #[weight = 10_000 + T::DbWeight::get().reads_writes(1,0)]
+		// pub fn check_deparment_of_citizen(origin, departmentid:u128) -> dispatch::DispatchResult {
+		// 	let who = ensure_signed(origin)?;
+		// 	Self::check_citizen_associated_department(who.clone(), departmentid)?;
+		// 	Self::deposit_event(RawEvent::CitizenDepartment(departmentid, who));
+		// 	Ok(())
+		// }
 
 		// ⭐ Approval Voting ⭐
 
@@ -198,13 +225,13 @@ decl_module! {
 		#[weight = 10_000 + T::DbWeight::get().reads_writes(2,1)]
 		pub fn add_candidate_nominee(origin, departmentid:u128, voting_cycle: u128) -> dispatch::DispatchResult {
 			let who = ensure_signed(origin)?;
-			Self::check_citizen_associated_department(who.clone(), departmentid)?;
-			let mut candidate_nominees = CandidatesNominees::<T>::get((departmentid, voting_cycle));
-			match candidate_nominees.binary_search(&who) {
+			let citizen_id = Self::check_citizen_associated_department(who.clone(), departmentid)?;
+			let mut candidate_nominees = CandidatesNominees::get((departmentid, voting_cycle));
+			match candidate_nominees.binary_search(&citizen_id) {
 				Ok(_) => Err(Error::<T>::NomineeExists.into()),
 				Err(index) => {
-					candidate_nominees.insert(index, who);
-					CandidatesNominees::<T>::insert((departmentid, voting_cycle), candidate_nominees);
+					candidate_nominees.insert(index, citizen_id);
+					CandidatesNominees::insert((departmentid, voting_cycle), candidate_nominees);
 					Ok(())
 				}
 			}
@@ -213,9 +240,16 @@ decl_module! {
 		// ⭐ Commit Vote ⭐
 		// Check its in current voting cycle
 		// Check blocknumber has not passed the reveal time
-		// Check user is associated with department ✔️
-		// Check voting status is false or None to vote ✔️
-		// Add the commit to vote commit ✔️
+		// Check user is associated with department 
+		// Check voting status is None to vote 
+		// Add the commit to vote commit 
+		// Pass Vec of Vec<u8> commits hash
+		// Voter can call commit vote function multiple times to submit votes but phrase must be same
+		// Phrase for commits must be same, you can't check here, will be checked in reveal
+		// Same commit hash (or different phrase) not allowed, as voting twice a member is not allowed
+		// In reveal phase, delete the hash to reclaim storage,
+		//                  but keep the last hash and match on second reveal call or reveal in same call, so that phrase matches, 
+		//                  if at any time phrase don't match panic, to avoid voting twice a member with different phrase
 
 		#[weight = 10_000 + T::DbWeight::get().reads_writes(3,3)]
 		pub fn commit_vote(origin, departmentid:u128, voting_cycle:u128, vote_commit:Vec<u8>) -> dispatch::DispatchResult  {
@@ -237,7 +271,6 @@ decl_module! {
 			}
 
 		}
-       
 		// ⭐ Reveal Vote ⭐
 		// Check right voting cycle
 		// Check its right block number for reveal
@@ -248,15 +281,17 @@ decl_module! {
 		// Set status to false if reveal vote accepted ✔️
 
 		#[weight = 10_000 + T::DbWeight::get().reads_writes(3,3)]
-		pub fn reveal_vote(origin, departmentid:u128, voting_cycle:u128, vote_account:T::AccountId, phrase: Vec<u8>, vote_commit:Vec<u8>)-> dispatch::DispatchResult  {
+		pub fn reveal_vote(origin, departmentid:u128, voting_cycle:u128, voter_id:Vec<u8>, phrase: Vec<u8>, vote_commit:Vec<u8>)-> dispatch::DispatchResult  {
 			let who = ensure_signed(origin)?;
 			Self::check_citizen_associated_department(who, departmentid)?;
-			Self::check_nominee_associated_department(vote_account.clone(), departmentid, voting_cycle)?;
+			let s_voter_id = str::from_utf8(&voter_id).expect("utf8");
+			let num_voter_id = s_voter_id.parse::<u128>().expect("number");
+			Self::check_nominee_associated_department_by_id(num_voter_id, departmentid, voting_cycle)?;
 			let status = VoteStatus::get((departmentid, voting_cycle, vote_commit.clone()));
 			match status {
 				Some(value) => {
 					if value == true {
-                      Self::reveal_vote_helper(departmentid, voting_cycle, vote_account, phrase, vote_commit)?;
+					  Self::reveal_vote_helper(departmentid, voting_cycle, voter_id, phrase, vote_commit)?;
 					  Ok(())
 					} else {
 						Err(Error::<T>::VoteAlreadyRevealed.into())
@@ -270,6 +305,15 @@ decl_module! {
 
 		}
 
+		#[weight = 10_000 + T::DbWeight::get().reads_writes(3,3)]
+		pub fn test_hash(origin, phrase: Vec<u8>, hash:[u8; 32]) -> dispatch::DispatchResult   {
+            let phrase_bytes: &[u8] = &phrase;
+            let data = sp_io::hashing::keccak_256(phrase_bytes);
+			ensure!(data == hash, Error::<T>::CommitVoteMismatch);
+             Ok(())
+
+		}
+
 
 
 	}
@@ -277,38 +321,47 @@ decl_module! {
 
 // Helper functions
 impl<T: Config> Module<T> {
-	fn check_citizen_profile_exists(who: &T::AccountId) -> dispatch::DispatchResult {
-		let citizen = Citizen::<T>::get(&who);
+	fn get_citizen_id(who: &T::AccountId) -> Result<u128, dispatch::DispatchError> {
+		let citizen = CitizenId::<T>::get(&who);
 		match citizen {
-			Some(_) => Ok(()),
+			Some(id) => Ok(id),
 			None => Err(Error::<T>::CitizenDoNotExists.into()),
 		}
 	}
 	fn check_citizen_associated_department(
 		who: T::AccountId,
 		departmentid: u128,
-	) -> dispatch::DispatchResult {
-		let approved_peer_dep = PeerDepartments::<T>::get(&who);
+	) -> Result<u128, dispatch::DispatchError> {
+		let citizen_id = Self::get_citizen_id(&who)?;
+
+		let approved_peer_dep = CitizenDepartments::get(&citizen_id);
 
 		match approved_peer_dep.binary_search(&departmentid) {
-			Ok(_) => {
-				Self::deposit_event(RawEvent::PeerDepartment(departmentid, who));
-				Ok(())
-			}
+			Ok(_) => Ok(citizen_id),
 			Err(_) => Err(Error::<T>::DepartmentNotAssociated.into()),
 		}
 	}
-	fn check_nominee_associated_department(
-		who:T::AccountId,
+	fn _check_nominee_associated_department(
+		who: T::AccountId,
 		departmentid: u128,
 		voting_cycle: u128,
-	) -> dispatch::DispatchResult {
-		let nominee = CandidatesNominees::<T>::get((departmentid, voting_cycle));
-		match nominee.binary_search(&who) {
-			Ok(_) => {
-				Self::deposit_event(RawEvent::NomineeDeparment(departmentid, voting_cycle, who));
-				Ok(())
-			}
+	) -> Result<u128, dispatch::DispatchError> {
+		let citizen_id = Self::get_citizen_id(&who)?;
+		let nominee = CandidatesNominees::get((departmentid, voting_cycle));
+		match nominee.binary_search(&citizen_id) {
+			Ok(_) => Ok(citizen_id),
+			Err(_) => Err(Error::<T>::DepartmentNotAssociated.into()),
+		}
+	}
+
+	fn check_nominee_associated_department_by_id(
+		citizen_id: u128,
+		departmentid: u128,
+		voting_cycle: u128,
+	) -> Result<u128, dispatch::DispatchError> {
+		let nominee = CandidatesNominees::get((departmentid, voting_cycle));
+		match nominee.binary_search(&citizen_id) {
+			Ok(_) => Ok(citizen_id),
 			Err(_) => Err(Error::<T>::DepartmentNotAssociated.into()),
 		}
 	}
@@ -329,31 +382,39 @@ impl<T: Config> Module<T> {
 		Ok(())
 	}
 
-	fn reveal_vote_helper(departmentid:u128, voting_cycle:u128, vote_account:T::AccountId, phrase: Vec<u8>, vote_commit:Vec<u8>) -> dispatch::DispatchResult {
-		let phrase_string = String::from_utf8(phrase.clone()).unwrap();
-		let account_string = vote_account.to_owned();
-		let vote_string = format!("{}-{}", account_string, phrase_string);
-		let mut hasher = Keccak256::new();
-		hasher.update(vote_string.as_bytes());
-		let result = hasher.finalize();
-		let vote_hex = format!("{:x}", result);
-		let vote_commit_string = String::from_utf8(vote_commit.clone()).unwrap();
-		if vote_hex != vote_commit_string {
-			Err(Error::<T>::CommitVoteMismatch.into())
-		} else {
-			let approval_votes_option = CandidateApprovalVotes::<T>::get((vote_account.clone(),departmentid, voting_cycle));
-			match approval_votes_option {
-				Some(votes) => {
-                 let new_votes = votes.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
-				 CandidateApprovalVotes::<T>::insert((vote_account,departmentid, voting_cycle), new_votes);
-				 VoteStatus::insert((departmentid, voting_cycle, vote_commit), false);
-				}
-				None => {
-					CandidateApprovalVotes::<T>::insert((vote_account,departmentid, voting_cycle), 1);
-					VoteStatus::insert((departmentid, voting_cycle, vote_commit), false);
-				}
-			}
-			Ok(())
-		}
+	fn reveal_vote_helper(
+		departmentid: u128,
+		voting_cycle: u128,
+		mut voter_id: Vec<u8>,
+		mut phrase: Vec<u8>,
+		vote_commit: Vec<u8>,
+	) -> dispatch::DispatchResult {
+		let mut hyphen_vec = "-".as_bytes().to_vec();
+		voter_id.append(&mut hyphen_vec);
+		voter_id.append(&mut phrase);
+		let vote_bytes: &[u8] = &voter_id;
+		let data = sp_io::hashing::keccak_256(vote_bytes);
+		Ok(())
+		// let vote_commit_bytes: &[u8] = &vote_commit;
+		// if &result[..] == vote_commit_bytes {
+		// 	//
+		// }
+		// let vote_commit_string = String::from_utf8(vote_commit.clone()).unwrap();
+		// if vote_hex != vote_commit_string {
+		// 	Err(Error::<T>::CommitVoteMismatch.into())
+		// } else {
+		// 	let approval_votes_option = CandidateApprovalVotes::<T>::get((vote_account.clone(),departmentid, voting_cycle));
+		// 	match approval_votes_option {
+		// 		Some(votes) => {
+		//          let new_votes = votes.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
+		// 		 CandidateApprovalVotes::<T>::insert((vote_account,departmentid, voting_cycle), new_votes);
+		// 		 VoteStatus::insert((departmentid, voting_cycle, vote_commit), false);
+		// 		}
+		// 		None => {
+		// 			CandidateApprovalVotes::<T>::insert((vote_account,departmentid, voting_cycle), 1);
+		// 			VoteStatus::insert((departmentid, voting_cycle, vote_commit), false);
+		// 		}
+		// 	}
+		// }
 	}
 }
