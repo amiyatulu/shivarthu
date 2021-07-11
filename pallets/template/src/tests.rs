@@ -173,6 +173,25 @@ fn commit_vote() {
 	new_test_ext().execute_with(|| create_commit_vote());
 }
 
+#[test]
+fn test_seq_phragmen() {
+	new_test_ext().execute_with(|| {
+		let mut candidates = Vec::new();
+		for number in 1..10 {
+			candidates.push(number);
+		}
+		let mut voters = Vec::new();
+		for number in 10..20 {
+			voters.push(number);
+		}
+
+		let _result = TemplateModule::my_test_seq_phragmen(Origin::signed(1), candidates, voters );
+
+
+	})
+
+}
+
 // #[test]
 // fn reveal_vote() {
 // 	new_test_ext().execute_with(|| {

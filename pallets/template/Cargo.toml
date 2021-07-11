@@ -24,6 +24,8 @@ frame-system = { default-features = false, version = '3.0.0' }
 sp-std = { default-features = false, version = '3.0.0' }
 rand =  { default-features = false, version = '0.7.3' }
 sp-io = { default-features = false, version = '3.0.0' }
+sp-npos-elections = { default-features = false, version = '3.0.0' }
+sp-runtime = { default-features = false, version = '3.0.0' }
 
 
 
@@ -41,4 +43,6 @@ std = [
     'frame-system/std',
     'sp-std/std',
     'sp-io/std',
+    'sp-npos-elections/std',
+    'sp-runtime/std',
 ]

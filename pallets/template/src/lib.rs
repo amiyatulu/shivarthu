@@ -11,6 +11,9 @@ use frame_support::{
 use frame_system::ensure_signed;
 use sp_std::{str, vec::Vec};
 use sp_io;
+use sp_npos_elections::{seq_phragmen, ElectionResult, PerThing128};
+use sp_runtime::{Perbill};
+
 // use rand::distributions::WeightedIndex;
 // use rand::prelude::*;
 // use rand::{rngs::StdRng, SeedableRng};
@@ -312,6 +315,22 @@ decl_module! {
 			ensure!(data == hash, Error::<T>::CommitVoteMismatch);
              Ok(())
 
+		}
+        
+		#[weight = 10_000 + T::DbWeight::get().reads_writes(3,3)]
+		pub fn my_test_seq_phragmen(origin, candidates: Vec<T::AccountId>, voters: Vec<T::AccountId>) -> dispatch::DispatchResult {
+			// (rounds: usize, initial_candidates: Vec<AccountId>, initial_voters: Vec<(AccountId, VoteWeight, Vec<AccountId>)>, balance: Option<(usize, ExtendedBalance)>)
+			let mut initial_voters = Vec::new();
+			let candidatevote1 = candidates[5..7].iter().cloned().collect::<Vec<_>>();
+			println!("{:?}", candidatevote1);
+			initial_voters.push((voters[0].clone(), 50, candidatevote1 ));
+			let candidatevote2 = candidates[2..7].iter().cloned().collect::<Vec<_>>();
+			println!("{:?}", candidatevote2);
+			initial_voters.push((voters[1].clone(), 50, candidatevote2 ));
+			
+			let result = seq_phragmen::<T::AccountId, Perbill>(5, candidates, initial_voters, None);
+			println!("{:?}", result.unwrap().winners);
+			Ok(())
 		}
 
 
