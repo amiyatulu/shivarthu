@@ -34,6 +34,12 @@ git = 'https://github.com/paritytech/substrate.git'
 tag = 'monthly-2021-08'
 version = '4.0.0-dev'
 
+[dev-dependencies.pallet-balances]
+default-features = false
+git = 'https://github.com/paritytech/substrate.git'
+tag = 'monthly-2021-08'
+version = '4.0.0-dev'
+
 [dependencies.codec]
 default-features = false
 features = ['derive']
@@ -67,5 +73,6 @@ std = [
     'frame-support/std',
     'frame-system/std',
     'frame-benchmarking/std',
+    'pallet-balances/std',
 ]
 try-runtime = ['frame-support/try-runtime']

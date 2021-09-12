@@ -14,16 +14,30 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+mod types;
+
 #[frame_support::pallet]
 pub mod pallet {
+	use crate::types::{CitizenDetails, DepartmentDetails, ProfileFundInfo};
 	use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
+	use frame_support::{
+		traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
+		PalletId,
+	};
 	use frame_system::pallet_prelude::*;
+
+	type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
+	type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
+	type ProfileFundInfoOf<T> =
+		ProfileFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber>;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+		type Currency: ReservableCurrency<Self::AccountId>;
 	}
 
 	#[pallet::pallet]
@@ -52,12 +66,19 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn citizen_id)]
-	pub type CitizenId<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, u128>;
+	pub type CitizenId<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, u128>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn citizen_profile)]
 	pub type CitizenProfile<T> = StorageMap<_, Blake2_128Concat, u128, CitizenDetails>; // Peer account id => Peer Profile Hash
+
+	// Registration Fees
+	#[pallet::storage]
+	#[pallet::getter(fn profile_registration_fees)]
+	pub type FundProfileValidation<T> = StorageMap<_, Blake2_128Concat, u128, ProfileFundInfoOf<T>>;
+
+	// #[pallet::storage]
+	// #[pallet::getter(fn citizen_profile_status)]
 
 	#[pallet::storage]
 	#[pallet::getter(fn department_profile)]
@@ -85,13 +106,11 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn candidate_nominee)]
-	pub type CandidateNominees<T> =
-		StorageMap<_, Blake2_128Concat, (u128, u128), Vec<u128>>; // Department id, Voting cycle => Candidate account address set
+	pub type CandidateNominees<T> = StorageMap<_, Blake2_128Concat, (u128, u128), Vec<u128>>; // Department id, Voting cycle => Candidate account address set
 
 	#[pallet::storage]
 	#[pallet::getter(fn candidate_approval_votes)]
-	pub type CandidateApprovalVotes<T> =
-		StorageMap<_, Blake2_128Concat, (u128, u128, u128), u128>; // Candidate account address, Department id, voting cycle=> Positive Votes
+	pub type CandidateApprovalVotes<T> = StorageMap<_, Blake2_128Concat, (u128, u128, u128), u128>; // Candidate account address, Department id, voting cycle=> Positive Votes
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -129,20 +148,6 @@ pub mod pallet {
 		CommitVoteMismatch,
 	}
 
-	#[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, RuntimeDebug)]
-	pub struct DepartmentDetails {
-		pub name: Vec<u8>,
-		pub location: Vec<u8>,
-		pub details: Vec<u8>,
-		pub departmentid: u128,
-	}
-
-	#[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, RuntimeDebug)]
-	pub struct CitizenDetails {
-		pub profile_hash: Vec<u8>,
-		pub citizenid: u128,
-	}
-
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
 	// These functions materialize as "extrinsics", which are often compared to transactions.
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
@@ -165,6 +170,14 @@ pub mod pallet {
 					Ok(())
 				}
 			}
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn add_profile_fund(origin: OriginFor<T>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			
+			Ok(())
+
 		}
 
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to

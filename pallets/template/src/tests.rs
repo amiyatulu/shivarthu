@@ -1,4 +1,4 @@
-use crate::{mock::*, Error, pallet::*};
+use crate::{mock::*, Error, types::{CitizenDetails}};
 use frame_support::{assert_noop, assert_ok};
 
 
