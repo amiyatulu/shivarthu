@@ -25,11 +25,14 @@ pub mod pallet {
 		PalletId,
 	};
 	use frame_system::pallet_prelude::*;
+	use frame_support::sp_runtime::SaturatedConversion;
+	use frame_support::sp_std::{vec::Vec};
 
 	type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
 	type ProfileFundInfoOf<T> =
 		ProfileFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber>;
+	type CitizenDetailsOf<T> = CitizenDetails<AccountIdOf<T>>;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -70,11 +73,19 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn citizen_profile)]
-	pub type CitizenProfile<T> = StorageMap<_, Blake2_128Concat, u128, CitizenDetails>; // Peer account id => Peer Profile Hash
+	pub type CitizenProfile<T> = StorageMap<_, Blake2_128Concat, u128, CitizenDetailsOf<T>>; // Peer account id => Peer Profile Hash
 
 	// Registration Fees
+
+	#[pallet::type_value]
+    pub fn DefaultRegistrationFees<T: Config>() -> BalanceOf<T> { 100u128.saturated_into::<BalanceOf<T>>()}
+
 	#[pallet::storage]
 	#[pallet::getter(fn profile_registration_fees)]
+	pub type RegistrationFee<T> = StorageValue<_, BalanceOf<T>, ValueQuery, DefaultRegistrationFees<T>>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn profile_fund)]
 	pub type FundProfileValidation<T> = StorageMap<_, Blake2_128Concat, u128, ProfileFundInfoOf<T>>;
 
 	// #[pallet::storage]
@@ -136,6 +147,9 @@ pub mod pallet {
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
 
+		InvalidIndex,
+		FailedUnwrap,
+
 		DepartmentExists,
 		DepartmentDoNotExists,
 		DepartmentNotAssociated,
@@ -161,8 +175,11 @@ pub mod pallet {
 				Some(_citizen_id) => Err(Error::<T>::ProfileExists)?,
 				None => {
 					<CitizenId<T>>::insert(&who, count);
-					let citizen_details =
-						CitizenDetails { profile_hash: profile_hash.clone(), citizenid: count };
+					let citizen_details = CitizenDetails {
+						profile_hash: profile_hash.clone(),
+						citizenid: count,
+						accountid: who.clone(),
+					};
 					<CitizenProfile<T>>::insert(&count, citizen_details);
 					let newcount = count.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
 					<CitizenCount<T>>::put(newcount);
@@ -173,11 +190,20 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn add_profile_fund(origin: OriginFor<T>) -> DispatchResult {
+		pub fn add_profile_fund(origin: OriginFor<T>, citizenid: u128) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			
-			Ok(())
+			let citizen_account_id = Self::_get_citizen_accountid(citizenid)?;
+			let deposit = <RegistrationFee<T>>::get();
 
+			let imb = T::Currency::withdraw(
+				&who,
+				deposit,
+				WithdrawReasons::TRANSFER,
+				ExistenceRequirement::AllowDeath,
+			)?;
+
+
+			Ok(())
 		}
 
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
@@ -215,6 +241,13 @@ pub mod pallet {
 					Ok(())
 				}
 			}
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		fn _get_citizen_accountid(citizenid: u128) -> Result<T::AccountId, DispatchError> {
+			let profile = Self::citizen_profile(citizenid).ok_or(Error::<T>::InvalidIndex)?;
+			Ok(profile.accountid)
 		}
 	}
 }

@@ -1,4 +1,5 @@
 use frame_support::{pallet_prelude::*};
+use frame_support::sp_std::{vec::Vec};
 
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, RuntimeDebug)]
@@ -10,9 +11,10 @@ pub struct DepartmentDetails {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, RuntimeDebug)]
-pub struct CitizenDetails {
+pub struct CitizenDetails<AccountId> {
     pub profile_hash: Vec<u8>,
     pub citizenid: u128,
+    pub accountid: AccountId,
 }
 
 
@@ -21,7 +23,6 @@ pub struct CitizenDetails {
 pub struct ProfileFundInfo<Balance, BlockNumber> {
     pub deposit: Balance,
     pub start: BlockNumber,
-
 }
 
 

@@ -32,6 +32,7 @@ fn create_profile_test() {
 		let citizen_profile = CitizenDetails {
 			profile_hash: "hashcode".as_bytes().to_vec(),
 			citizenid: 0,
+			accountid: 1,
 		};
 		assert_eq!(TemplateModule::citizen_profile(0), Some(citizen_profile));
 	});
