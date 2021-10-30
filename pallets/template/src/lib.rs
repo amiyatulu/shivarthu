@@ -19,20 +19,25 @@ mod types;
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::types::{CitizenDetails, DepartmentDetails, ProfileFundInfo};
+	use frame_support::sp_runtime::traits::AccountIdConversion;
+	use frame_support::sp_runtime::SaturatedConversion;
+	use frame_support::sp_std::vec::Vec;
 	use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 	use frame_support::{
 		traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
 		PalletId,
 	};
 	use frame_system::pallet_prelude::*;
-	use frame_support::sp_runtime::SaturatedConversion;
-	use frame_support::sp_std::{vec::Vec};
 
 	type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
 	type ProfileFundInfoOf<T> =
 		ProfileFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber>;
 	type CitizenDetailsOf<T> = CitizenDetails<AccountIdOf<T>>;
+
+	type FundIndex = u32;
+
+	const PALLET_ID: PalletId = PalletId(*b"ex/cfund");
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -78,15 +83,18 @@ pub mod pallet {
 	// Registration Fees
 
 	#[pallet::type_value]
-    pub fn DefaultRegistrationFees<T: Config>() -> BalanceOf<T> { 100u128.saturated_into::<BalanceOf<T>>()}
+	pub fn DefaultRegistrationFees<T: Config>() -> BalanceOf<T> {
+		100u128.saturated_into::<BalanceOf<T>>()
+	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn profile_registration_fees)]
-	pub type RegistrationFee<T> = StorageValue<_, BalanceOf<T>, ValueQuery, DefaultRegistrationFees<T>>;
+	pub type RegistrationFee<T> =
+		StorageValue<_, BalanceOf<T>, ValueQuery, DefaultRegistrationFees<T>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn profile_fund)]
-	pub type FundProfileValidation<T> = StorageMap<_, Blake2_128Concat, u128, ProfileFundInfoOf<T>>;
+	pub type FundProfileDetails<T> = StorageMap<_, Blake2_128Concat, u128, ProfileFundInfoOf<T>>;
 
 	// #[pallet::storage]
 	// #[pallet::getter(fn citizen_profile_status)]
@@ -126,7 +134,6 @@ pub mod pallet {
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
-	#[pallet::metadata(T::AccountId = "AccountId")]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Event documentation should end with an array that provides descriptive names for event
@@ -154,6 +161,7 @@ pub mod pallet {
 		DepartmentDoNotExists,
 		DepartmentNotAssociated,
 		ProfileExists,
+		ProfileFundExists,
 		NomineeExists,
 		CitizenDoNotExists,
 		AlreadyCommitUsed,
@@ -192,8 +200,9 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn add_profile_fund(origin: OriginFor<T>, citizenid: u128) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			let citizen_account_id = Self::_get_citizen_accountid(citizenid)?;
+			let _citizen_account_id = Self::_get_citizen_accountid(citizenid)?;
 			let deposit = <RegistrationFee<T>>::get();
+			let now = <frame_system::Pallet<T>>::block_number();
 
 			let imb = T::Currency::withdraw(
 				&who,
@@ -202,6 +211,17 @@ pub mod pallet {
 				ExistenceRequirement::AllowDeath,
 			)?;
 
+			T::Currency::resolve_creating(&Self::fund_profile(), imb);
+
+			match <FundProfileDetails<T>>::get(&citizenid) {
+				// 📝 To write update stake for reapply when disapproved
+				Some(_profilefundinfo) => Err(Error::<T>::ProfileExists)?,
+				None => {
+					let profile_fund_info =
+						ProfileFundInfo { deposit, start: now, validated: false };
+					<FundProfileDetails<T>>::insert(&citizenid, profile_fund_info);
+				}
+			}
 
 			Ok(())
 		}
@@ -248,6 +268,10 @@ pub mod pallet {
 		fn _get_citizen_accountid(citizenid: u128) -> Result<T::AccountId, DispatchError> {
 			let profile = Self::citizen_profile(citizenid).ok_or(Error::<T>::InvalidIndex)?;
 			Ok(profile.accountid)
+		}
+
+		fn fund_profile() -> T::AccountId {
+			PALLET_ID.into_sub_account(1)
 		}
 	}
 }
