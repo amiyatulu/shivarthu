@@ -27,5 +27,19 @@ pub struct ProfileFundInfo<Balance, BlockNumber> {
     pub validated: bool,
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub enum SchellingType {
+    ProfileApproval{ citizen_id: u128 }
+}
+
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub struct StakeDetails<Balance, BlockNumber> {
+    pub stake: Balance,
+    pub start: BlockNumber,
+}
+
 
 

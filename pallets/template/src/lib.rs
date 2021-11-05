@@ -18,7 +18,7 @@ mod types;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use crate::types::{CitizenDetails, DepartmentDetails, ProfileFundInfo};
+	use crate::types::{CitizenDetails, DepartmentDetails, ProfileFundInfo, SchellingType};
 	use frame_support::sp_runtime::traits::AccountIdConversion;
 	use frame_support::sp_runtime::SaturatedConversion;
 	use frame_support::sp_std::vec::Vec;
@@ -131,6 +131,17 @@ pub mod pallet {
 	#[pallet::getter(fn candidate_approval_votes)]
 	pub type CandidateApprovalVotes<T> = StorageMap<_, Blake2_128Concat, (u128, u128, u128), u128>; // Candidate account address, Department id, voting cycle=> Positive Votes
 
+
+	// Schelling Game Storage
+
+	#[pallet::storage]
+	#[pallet::getter(fn schelling_stake)]
+	pub type SchellingStake<T> = StorageDoubleMap<_, Twox64Concat, u128, Twox64Concat, SchellingType, u32>; // (citizen id, schelling type => stake)
+
+
+
+
+
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
@@ -225,6 +236,20 @@ pub mod pallet {
 
 			Ok(())
 		}
+
+
+		// Generic Schelling game
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn apply_jurors(origin: OriginFor<T>, schellingtype: SchellingType, stake: u32) -> DispatchResult {
+			match schellingtype {
+				SchellingType::ProfileApproval{citizen_id} => {
+					Ok(())
+				}
+			}
+
+		}
+
+
 
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.

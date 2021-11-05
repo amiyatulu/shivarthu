@@ -1,6 +1,9 @@
-use crate::{mock::*, Error, types::{CitizenDetails}};
+use crate::{
+	mock::*,
+	types::{CitizenDetails, ProfileFundInfo},
+	Error,
+};
 use frame_support::{assert_noop, assert_ok};
-
 
 #[test]
 fn it_works_for_default_value() {
@@ -20,14 +23,10 @@ fn correct_error_for_none_value() {
 	});
 }
 
-
 #[test]
 fn create_profile_test() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(TemplateModule::add_citizen(
-			Origin::signed(1),
-			"hashcode".as_bytes().to_vec()
-		));
+		assert_ok!(TemplateModule::add_citizen(Origin::signed(1), "hashcode".as_bytes().to_vec()));
 		assert_eq!(TemplateModule::citizen_count(), 1);
 		let citizen_profile = CitizenDetails {
 			profile_hash: "hashcode".as_bytes().to_vec(),
@@ -35,5 +34,16 @@ fn create_profile_test() {
 			accountid: 1,
 		};
 		assert_eq!(TemplateModule::citizen_profile(0), Some(citizen_profile));
+	});
+}
+
+#[test]
+fn profile_fund_test() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(TemplateModule::add_citizen(Origin::signed(1), "hashcode".as_bytes().to_vec()));
+		assert_ok!(TemplateModule::add_profile_fund(Origin::signed(2), 0));
+		let profile_fundinfocheck = ProfileFundInfo { deposit: 100, start: 0, validated: false };
+		let profile_fundinfo = TemplateModule::profile_fund(0);
+		assert_eq!(profile_fundinfo, Some(profile_fundinfocheck));
 	});
 }
