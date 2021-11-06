@@ -42,7 +42,7 @@ fn profile_fund_test() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(TemplateModule::add_citizen(Origin::signed(1), "hashcode".as_bytes().to_vec()));
 		assert_ok!(TemplateModule::add_profile_fund(Origin::signed(2), 0));
-		let profile_fundinfocheck = ProfileFundInfo { deposit: 100, start: 0, validated: false };
+		let profile_fundinfocheck = ProfileFundInfo { deposit: 100, start: 0, validated: false, reapply: false };
 		let profile_fundinfo = TemplateModule::profile_fund(0);
 		assert_eq!(profile_fundinfo, Some(profile_fundinfocheck));
 	});

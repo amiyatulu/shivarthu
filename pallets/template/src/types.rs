@@ -25,6 +25,7 @@ pub struct ProfileFundInfo<Balance, BlockNumber> {
     pub deposit: Balance,
     pub start: BlockNumber,
     pub validated: bool,
+    pub reapply: bool,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]

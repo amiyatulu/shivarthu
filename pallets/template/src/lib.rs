@@ -131,16 +131,12 @@ pub mod pallet {
 	#[pallet::getter(fn candidate_approval_votes)]
 	pub type CandidateApprovalVotes<T> = StorageMap<_, Blake2_128Concat, (u128, u128, u128), u128>; // Candidate account address, Department id, voting cycle=> Positive Votes
 
-
 	// Schelling Game Storage
 
 	#[pallet::storage]
 	#[pallet::getter(fn schelling_stake)]
-	pub type SchellingStake<T> = StorageDoubleMap<_, Twox64Concat, u128, Twox64Concat, SchellingType, u32>; // (citizen id, schelling type => stake)
-
-
-
-
+	pub type SchellingStake<T> =
+		StorageDoubleMap<_, Twox64Concat, u128, Twox64Concat, SchellingType, u32>; // (citizen id, schelling type => stake)
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -179,6 +175,9 @@ pub mod pallet {
 		VoteAlreadyRevealed,
 		VoteCommitNotPresent,
 		CommitVoteMismatch,
+		ProfileNotFunded,
+		ProfileValidationOver,
+		AlreadyStaked,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -211,7 +210,7 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn add_profile_fund(origin: OriginFor<T>, citizenid: u128) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			let _citizen_account_id = Self::_get_citizen_accountid(citizenid)?;
+			let _citizen_account_id = Self::get_citizen_accountid(citizenid)?;
 			let deposit = <RegistrationFee<T>>::get();
 			let now = <frame_system::Pallet<T>>::block_number();
 
@@ -229,7 +228,7 @@ pub mod pallet {
 				Some(_profilefundinfo) => Err(Error::<T>::ProfileExists)?,
 				None => {
 					let profile_fund_info =
-						ProfileFundInfo { deposit, start: now, validated: false };
+						ProfileFundInfo { deposit, start: now, validated: false, reapply: false };
 					<FundProfileDetails<T>>::insert(&citizenid, profile_fund_info);
 				}
 			}
@@ -237,19 +236,28 @@ pub mod pallet {
 			Ok(())
 		}
 
-
 		// Generic Schelling game
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn apply_jurors(origin: OriginFor<T>, schellingtype: SchellingType, stake: u32) -> DispatchResult {
+		pub fn apply_jurors(
+			origin: OriginFor<T>,
+			schellingtype: SchellingType,
+			stake: u32,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let who_citizen_id = Self::get_citizen_id(who)?;
 			match schellingtype {
-				SchellingType::ProfileApproval{citizen_id} => {
+				SchellingType::ProfileApproval { citizen_id } => {
+					let _profile_added = Self::profile_fund_added(citizen_id);
+					match <SchellingStake<T>>::get(&who_citizen_id, &schellingtype) {
+						Some(_stake) => Err(Error::<T>::AlreadyStaked)?,
+						None => {
+							<SchellingStake<T>>::insert(&who_citizen_id, &schellingtype, stake);
+						}
+					}
 					Ok(())
 				}
 			}
-
 		}
-
-
 
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
@@ -290,9 +298,31 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		fn _get_citizen_accountid(citizenid: u128) -> Result<T::AccountId, DispatchError> {
+		fn get_citizen_accountid(citizenid: u128) -> Result<T::AccountId, DispatchError> {
 			let profile = Self::citizen_profile(citizenid).ok_or(Error::<T>::InvalidIndex)?;
 			Ok(profile.accountid)
+		}
+
+		fn get_citizen_id(accountid: T::AccountId) -> Result<u128, DispatchError> {
+			match Self::citizen_id(accountid) {
+				Some(citizen_id) => Ok(citizen_id),
+				None => Err(Error::<T>::ProfileNotFunded)?,
+			}
+		}
+
+		fn profile_fund_added(citizenid: u128) -> DispatchResult {
+			match <FundProfileDetails<T>>::get(&citizenid) {
+				Some(profilefundinfo) => {
+					let validated = profilefundinfo.validated;
+					let reapply = profilefundinfo.reapply;
+					if validated == false && reapply == false {
+						Ok(())
+					} else {
+						Err(Error::<T>::ProfileValidationOver)?
+					}
+				}
+				None => Err(Error::<T>::ProfileNotFunded)?,
+			}
 		}
 
 		fn fund_profile() -> T::AccountId {
