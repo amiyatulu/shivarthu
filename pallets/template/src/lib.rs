@@ -18,7 +18,9 @@ mod types;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use crate::types::{CitizenDetails, DepartmentDetails, ProfileFundInfo, SchellingType};
+	use crate::types::{
+		CitizenDetails, DepartmentDetails, ProfileFundInfo, SchellingType, StakeDetails,
+	};
 	use frame_support::sp_runtime::traits::AccountIdConversion;
 	use frame_support::sp_runtime::SaturatedConversion;
 	use frame_support::sp_std::vec::Vec;
@@ -27,6 +29,7 @@ pub mod pallet {
 		traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
 		PalletId,
 	};
+	use frame_support::sp_runtime::traits::CheckedSub;
 	use frame_system::pallet_prelude::*;
 
 	type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -135,8 +138,14 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn schelling_stake)]
-	pub type SchellingStake<T> =
-		StorageDoubleMap<_, Twox64Concat, u128, Twox64Concat, SchellingType, u32>; // (citizen id, schelling type => stake)
+	pub type SchellingStake<T> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		u128,
+		Twox64Concat,
+		SchellingType,
+		StakeDetails<BalanceOf<T>>,
+	>; // (citizen id, schelling type => stake)
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -178,6 +187,7 @@ pub mod pallet {
 		ProfileNotFunded,
 		ProfileValidationOver,
 		AlreadyStaked,
+		ApplyJurorTimeNotEnded,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -237,26 +247,52 @@ pub mod pallet {
 		}
 
 		// Generic Schelling game
+		// 1. Adding to SchellingStake ✔️
+		// 2. Check for minimum stake ❌
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn apply_jurors(
 			origin: OriginFor<T>,
 			schellingtype: SchellingType,
-			stake: u32,
+			stake: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let who_citizen_id = Self::get_citizen_id(who)?;
+			let stake_info = StakeDetails { stake };
 			match schellingtype {
 				SchellingType::ProfileApproval { citizen_id } => {
 					let _profile_added = Self::profile_fund_added(citizen_id);
 					match <SchellingStake<T>>::get(&who_citizen_id, &schellingtype) {
 						Some(_stake) => Err(Error::<T>::AlreadyStaked)?,
 						None => {
-							<SchellingStake<T>>::insert(&who_citizen_id, &schellingtype, stake);
+							<SchellingStake<T>>::insert(
+								&who_citizen_id,
+								&schellingtype,
+								stake_info,
+							);
 						}
 					}
 					Ok(())
 				}
 			}
+		}
+
+		// Draw jurors
+		// Check whether juror application time is over, if not throw error
+		// Check mininum number of juror staked
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn draw_jurors(origin: OriginFor<T>, schellingtype: SchellingType) -> DispatchResult {
+			let now = <frame_system::Pallet<T>>::block_number();
+			match schellingtype {
+				SchellingType::ProfileApproval { citizen_id } => {
+					let profilefundinfo = Self::get_profile_fund_info(citizen_id)?;
+					let start_block = profilefundinfo.start;
+					let data = now.checked_sub(&start_block).unwrap();
+					if data < 432000u128.saturated_into::<BlockNumberFor<T>>() {
+						Err(Error::<T>::ApplyJurorTimeNotEnded)?
+					}
+				}
+			}
+			Ok(())
 		}
 
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
@@ -317,6 +353,21 @@ pub mod pallet {
 					let reapply = profilefundinfo.reapply;
 					if validated == false && reapply == false {
 						Ok(())
+					} else {
+						Err(Error::<T>::ProfileValidationOver)?
+					}
+				}
+				None => Err(Error::<T>::ProfileNotFunded)?,
+			}
+		}
+
+		fn get_profile_fund_info(citizenid: u128) -> Result<ProfileFundInfoOf<T>, DispatchError> {
+			match <FundProfileDetails<T>>::get(&citizenid) {
+				Some(profilefundinfo) => {
+					let validated = profilefundinfo.validated;
+					let reapply = profilefundinfo.reapply;
+					if validated == false && reapply == false {
+						Ok(profilefundinfo)
 					} else {
 						Err(Error::<T>::ProfileValidationOver)?
 					}

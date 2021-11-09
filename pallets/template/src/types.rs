@@ -37,9 +37,8 @@ pub enum SchellingType {
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
-pub struct StakeDetails<Balance, BlockNumber> {
+pub struct StakeDetails<Balance> {
     pub stake: Balance,
-    pub start: BlockNumber,
 }
 
 
