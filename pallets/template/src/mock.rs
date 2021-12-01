@@ -6,6 +6,7 @@ use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
+use frame_support_test::TestRandomness;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -57,6 +58,7 @@ impl system::Config for Test {
 impl pallet_template::Config for Test {
 	type Event = Event;
 	type Currency = Balances; // New code
+	type RandomnessSource = TestRandomness<Self>;
 }
 
 impl pallet_balances::Config for Test {

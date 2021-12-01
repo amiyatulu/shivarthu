@@ -73,6 +73,12 @@ git = 'https://github.com/paritytech/substrate.git'
 tag = 'monthly-2021-10'
 version = '4.0.0-dev'
 
+[dev-dependencies.frame-support-test ]
+default-features = false
+git = 'https://github.com/paritytech/substrate.git'
+tag = 'monthly-2021-10'
+version = '3.0.0-dev'
+
 
 
 [features]
@@ -85,6 +91,6 @@ std = [
     'frame-system/std',
     'frame-benchmarking/std',
     'pallet-balances/std',
-    'sp-runtime/std',
+    'sp-runtime/std'
 ]
 try-runtime = ['frame-support/try-runtime']

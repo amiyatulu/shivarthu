@@ -1,5 +1,5 @@
 use frame_support::{pallet_prelude::*};
-use frame_support::sp_std::{vec::Vec};
+use frame_support::sp_std::{vec::Vec, collections::btree_map::BTreeMap};
 use scale_info::TypeInfo;
 
 
@@ -40,6 +40,18 @@ pub enum SchellingType {
 pub struct StakeDetails<Balance> {
     pub stake: Balance,
 }
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub struct SortitionSumTree {
+    pub k: u128,
+    pub stack: Vec<u128>,
+    pub nodes: Vec<u128>,
+    pub ids_to_tree_indexes: BTreeMap<Vec<u8>, u128>,
+    pub node_indexes_to_ids: BTreeMap<u128, Vec<u8>>,
+}
+
+
 
 
 

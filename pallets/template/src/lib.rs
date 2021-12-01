@@ -19,17 +19,19 @@ mod types;
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::types::{
-		CitizenDetails, DepartmentDetails, ProfileFundInfo, SchellingType, StakeDetails,
+		CitizenDetails, DepartmentDetails, ProfileFundInfo, SchellingType, SortitionSumTree,
+		StakeDetails,
 	};
 	use frame_support::sp_runtime::traits::AccountIdConversion;
+	use frame_support::sp_runtime::traits::CheckedSub;
 	use frame_support::sp_runtime::SaturatedConversion;
-	use frame_support::sp_std::vec::Vec;
+	use frame_support::sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 	use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
+	use frame_support::{sp_runtime::app_crypto::sp_core::H256, traits::Randomness};
 	use frame_support::{
 		traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
 		PalletId,
 	};
-	use frame_support::sp_runtime::traits::CheckedSub;
 	use frame_system::pallet_prelude::*;
 
 	type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -49,6 +51,8 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
 		type Currency: ReservableCurrency<Self::AccountId>;
+
+		type RandomnessSource: Randomness<Self::Hash, Self::BlockNumber>;
 	}
 
 	#[pallet::pallet]
@@ -62,6 +66,9 @@ pub mod pallet {
 	// Learn more about declaring storage items:
 	// https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
 	pub type Something<T> = StorageValue<_, u32>;
+
+	#[pallet::storage]
+	pub type Nonce<T> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn department_count)]
@@ -147,6 +154,10 @@ pub mod pallet {
 		StakeDetails<BalanceOf<T>>,
 	>; // (citizen id, schelling type => stake)
 
+	#[pallet::storage]
+	#[pallet::getter(fn sortition_sum_trees)]
+	pub type SortitionSumTrees<T> = StorageMap<_, Blake2_128Concat, Vec<u8>, SortitionSumTree>;
+
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
@@ -188,6 +199,8 @@ pub mod pallet {
 		ProfileValidationOver,
 		AlreadyStaked,
 		ApplyJurorTimeNotEnded,
+		KMustGreaterThanOne,
+		TreeAlreadyExists,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -295,6 +308,30 @@ pub mod pallet {
 			Ok(())
 		}
 
+		// SortitionSumTree
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn create_tree(origin: OriginFor<T>, key: Vec<u8>, k: u128) -> DispatchResult {
+			if k < 1 {
+				Err(Error::<T>::KMustGreaterThanOne)?
+			}
+			let tree_option = <SortitionSumTrees<T>>::get(&key);
+			match tree_option {
+				Some(_tree) => Err(Error::<T>::TreeAlreadyExists)?,
+				None => {
+					let sum_tree = SortitionSumTree {
+						k,
+						stack: Vec::new(),
+						nodes: Vec::new(),
+						ids_to_tree_indexes: BTreeMap::new(),
+						node_indexes_to_ids: BTreeMap::new(),
+					};
+
+					<SortitionSumTrees<T>>::insert(&key, &sum_tree);
+				}
+			}
+			Ok(())
+		}
+
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
@@ -378,6 +415,24 @@ pub mod pallet {
 
 		fn fund_profile() -> T::AccountId {
 			PALLET_ID.into_sub_account(1)
+		}
+
+		fn draw_juror_for_citizen_profile_function(
+			citizen_id: u128,
+			length: usize,
+		) -> DispatchResult {
+			let nonce = Self::get_and_increment_nonce();
+
+			let random_seed = T::RandomnessSource::random(&nonce).encode();
+			let random_number = u64::decode(&mut random_seed.as_ref())
+				.expect("secure hashes should always be bigger than u64; qed");
+			Ok(())
+		}
+
+		fn get_and_increment_nonce() -> Vec<u8> {
+			let nonce = <Nonce<T>>::get();
+			<Nonce<T>>::put(nonce.wrapping_add(1));
+			nonce.encode()
 		}
 	}
 }
