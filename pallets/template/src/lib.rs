@@ -201,6 +201,7 @@ pub mod pallet {
 		ApplyJurorTimeNotEnded,
 		KMustGreaterThanOne,
 		TreeAlreadyExists,
+		TreeDoesnotExist,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -322,13 +323,52 @@ pub mod pallet {
 						k,
 						stack: Vec::new(),
 						nodes: Vec::new(),
-						ids_to_tree_indexes: BTreeMap::new(),
+						ids_to_node_indexes: BTreeMap::new(),
 						node_indexes_to_ids: BTreeMap::new(),
 					};
 
 					<SortitionSumTrees<T>>::insert(&key, &sum_tree);
 				}
 			}
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn set(
+			origin: OriginFor<T>,
+			key: Vec<u8>,
+			value: u128,
+			citizen_id: u128,
+		) -> DispatchResult {
+			let tree_option = <SortitionSumTrees<T>>::get(&key);
+
+			match tree_option {
+				None => Err(Error::<T>::TreeDoesnotExist)?,
+				Some(mut tree) => {
+					match tree.ids_to_node_indexes.get(&citizen_id) {
+						None => {
+							// No existing node.
+							if value != 0 {
+								// Non zero value.
+								// Append.
+								// Add node.
+								if tree.stack.len() == 0 {
+									// No vacant spots.
+									// Get the index and append the value.
+									let tree_index = tree.nodes.len() as u128;
+									tree.nodes.push(value);
+
+									// Potentially append a new node and make the parent a sum node.
+									if tree_index != 1 && (tree_index - 1) % tree.k == 0 { // Is first child.
+									}
+								}
+							}
+						}
+						Some(tree_index) => {}
+					}
+				}
+			}
+
 			Ok(())
 		}
 

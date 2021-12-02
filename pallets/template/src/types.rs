@@ -47,8 +47,8 @@ pub struct SortitionSumTree {
     pub k: u128,
     pub stack: Vec<u128>,
     pub nodes: Vec<u128>,
-    pub ids_to_tree_indexes: BTreeMap<Vec<u8>, u128>,
-    pub node_indexes_to_ids: BTreeMap<u128, Vec<u8>>,
+    pub ids_to_node_indexes: BTreeMap<u128, u128>, // citizen id, node index
+    pub node_indexes_to_ids: BTreeMap<u128, u128>, // node index, citizen id
 }
 
 
