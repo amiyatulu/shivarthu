@@ -359,7 +359,17 @@ pub mod pallet {
 									tree.nodes.push(value);
 
 									// Potentially append a new node and make the parent a sum node.
-									if tree_index != 1 && (tree_index - 1) % tree.k == 0 { // Is first child.
+									if tree_index != 1 && (tree_index - 1) % tree.k == 0 {
+										// Is first child.
+										let parent_index = tree_index / tree.k;
+										let parent_id =
+											*tree.node_indexes_to_ids.get(&parent_index).unwrap();
+										let new_index = tree_index + 1;
+										tree.nodes
+											.push(*tree.nodes.get(parent_index as usize).unwrap());
+										tree.node_indexes_to_ids.remove(&parent_index);
+										tree.ids_to_node_indexes.insert(parent_id, new_index);
+										tree.node_indexes_to_ids.insert(new_index, parent_id);
 									}
 								}
 							}
