@@ -44,11 +44,11 @@ pub struct StakeDetails<Balance> {
 #[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct SortitionSumTree {
-    pub k: u128,
+    pub k: u64,
     pub stack: Vec<u128>,
     pub nodes: Vec<u128>,
-    pub ids_to_node_indexes: BTreeMap<u128, u128>, // citizen id, node index
-    pub node_indexes_to_ids: BTreeMap<u128, u128>, // node index, citizen id
+    pub ids_to_node_indexes: BTreeMap<u128, u64>, // citizen id, node index
+    pub node_indexes_to_ids: BTreeMap<u64, u128>, // node index, citizen id
 }
 
 

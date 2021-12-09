@@ -311,7 +311,7 @@ pub mod pallet {
 
 		// SortitionSumTree
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn create_tree(origin: OriginFor<T>, key: Vec<u8>, k: u128) -> DispatchResult {
+		pub fn create_tree(origin: OriginFor<T>, key: Vec<u8>, k: u64) -> DispatchResult {
 			if k < 1 {
 				Err(Error::<T>::KMustGreaterThanOne)?
 			}
@@ -344,39 +344,16 @@ pub mod pallet {
 
 			match tree_option {
 				None => Err(Error::<T>::TreeDoesnotExist)?,
-				Some(mut tree) => {
-					match tree.ids_to_node_indexes.get(&citizen_id) {
-						None => {
-							// No existing node.
-							if value != 0 {
-								// Non zero value.
-								// Append.
-								// Add node.
-								if tree.stack.len() == 0 {
-									// No vacant spots.
-									// Get the index and append the value.
-									let tree_index = tree.nodes.len() as u128;
-									tree.nodes.push(value);
-
-									// Potentially append a new node and make the parent a sum node.
-									if tree_index != 1 && (tree_index - 1) % tree.k == 0 {
-										// Is first child.
-										let parent_index = tree_index / tree.k;
-										let parent_id =
-											*tree.node_indexes_to_ids.get(&parent_index).unwrap();
-										let new_index = tree_index + 1;
-										tree.nodes
-											.push(*tree.nodes.get(parent_index as usize).unwrap());
-										tree.node_indexes_to_ids.remove(&parent_index);
-										tree.ids_to_node_indexes.insert(parent_id, new_index);
-										tree.node_indexes_to_ids.insert(new_index, parent_id);
-									}
-								}
-							}
+				Some(mut tree) => match tree.ids_to_node_indexes.get(&citizen_id) {
+					Some(tree_index_data) => {
+						let mut tree_index = *tree_index_data;
+						if tree_index == 0 {
+							Self::if_tree_index_zero(value, citizen_id, tree, tree_index);
 						}
-						Some(tree_index) => {}
 					}
-				}
+
+					None => {}
+				},
 			}
 
 			Ok(())
@@ -483,6 +460,46 @@ pub mod pallet {
 			let nonce = <Nonce<T>>::get();
 			<Nonce<T>>::put(nonce.wrapping_add(1));
 			nonce.encode()
+		}
+		fn if_tree_index_zero(
+			value: u128,
+			citizen_id: u128,
+			mut tree: SortitionSumTree,
+			mut tree_index: u64,
+		) {
+			// No existing node.
+			if value != 0 {
+				// Non zero value.
+				// Append.
+				// Add node.
+				if tree.stack.len() == 0 {
+					// No vacant spots.
+					// Get the index and append the value.
+					tree_index = tree.nodes.len() as u64;
+					tree.nodes.push(value);
+
+					// Potentially append a new node and make the parent a sum node.
+					if tree_index != 1 && (tree_index - 1) % tree.k == 0 {
+						// Is first child.
+						let parent_index = tree_index / tree.k;
+						let parent_id = *tree.node_indexes_to_ids.get(&parent_index).unwrap();
+						let new_index = tree_index + 1;
+						tree.nodes.push(*tree.nodes.get(parent_index as usize).unwrap());
+						tree.node_indexes_to_ids.remove(&parent_index);
+						tree.ids_to_node_indexes.insert(parent_id, new_index);
+						tree.node_indexes_to_ids.insert(new_index, parent_id);
+					}
+				} else {
+					let tree_index = tree.stack.get(tree.stack.len() - 1);
+					tree.nodes[*tree_index.unwrap() as usize] = value;
+					tree.stack.pop();
+				}
+
+				tree.ids_to_node_indexes.insert(citizen_id, tree_index);
+				tree.node_indexes_to_ids.insert(tree_index, citizen_id);
+
+				// update_parents
+			}
 		}
 	}
 }
