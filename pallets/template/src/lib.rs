@@ -337,7 +337,7 @@ pub mod pallet {
 		pub fn set(
 			origin: OriginFor<T>,
 			key: Vec<u8>,
-			value: u128,
+			value: u64,
 			citizen_id: u128,
 		) -> DispatchResult {
 			let tree_option = <SortitionSumTrees<T>>::get(&key);
@@ -349,10 +349,36 @@ pub mod pallet {
 						let mut tree_index = *tree_index_data;
 						if tree_index == 0 {
 							Self::if_tree_index_zero(value, citizen_id, tree, tree_index);
+						} else { // Existing node
+							if value == 0 {
+								let value = tree.nodes[tree_index as usize];
+								tree.nodes[tree_index as usize] = 0;
+								tree.stack.push(tree_index);
+								tree.ids_to_node_indexes.remove(&citizen_id);
+								tree.node_indexes_to_ids.remove(&tree_index);
+                                
+								// UpdateParents 🟥
+
+							} else if value != tree.nodes[tree_index as usize] {
+
+								let plus_or_minus = tree.nodes[tree_index as usize] <= value;
+								let plus_or_minus_value = if plus_or_minus{
+									value - tree.nodes[tree_index as usize]
+								} else {
+									tree.nodes[tree_index as usize] - value
+								};
+								tree.nodes[tree_index as usize] = value;
+
+								// update parents 🟥
+
+							}
+
 						}
 					}
 
-					None => {}
+					None => {
+						Self::if_tree_index_zero(value, citizen_id, tree, 0);
+					}
 				},
 			}
 
@@ -462,7 +488,7 @@ pub mod pallet {
 			nonce.encode()
 		}
 		fn if_tree_index_zero(
-			value: u128,
+			value: u64,
 			citizen_id: u128,
 			mut tree: SortitionSumTree,
 			mut tree_index: u64,
@@ -498,7 +524,7 @@ pub mod pallet {
 				tree.ids_to_node_indexes.insert(citizen_id, tree_index);
 				tree.node_indexes_to_ids.insert(tree_index, citizen_id);
 
-				// update_parents
+				// update_parents 🟥
 			}
 		}
 	}
