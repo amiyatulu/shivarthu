@@ -346,23 +346,29 @@ pub mod pallet {
 				None => Err(Error::<T>::TreeDoesnotExist)?,
 				Some(mut tree) => match tree.ids_to_node_indexes.get(&citizen_id) {
 					Some(tree_index_data) => {
-						let mut tree_index = *tree_index_data;
+						let tree_index = *tree_index_data;
 						if tree_index == 0 {
-							Self::if_tree_index_zero(value, citizen_id, tree, tree_index);
-						} else { // Existing node
+							Self::if_tree_index_zero(value, citizen_id, tree, tree_index, key);
+						} else {
+							// Existing node
 							if value == 0 {
 								let value = tree.nodes[tree_index as usize];
 								tree.nodes[tree_index as usize] = 0;
 								tree.stack.push(tree_index);
 								tree.ids_to_node_indexes.remove(&citizen_id);
 								tree.node_indexes_to_ids.remove(&tree_index);
-                                
-								// UpdateParents 🟥
 
+							// UpdateParents 🟥
+							Self::update_parents(
+								tree,
+								tree_index,
+								false,
+								value,
+								key
+							);
 							} else if value != tree.nodes[tree_index as usize] {
-
 								let plus_or_minus = tree.nodes[tree_index as usize] <= value;
-								let plus_or_minus_value = if plus_or_minus{
+								let plus_or_minus_value = if plus_or_minus {
 									value - tree.nodes[tree_index as usize]
 								} else {
 									tree.nodes[tree_index as usize] - value
@@ -370,14 +376,19 @@ pub mod pallet {
 								tree.nodes[tree_index as usize] = value;
 
 								// update parents 🟥
-
+								Self::update_parents(
+									tree,
+									tree_index,
+									plus_or_minus,
+									plus_or_minus_value,
+									key
+								);
 							}
-
 						}
 					}
 
 					None => {
-						Self::if_tree_index_zero(value, citizen_id, tree, 0);
+						Self::if_tree_index_zero(value, citizen_id, tree, 0, key);
 					}
 				},
 			}
@@ -487,11 +498,31 @@ pub mod pallet {
 			<Nonce<T>>::put(nonce.wrapping_add(1));
 			nonce.encode()
 		}
+
+		fn update_parents(
+			mut tree: SortitionSumTree,
+			tree_index: u64,
+			plus_or_minus: bool,
+			value: u64,
+			key: Vec<u8>,
+		) {
+			let mut parent_index = tree_index;
+			while parent_index != 0 {
+				parent_index = (parent_index - 1) / tree.k;
+				tree.nodes[parent_index as usize] = if plus_or_minus {
+					tree.nodes[parent_index as usize] + value
+				} else {
+					tree.nodes[parent_index as usize] - value
+				};
+				<SortitionSumTrees<T>>::insert(&key, &tree);
+			}
+		}
 		fn if_tree_index_zero(
 			value: u64,
 			citizen_id: u128,
 			mut tree: SortitionSumTree,
 			mut tree_index: u64,
+			key: Vec<u8>,
 		) {
 			// No existing node.
 			if value != 0 {
@@ -525,6 +556,14 @@ pub mod pallet {
 				tree.node_indexes_to_ids.insert(tree_index, citizen_id);
 
 				// update_parents 🟥
+
+				Self::update_parents(
+					tree,
+					tree_index,
+					true,
+					value,
+					key
+				);
 			}
 		}
 	}
