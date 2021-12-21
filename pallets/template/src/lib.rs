@@ -534,7 +534,7 @@ pub mod pallet {
 					tree.nodes.push(value);
 
 
-					println!("{}", tree_index);
+					// println!("{}", tree_index);
 
 					// Potentially append a new node and make the parent a sum node.
 					if tree_index != 1 && (tree_index - 1) % tree.k == 0 {
