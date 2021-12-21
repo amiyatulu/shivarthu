@@ -312,6 +312,7 @@ pub mod pallet {
 		// SortitionSumTree
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn create_tree(origin: OriginFor<T>, key: Vec<u8>, k: u64) -> DispatchResult {
+			let who = ensure_signed(origin)?;
 			if k < 1 {
 				Err(Error::<T>::KMustGreaterThanOne)?
 			}
@@ -319,13 +320,15 @@ pub mod pallet {
 			match tree_option {
 				Some(_tree) => Err(Error::<T>::TreeAlreadyExists)?,
 				None => {
-					let sum_tree = SortitionSumTree {
+					let mut sum_tree = SortitionSumTree {
 						k,
 						stack: Vec::new(),
 						nodes: Vec::new(),
 						ids_to_node_indexes: BTreeMap::new(),
 						node_indexes_to_ids: BTreeMap::new(),
 					};
+
+					sum_tree.nodes.push(0);
 
 					<SortitionSumTrees<T>>::insert(&key, &sum_tree);
 				}
@@ -340,6 +343,7 @@ pub mod pallet {
 			value: u64,
 			citizen_id: u128,
 		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
 			let tree_option = <SortitionSumTrees<T>>::get(&key);
 
 			match tree_option {
@@ -358,14 +362,8 @@ pub mod pallet {
 								tree.ids_to_node_indexes.remove(&citizen_id);
 								tree.node_indexes_to_ids.remove(&tree_index);
 
-							// UpdateParents 🟥
-							Self::update_parents(
-								tree,
-								tree_index,
-								false,
-								value,
-								key
-							);
+								// UpdateParents 🟥
+								Self::update_parents(tree, tree_index, false, value, key);
 							} else if value != tree.nodes[tree_index as usize] {
 								let plus_or_minus = tree.nodes[tree_index as usize] <= value;
 								let plus_or_minus_value = if plus_or_minus {
@@ -381,7 +379,7 @@ pub mod pallet {
 									tree_index,
 									plus_or_minus,
 									plus_or_minus_value,
-									key
+									key,
 								);
 							}
 						}
@@ -535,6 +533,9 @@ pub mod pallet {
 					tree_index = tree.nodes.len() as u64;
 					tree.nodes.push(value);
 
+
+					println!("{}", tree_index);
+
 					// Potentially append a new node and make the parent a sum node.
 					if tree_index != 1 && (tree_index - 1) % tree.k == 0 {
 						// Is first child.
@@ -557,13 +558,7 @@ pub mod pallet {
 
 				// update_parents 🟥
 
-				Self::update_parents(
-					tree,
-					tree_index,
-					true,
-					value,
-					key
-				);
+				Self::update_parents(tree, tree_index, true, value, key);
 			}
 		}
 	}

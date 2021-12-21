@@ -45,5 +45,7 @@ fn profile_fund_test() {
 		let profile_fundinfocheck = ProfileFundInfo { deposit: 100, start: 0, validated: false, reapply: false };
 		let profile_fundinfo = TemplateModule::profile_fund(0);
 		assert_eq!(profile_fundinfo, Some(profile_fundinfocheck));
+		assert_ok!(TemplateModule::create_tree(Origin::signed(1), "key1".as_bytes().to_vec(), 5));
+		assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 10, 1 ));
 	});
 }
