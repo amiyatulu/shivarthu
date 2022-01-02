@@ -533,7 +533,6 @@ pub mod pallet {
 					tree_index = tree.nodes.len() as u64;
 					tree.nodes.push(value);
 
-
 					// println!("{}", tree_index);
 
 					// Potentially append a new node and make the parent a sum node.
@@ -559,6 +558,26 @@ pub mod pallet {
 				// update_parents 🟥
 
 				Self::update_parents(tree, tree_index, true, value, key);
+			}
+		}
+
+		pub fn stake_of(key: Vec<u8>, citizen_id: u128) -> Result<u64, DispatchError> {
+			let tree_option = <SortitionSumTrees<T>>::get(&key);
+
+			match tree_option {
+				None => Err(Error::<T>::TreeDoesnotExist)?,
+				Some(tree) => {
+					let tree_index_data = tree.ids_to_node_indexes.get(&citizen_id).unwrap();
+
+					let value: u64;
+					let tree_index = *tree_index_data;
+					if tree_index == 0 {
+						value = 0;
+					} else {
+						value = tree.nodes[tree_index as usize];
+					}
+					Ok(value)
+				}
 			}
 		}
 	}
