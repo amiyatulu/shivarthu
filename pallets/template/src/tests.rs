@@ -48,6 +48,10 @@ fn profile_fund_test() {
 		assert_ok!(TemplateModule::create_tree(Origin::signed(1), "key1".as_bytes().to_vec(), 5));
 		assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 10, 1 ));
 		assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 20, 1 ));
+		assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 30, 2 ));
+		assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 40, 3 ));
+		assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 50, 4 ));
 		assert_eq!(TemplateModule::stake_of("key1".as_bytes().to_vec(), 1 ), Ok(20));
+		assert_eq!(TemplateModule::draw("key1".as_bytes().to_vec(), 90), Ok(4));
 	});
 }

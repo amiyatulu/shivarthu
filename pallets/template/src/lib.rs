@@ -563,7 +563,6 @@ pub mod pallet {
 
 		pub fn stake_of(key: Vec<u8>, citizen_id: u128) -> Result<u64, DispatchError> {
 			let tree_option = <SortitionSumTrees<T>>::get(&key);
-
 			match tree_option {
 				None => Err(Error::<T>::TreeDoesnotExist)?,
 				Some(tree) => {
@@ -577,6 +576,34 @@ pub mod pallet {
 						value = tree.nodes[tree_index as usize];
 					}
 					Ok(value)
+				}
+			}
+		}
+
+		pub fn draw(key: Vec<u8>, draw_number: u64) -> Result<u128, DispatchError> {
+			let tree_option = <SortitionSumTrees<T>>::get(&key);
+
+			match tree_option {
+				None => Err(Error::<T>::TreeDoesnotExist)?,
+				Some(tree) => {
+					let mut tree_index = 0;
+					let mut current_draw_number = draw_number % tree.nodes[0];
+
+					while (tree.k * tree_index) + 1 < (tree.nodes.len() as u64) {
+						for i in 1..tree.k + 1 {
+							let node_index = (tree.k * tree_index) + i;
+							let node_value = tree.nodes[node_index as usize];
+
+							if current_draw_number >= node_value {
+								current_draw_number -= node_value;
+							} else {
+								tree_index = node_index;
+								break;
+							}
+						}
+					}
+
+					Ok(*tree.node_indexes_to_ids.get(&tree_index).unwrap())
 				}
 			}
 		}
