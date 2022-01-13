@@ -607,5 +607,59 @@ pub mod pallet {
 				}
 			}
 		}
+
+		// 
+
+		/**
+     *  @dev Query the leaves of a tree. Note that if `startIndex == 0`, the tree is empty and the root node will be returned.
+     *  @param key The key of the tree to get the leaves from.
+     *  @param cursor The pagination cursor.
+     *  @param count The number of items to return.
+     *  @return The index at which leaves start, the values of the returned leaves, and whether there are more for pagination.
+     *  `O(n)` where
+     *  `n` is the maximum number of nodes ever appended.
+     */
+		pub fn query_leafs(key: Vec<u8>, cursor: u64, count: u64) -> Result<(u64, Vec<u64>, bool), DispatchError>  {
+			let tree_option = <SortitionSumTrees<T>>::get(&key);
+
+			match tree_option {
+				None => Err(Error::<T>::TreeDoesnotExist)?,
+				Some(tree) => {
+					let mut start_index = 0;
+					for i in 0..tree.nodes.len() {
+						if (tree.k * i as u64) + 1 >= tree.nodes.len() as u64 {
+							start_index = i as u64;
+							break;
+						}
+					}
+					let loop_start_index = start_index + cursor;
+
+					// let value = if loop_start_index + count > tree.nodes.len() as u64 {
+					// 	tree.nodes.len() as u64 - loop_start_index
+					// } else {
+					// 	count
+					// };
+
+					let mut values = Vec::new();
+                    let mut values_index = 0;
+					let mut has_more = false;
+					for j in loop_start_index..tree.nodes.len() as u64{
+						if values_index < count {
+							values.push(tree.nodes[j as usize]);
+							values_index = values_index + 1;
+						} else {
+							has_more  = true;
+							break;
+						}
+
+					}
+
+					Ok((start_index, values, has_more))
+					
+				}
+			}
+
+		}
+
 	}
 }
