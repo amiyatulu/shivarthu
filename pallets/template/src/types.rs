@@ -34,6 +34,12 @@ pub enum SchellingType {
     ProfileApproval{ citizen_id: u128 }
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub enum SumTreeName {
+    UniqueIdenfier{ citizen_id: u128, name: Vec<u8>}
+}
+
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]

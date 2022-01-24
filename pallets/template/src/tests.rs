@@ -1,6 +1,6 @@
 use crate::{
 	mock::*,
-	types::{CitizenDetails, ProfileFundInfo},
+	types::{CitizenDetails, ProfileFundInfo, SumTreeName},
 	Error,
 };
 use frame_support::{assert_noop, assert_ok};
@@ -45,36 +45,62 @@ fn profile_fund_test() {
 		let profile_fundinfocheck = ProfileFundInfo { deposit: 100, start: 0, validated: false, reapply: false };
 		let profile_fundinfo = TemplateModule::profile_fund(0);
 		assert_eq!(profile_fundinfo, Some(profile_fundinfocheck));
-		assert_ok!(TemplateModule::create_tree(Origin::signed(1), "key1".as_bytes().to_vec(), 5));
-		assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 10, 1 ));
-		assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 20, 1 ));
-		assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 30, 2 ));
-		assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 40, 3 ));
-		assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 50, 4 ));
-		assert_eq!(TemplateModule::stake_of("key1".as_bytes().to_vec(), 1 ), Ok(20));
-		assert_eq!(TemplateModule::draw("key1".as_bytes().to_vec(), 90), Ok(4));
+		let key = SumTreeName::UniqueIdenfier{citizen_id: 1, name:"key1".as_bytes().to_vec() };
+		assert_ok!(TemplateModule::create_tree(key.clone(), 5));
+		assert_ok!(TemplateModule::set(key.clone(), 10, 1 ));
+		assert_ok!(TemplateModule::set(key.clone(), 20, 1 ));
+		assert_ok!(TemplateModule::set(key.clone(), 30, 2 ));
+		assert_ok!(TemplateModule::set(key.clone(), 40, 3 ));
+		assert_ok!(TemplateModule::set(key.clone(), 50, 4 ));
+		assert_eq!(TemplateModule::stake_of(key.clone(), 1 ), Ok(20));
+		assert_eq!(TemplateModule::draw(key.clone(), 90), Ok(4));
 	});
 }
 
 #[test]
 fn schelling_game_remove_stake() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(TemplateModule::create_tree(Origin::signed(1), "key1".as_bytes().to_vec(), 2));
-		assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 10, 1 ));
-		assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 20, 1 ));
-		assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 30, 2 ));
-		assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 40, 3 ));
-		assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 50, 4 ));
-		// assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 0, 4 ));
+		let key = SumTreeName::UniqueIdenfier{citizen_id: 1, name:"key1".as_bytes().to_vec() };
+		assert_ok!(TemplateModule::create_tree(key.clone(), 2));
+		assert_ok!(TemplateModule::set(key.clone(), 10, 1 ));
+		assert_ok!(TemplateModule::set(key.clone(), 20, 1 ));
+		assert_ok!(TemplateModule::set(key.clone(), 30, 2 ));
+		assert_ok!(TemplateModule::set(key.clone(), 40, 3 ));
+		let data2 = TemplateModule::query_leafs(key.clone(), 0, 5);
+		println!("{:?}", data2);
+		assert_ok!(TemplateModule::set(key.clone(), 50, 4 ));
+		// assert_ok!(TemplateModule::set(Origin::signed(1), key.clone(), 0, 4 ));
 
-		let data = TemplateModule::draw("key1".as_bytes().to_vec(), 130 );
-		// assert_ok!(TemplateModule::set(Origin::signed(1), "key1".as_bytes().to_vec(), 0, 1 ));
+		// let data = TemplateModule::draw(key.clone(), 130 );
+		
 
+		// println!("{:?}", data);
+
+		// let data2 = TemplateModule::query_leafs(key.clone(), 0, 5);
+		// println!("{:?}", data2);
+
+	
+
+		
+
+		// let data = TemplateModule::draw(key.clone(), 130);
+		// println!("{:?}", data);
+
+	    assert_ok!(TemplateModule::set(key.clone(), 0, 3 ));
+
+		let data2 = TemplateModule::query_leafs(key.clone(), 0, 5);
+		println!("{:?}", data2);
+
+		let data = TemplateModule::draw(key.clone(), 98 );
 		println!("{:?}", data);
 
-		let data2 = TemplateModule::query_leafs("key1".as_bytes().to_vec(), 0, 2);
-		println!("{:?}", data2);
-		// assert_eq!(TemplateModule::stake_of("key1".as_bytes().to_vec(), 1 ), Ok(20));
+
+
+
+
+		// assert_eq!(TemplateModule::stake_of(key.clone(), 1 ), Ok(20));
 		// assert_eq!(TemplateModule::draw("key1".as_bytes().to_vec(), 120), Ok(4));
+
+		
 	});
 }

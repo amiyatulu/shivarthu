@@ -49,6 +49,8 @@ optional = true
 tag = 'monthly-2021-10'
 version = '4.0.0-dev'
 
+
+
 [dev-dependencies.sp-core]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
@@ -91,6 +93,6 @@ std = [
     'frame-system/std',
     'frame-benchmarking/std',
     'pallet-balances/std',
-    'sp-runtime/std'
+    'sp-runtime/std',
 ]
 try-runtime = ['frame-support/try-runtime']

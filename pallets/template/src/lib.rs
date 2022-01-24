@@ -20,7 +20,7 @@ mod types;
 pub mod pallet {
 	use crate::types::{
 		CitizenDetails, DepartmentDetails, ProfileFundInfo, SchellingType, SortitionSumTree,
-		StakeDetails,
+		StakeDetails, SumTreeName
 	};
 	use frame_support::sp_runtime::traits::AccountIdConversion;
 	use frame_support::sp_runtime::traits::CheckedSub;
@@ -156,7 +156,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn sortition_sum_trees)]
-	pub type SortitionSumTrees<T> = StorageMap<_, Blake2_128Concat, Vec<u8>, SortitionSumTree>;
+	pub type SortitionSumTrees<T> = StorageMap<_, Blake2_128Concat, SumTreeName, SortitionSumTree>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -207,8 +207,13 @@ pub mod pallet {
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
 	// These functions materialize as "extrinsics", which are often compared to transactions.
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
+
+	
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		// Adds profile details in ipfs hash `profile_hash`
+	    // Set citizen id from count
+		// Set citizen profile from citizen id and citizen details that contains profile hash
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn add_citizen(origin: OriginFor<T>, profile_hash: Vec<u8>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -309,90 +314,8 @@ pub mod pallet {
 			Ok(())
 		}
 
-		// SortitionSumTree
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn create_tree(origin: OriginFor<T>, key: Vec<u8>, k: u64) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			if k < 1 {
-				Err(Error::<T>::KMustGreaterThanOne)?
-			}
-			let tree_option = <SortitionSumTrees<T>>::get(&key);
-			match tree_option {
-				Some(_tree) => Err(Error::<T>::TreeAlreadyExists)?,
-				None => {
-					let mut sum_tree = SortitionSumTree {
-						k,
-						stack: Vec::new(),
-						nodes: Vec::new(),
-						ids_to_node_indexes: BTreeMap::new(),
-						node_indexes_to_ids: BTreeMap::new(),
-					};
-
-					sum_tree.nodes.push(0);
-
-					<SortitionSumTrees<T>>::insert(&key, &sum_tree);
-				}
-			}
-			Ok(())
-		}
-
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn set(
-			origin: OriginFor<T>,
-			key: Vec<u8>,
-			value: u64,
-			citizen_id: u128,
-		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			let tree_option = <SortitionSumTrees<T>>::get(&key);
-
-			match tree_option {
-				None => Err(Error::<T>::TreeDoesnotExist)?,
-				Some(mut tree) => match tree.ids_to_node_indexes.get(&citizen_id) {
-					Some(tree_index_data) => {
-						let tree_index = *tree_index_data;
-						if tree_index == 0 {
-							Self::if_tree_index_zero(value, citizen_id, tree, tree_index, key);
-						} else {
-							// Existing node
-							if value == 0 {
-								let value = tree.nodes[tree_index as usize];
-								tree.nodes[tree_index as usize] = 0;
-								tree.stack.push(tree_index);
-								tree.ids_to_node_indexes.remove(&citizen_id);
-								tree.node_indexes_to_ids.remove(&tree_index);
-
-								// UpdateParents 🟥
-								Self::update_parents(tree, tree_index, false, value, key);
-							} else if value != tree.nodes[tree_index as usize] {
-								let plus_or_minus = tree.nodes[tree_index as usize] <= value;
-								let plus_or_minus_value = if plus_or_minus {
-									value - tree.nodes[tree_index as usize]
-								} else {
-									tree.nodes[tree_index as usize] - value
-								};
-								tree.nodes[tree_index as usize] = value;
-
-								// update parents 🟥
-								Self::update_parents(
-									tree,
-									tree_index,
-									plus_or_minus,
-									plus_or_minus_value,
-									key,
-								);
-							}
-						}
-					}
-
-					None => {
-						Self::if_tree_index_zero(value, citizen_id, tree, 0, key);
-					}
-				},
-			}
-
-			Ok(())
-		}
+		
+		
 
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
@@ -497,12 +420,92 @@ pub mod pallet {
 			nonce.encode()
 		}
 
+		// SortitionSumTree
+		pub fn create_tree(key: SumTreeName, k: u64) -> DispatchResult {
+			if k < 1 {
+				Err(Error::<T>::KMustGreaterThanOne)?
+			}
+			let tree_option = <SortitionSumTrees<T>>::get(&key);
+			match tree_option {
+				Some(_tree) => Err(Error::<T>::TreeAlreadyExists)?,
+				None => {
+					let mut sum_tree = SortitionSumTree {
+						k,
+						stack: Vec::new(),
+						nodes: Vec::new(),
+						ids_to_node_indexes: BTreeMap::new(),
+						node_indexes_to_ids: BTreeMap::new(),
+					};
+
+					sum_tree.nodes.push(0);
+
+					<SortitionSumTrees<T>>::insert(&key, &sum_tree);
+				}
+			}
+			Ok(())
+		}
+
+		pub fn set(
+			key: SumTreeName,
+			value: u64,
+			citizen_id: u128,
+		) -> DispatchResult {
+			let tree_option = <SortitionSumTrees<T>>::get(&key);
+
+			match tree_option {
+				None => Err(Error::<T>::TreeDoesnotExist)?,
+				Some(mut tree) => match tree.ids_to_node_indexes.get(&citizen_id) {
+					Some(tree_index_data) => {
+						let tree_index = *tree_index_data;
+						if tree_index == 0 {
+							Self::if_tree_index_zero(value, citizen_id, tree, tree_index, key);
+						} else {
+							// Existing node
+							if value == 0 {
+								let value = tree.nodes[tree_index as usize];
+								tree.nodes[tree_index as usize] = 0;
+								tree.stack.push(tree_index);
+								tree.ids_to_node_indexes.remove(&citizen_id);
+								tree.node_indexes_to_ids.remove(&tree_index);
+
+								// UpdateParents 🟥
+								Self::update_parents(tree, tree_index, false, value, key);
+							} else if value != tree.nodes[tree_index as usize] {
+								let plus_or_minus = tree.nodes[tree_index as usize] <= value;
+								let plus_or_minus_value = if plus_or_minus {
+									value - tree.nodes[tree_index as usize]
+								} else {
+									tree.nodes[tree_index as usize] - value
+								};
+								tree.nodes[tree_index as usize] = value;
+
+								// update parents 🟥
+								Self::update_parents(
+									tree,
+									tree_index,
+									plus_or_minus,
+									plus_or_minus_value,
+									key,
+								);
+							}
+						}
+					}
+
+					None => {
+						Self::if_tree_index_zero(value, citizen_id, tree, 0, key);
+					}
+				},
+			}
+
+			Ok(())
+		}
+
 		fn update_parents(
 			mut tree: SortitionSumTree,
 			tree_index: u64,
 			plus_or_minus: bool,
 			value: u64,
-			key: Vec<u8>,
+			key: SumTreeName,
 		) {
 			let mut parent_index = tree_index;
 			while parent_index != 0 {
@@ -520,7 +523,7 @@ pub mod pallet {
 			citizen_id: u128,
 			mut tree: SortitionSumTree,
 			mut tree_index: u64,
-			key: Vec<u8>,
+			key: SumTreeName,
 		) {
 			// No existing node.
 			if value != 0 {
@@ -561,7 +564,7 @@ pub mod pallet {
 			}
 		}
 
-		pub fn stake_of(key: Vec<u8>, citizen_id: u128) -> Result<u64, DispatchError> {
+		pub fn stake_of(key: SumTreeName, citizen_id: u128) -> Result<u64, DispatchError> {
 			let tree_option = <SortitionSumTrees<T>>::get(&key);
 			match tree_option {
 				None => Err(Error::<T>::TreeDoesnotExist)?,
@@ -580,7 +583,7 @@ pub mod pallet {
 			}
 		}
 
-		pub fn draw(key: Vec<u8>, draw_number: u64) -> Result<u128, DispatchError> {
+		pub fn draw(key: SumTreeName, draw_number: u64) -> Result<u128, DispatchError> {
 			let tree_option = <SortitionSumTrees<T>>::get(&key);
 
 			match tree_option {
@@ -607,10 +610,9 @@ pub mod pallet {
 				}
 			}
 		}
+ 
 
-		// 
-
-		/**
+    /**
      *  @dev Query the leaves of a tree. Note that if `startIndex == 0`, the tree is empty and the root node will be returned.
      *  @param key The key of the tree to get the leaves from.
      *  @param cursor The pagination cursor.
@@ -619,7 +621,7 @@ pub mod pallet {
      *  `O(n)` where
      *  `n` is the maximum number of nodes ever appended.
      */
-		pub fn query_leafs(key: Vec<u8>, cursor: u64, count: u64) -> Result<(u64, Vec<u64>, bool), DispatchError>  {
+		pub fn query_leafs(key: SumTreeName, cursor: u64, count: u64) -> Result<(u64, Vec<u64>, bool), DispatchError>  {
 			let tree_option = <SortitionSumTrees<T>>::get(&key);
 
 			match tree_option {
