@@ -93,14 +93,26 @@ pub mod pallet {
 	// Registration Fees
 
 	#[pallet::type_value]
-	pub fn DefaultRegistrationFees<T: Config>() -> BalanceOf<T> {
+	pub fn DefaultRegistrationFee<T: Config>() -> BalanceOf<T> {
 		100u128.saturated_into::<BalanceOf<T>>()
+	}
+    
+	// Registration challege fees
+	#[pallet::type_value]
+	pub fn DefaultRegistrationChallengeFee<T: Config>() -> BalanceOf<T> {
+		10u128.saturated_into::<BalanceOf<T>>()
 	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn profile_registration_fees)]
 	pub type RegistrationFee<T> =
-		StorageValue<_, BalanceOf<T>, ValueQuery, DefaultRegistrationFees<T>>;
+		StorageValue<_, BalanceOf<T>, ValueQuery, DefaultRegistrationFee<T>>;
+
+
+	#[pallet::storage]
+	#[pallet::getter(fn profile_registration_challege_fees)]
+	pub type RegistrationChallengeFee<T> =
+		StorageValue<_, BalanceOf<T>, ValueQuery, DefaultRegistrationChallengeFee<T>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn profile_fund)]
@@ -261,6 +273,24 @@ pub mod pallet {
 					<FundProfileDetails<T>>::insert(&citizenid, profile_fund_info);
 				}
 			}
+
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn challenge_profile(origin:OriginFor<T>, citizenid: u128) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let _citizen_account_id = Self::get_citizen_accountid(citizenid)?;
+			let deposit = <RegistrationChallengeFee<T>>::get();
+
+			let imb = T::Currency::withdraw(
+				&who,
+				deposit,
+				WithdrawReasons::TRANSFER,
+				ExistenceRequirement::AllowDeath,
+			)?;
+
+			T::Currency::resolve_creating(&Self::fund_profile(), imb);
 
 			Ok(())
 		}
