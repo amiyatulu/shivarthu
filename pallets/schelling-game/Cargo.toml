@@ -1,5 +1,5 @@
 [package]
-name = 'pallet-template'
+name = 'schelling-game'
 version = '3.0.0-monthly-2021-10'
 description = 'FRAME pallet template for defining custom runtime logic.'
 authors = ['Substrate DevHub <https://github.com/substrate-developer-hub>']
@@ -17,7 +17,6 @@ default-features = false
 features = ['derive']
 package = 'parity-scale-codec'
 version = '2.0.0'
-
 
 [dependencies.frame-benchmarking]
 default-features = false
@@ -49,11 +48,6 @@ git = 'https://github.com/paritytech/substrate.git'
 optional = true
 tag = 'monthly-2021-10'
 version = '4.0.0-dev'
-
-[dependencies.schelling-game]
-default-features=false
-path = "./../schelling-game"
-
 
 
 
@@ -100,6 +94,5 @@ std = [
     'frame-benchmarking/std',
     'pallet-balances/std',
     'sp-runtime/std',
-    'schelling-game/std',
 ]
 try-runtime = ['frame-support/try-runtime']
