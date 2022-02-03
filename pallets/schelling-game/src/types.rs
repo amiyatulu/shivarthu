@@ -18,12 +18,6 @@ pub enum SumTreeName {
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
-pub struct StakeDetails<Balance> {
-    pub stake: Balance,
-}
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Debug))]
 pub struct SortitionSumTree {
     pub k: u64,
     pub stack: Vec<u64>,

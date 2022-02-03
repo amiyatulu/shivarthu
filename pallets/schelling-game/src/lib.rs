@@ -14,13 +14,13 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
-mod types;
+pub mod types;
 
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::types::{
 		SchellingType, SortitionSumTree,
-		StakeDetails, SumTreeName
+		SumTreeName
 	};
 	use frame_support::sp_runtime::traits::AccountIdConversion;
 	use frame_support::sp_runtime::traits::{CheckedSub, CheckedAdd};
