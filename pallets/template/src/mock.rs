@@ -19,7 +19,6 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		SchellingGame: schelling_game::{Pallet, Call, Storage, Event<T>}, // new code
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>}, // new code
 		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>},
 	}
@@ -61,11 +60,6 @@ impl pallet_template::Config for Test {
 	type Currency = Balances; // New code
 	type RandomnessSource = TestRandomness<Self>;
 }
-
-impl schelling_game::Config for Test {
-	type Event = Event;
-}
-
 
 impl pallet_balances::Config for Test {
 	type MaxLocks = ();

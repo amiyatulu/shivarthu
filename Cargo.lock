@@ -3901,7 +3901,6 @@ dependencies = [
  "pallet-balances",
  "parity-scale-codec",
  "scale-info",
- "schelling-game",
  "sp-core",
  "sp-io",
  "sp-runtime",
