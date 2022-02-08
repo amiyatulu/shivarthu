@@ -79,7 +79,7 @@ parameter_types! {
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	pallet_balances::GenesisConfig::<Test> { balances: vec![(1, 100000), (2, 200000)] } // new code
+	pallet_balances::GenesisConfig::<Test> { balances: vec![(1, 100000), (2, 200000),(3, 300000)] } // new code
 		.assimilate_storage(&mut t)
 		.unwrap();
 	t.into()

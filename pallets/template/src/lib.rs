@@ -19,7 +19,8 @@ mod types;
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::types::{
-		CitizenDetails, DepartmentDetails, ProfileFundInfo, SchellingType, StakeDetails, SumTreeName, SortitionSumTree
+		CitizenDetails, DepartmentDetails, ProfileFundInfo, SchellingType, SortitionSumTree,
+		StakeDetails, SumTreeName,
 	};
 	use frame_support::sp_runtime::traits::AccountIdConversion;
 	use frame_support::sp_runtime::traits::CheckedSub;
@@ -166,7 +167,6 @@ pub mod pallet {
 	#[pallet::getter(fn sortition_sum_trees)]
 	pub type SortitionSumTrees<T> = StorageMap<_, Blake2_128Concat, SumTreeName, SortitionSumTree>;
 
-
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
@@ -198,8 +198,10 @@ pub mod pallet {
 		DepartmentNotAssociated,
 		ProfileExists,
 		ProfileFundExists,
+		ProfileFundNotExists,
 		NomineeExists,
 		CitizenDoNotExists,
+		ProfileIsAlreadyValidated,
 		AlreadyCommitUsed,
 		VoteAlreadyRevealed,
 		VoteCommitNotPresent,
@@ -273,10 +275,22 @@ pub mod pallet {
 			Ok(())
 		}
 
+		// Does citizen exists
+		// Has the citizen added profile fund
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn challenge_profile(origin: OriginFor<T>, citizenid: u128) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let _citizen_account_id = Self::get_citizen_accountid(citizenid)?;
+			match <FundProfileDetails<T>>::get(&citizenid) {
+				Some(profilefundinfo) => {
+					if profilefundinfo.validated != false {
+						Err(Error::<T>::ProfileIsAlreadyValidated)?;
+					}
+				}
+				None => {
+					Err(Error::<T>::ProfileFundNotExists)?;
+				}
+			}
 			let deposit = <RegistrationChallengeFee<T>>::get();
 			let imb = T::Currency::withdraw(
 				&who,
@@ -289,9 +303,8 @@ pub mod pallet {
 
 			let key = SumTreeName::UniqueIdenfier {
 				citizen_id: citizenid,
-				name: "key1".as_bytes().to_vec(),
+				name: "challengeprofile".as_bytes().to_vec(),
 			};
-
 
 			Ok(())
 		}
@@ -385,7 +398,7 @@ pub mod pallet {
 
 	impl<T: Config> Pallet<T> {
 		fn get_citizen_accountid(citizenid: u128) -> Result<T::AccountId, DispatchError> {
-			let profile = Self::citizen_profile(citizenid).ok_or(Error::<T>::InvalidIndex)?;
+			let profile = Self::citizen_profile(citizenid).ok_or(Error::<T>::CitizenDoNotExists)?;
 			Ok(profile.accountid)
 		}
 
