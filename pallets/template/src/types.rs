@@ -28,6 +28,15 @@ pub struct ProfileFundInfo<Balance, BlockNumber> {
     pub reapply: bool,
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub struct ChallengerFundInfo<Balance, BlockNumber, AccountId> {
+    pub challengerid: AccountId,
+    pub deposit: Balance,
+    pub start: BlockNumber,
+    pub challenge_completed: bool,
+}
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub enum SchellingType {

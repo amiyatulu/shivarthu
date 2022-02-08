@@ -19,8 +19,8 @@ mod types;
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::types::{
-		CitizenDetails, DepartmentDetails, ProfileFundInfo, SchellingType, SortitionSumTree,
-		StakeDetails, SumTreeName,
+		ChallengerFundInfo, CitizenDetails, DepartmentDetails, ProfileFundInfo, SchellingType,
+		SortitionSumTree, StakeDetails, SumTreeName,
 	};
 	use frame_support::sp_runtime::traits::AccountIdConversion;
 	use frame_support::sp_runtime::traits::CheckedSub;
@@ -38,6 +38,8 @@ pub mod pallet {
 	type ProfileFundInfoOf<T> =
 		ProfileFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber>;
 	type CitizenDetailsOf<T> = CitizenDetails<AccountIdOf<T>>;
+	type ChallengerFundInfoOf<T> =
+		ChallengerFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber, AccountIdOf<T>>;
 
 	type FundIndex = u32;
 
@@ -113,7 +115,12 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn profile_fund)]
-	pub type FundProfileDetails<T> = StorageMap<_, Blake2_128Concat, u128, ProfileFundInfoOf<T>>;
+	pub type ProfileFundDetails<T> = StorageMap<_, Blake2_128Concat, u128, ProfileFundInfoOf<T>>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn challenger_fund)]
+	pub type ChallengerFundDetails<T> =
+		StorageMap<_, Blake2_128Concat, u128, ChallengerFundInfoOf<T>>;
 
 	// #[pallet::storage]
 	// #[pallet::getter(fn citizen_profile_status)]
@@ -198,6 +205,7 @@ pub mod pallet {
 		DepartmentNotAssociated,
 		ProfileExists,
 		ProfileFundExists,
+		ChallegerFundInfoExists,
 		ProfileFundNotExists,
 		NomineeExists,
 		CitizenDoNotExists,
@@ -262,13 +270,13 @@ pub mod pallet {
 
 			T::Currency::resolve_creating(&Self::fund_profile(), imb);
 
-			match <FundProfileDetails<T>>::get(&citizenid) {
+			match <ProfileFundDetails<T>>::get(&citizenid) {
 				// 📝 To write update stake for reapply when disapproved
 				Some(_profilefundinfo) => Err(Error::<T>::ProfileExists)?,
 				None => {
 					let profile_fund_info =
 						ProfileFundInfo { deposit, start: now, validated: false, reapply: false };
-					<FundProfileDetails<T>>::insert(&citizenid, profile_fund_info);
+					<ProfileFundDetails<T>>::insert(&citizenid, profile_fund_info);
 				}
 			}
 
@@ -277,13 +285,15 @@ pub mod pallet {
 
 		// Does citizen exists
 		// Has the citizen added profile fund
+		// Create tree
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn challenge_profile(origin: OriginFor<T>, citizenid: u128) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			let now = <frame_system::Pallet<T>>::block_number();
 			let _citizen_account_id = Self::get_citizen_accountid(citizenid)?;
-			match <FundProfileDetails<T>>::get(&citizenid) {
+			match <ProfileFundDetails<T>>::get(&citizenid) {
 				Some(profilefundinfo) => {
-					if profilefundinfo.validated != false {
+					if profilefundinfo.validated == true {
 						Err(Error::<T>::ProfileIsAlreadyValidated)?;
 					}
 				}
@@ -301,12 +311,28 @@ pub mod pallet {
 
 			T::Currency::resolve_creating(&Self::fund_profile(), imb);
 
+			match <ChallengerFundDetails<T>>::get(&citizenid) {
+				// 📝 To write update stake for reapply
+				Some(_challengerfundinfo) => Err(Error::<T>::ChallegerFundInfoExists)?,
+				None => {
+					let challenger_fund_info = ChallengerFundInfo {
+						challengerid: who,
+						deposit,
+						start: now,
+						challenge_completed: false,
+					};
+					<ChallengerFundDetails<T>>::insert(&citizenid, challenger_fund_info);
+				}
+			}
+
 			let key = SumTreeName::UniqueIdenfier {
 				citizen_id: citizenid,
 				name: "challengeprofile".as_bytes().to_vec(),
 			};
 
-			Ok(())
+			let result = Self::create_tree(key, 3);
+
+			result
 		}
 
 		// Generic Schelling game
@@ -410,7 +436,7 @@ pub mod pallet {
 		}
 
 		fn profile_fund_added(citizenid: u128) -> DispatchResult {
-			match <FundProfileDetails<T>>::get(&citizenid) {
+			match <ProfileFundDetails<T>>::get(&citizenid) {
 				Some(profilefundinfo) => {
 					let validated = profilefundinfo.validated;
 					let reapply = profilefundinfo.reapply;
@@ -425,7 +451,7 @@ pub mod pallet {
 		}
 
 		fn get_profile_fund_info(citizenid: u128) -> Result<ProfileFundInfoOf<T>, DispatchError> {
-			match <FundProfileDetails<T>>::get(&citizenid) {
+			match <ProfileFundDetails<T>>::get(&citizenid) {
 				Some(profilefundinfo) => {
 					let validated = profilefundinfo.validated;
 					let reapply = profilefundinfo.reapply;
