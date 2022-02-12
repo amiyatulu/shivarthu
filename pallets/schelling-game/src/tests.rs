@@ -16,7 +16,7 @@ fn profile_fund_test() {
 		assert_ok!(TemplateModule::set(key.clone(), 30, 2 ));
 		assert_ok!(TemplateModule::set(key.clone(), 40, 3 ));
 		assert_ok!(TemplateModule::set(key.clone(), 50, 4 ));
-		assert_eq!(TemplateModule::stake_of(key.clone(), 1 ), Ok(20));
+		assert_eq!(TemplateModule::stake_of(key.clone(), 1 ), Ok(Some(20)));
 		assert_eq!(TemplateModule::draw(key.clone(), 90), Ok(4));
 	});
 }

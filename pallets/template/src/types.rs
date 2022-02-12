@@ -54,7 +54,7 @@ pub struct StakeDetails<Balance> {
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub enum SumTreeName {
-    UniqueIdenfier{ citizen_id: u128, name: Vec<u8>}
+    UniqueIdenfier1 { citizen_id: u128, name: Vec<u8>}
 }
 
 

@@ -241,12 +241,16 @@ pub mod pallet {
 			}
 		}
 
-		pub fn stake_of(key: SumTreeName, citizen_id: u128) -> Result<u64, DispatchError> {
+		pub fn stake_of(key: SumTreeName, citizen_id: u128) -> Result<Option<u64>, DispatchError> {
 			let tree_option = <SortitionSumTrees<T>>::get(&key);
 			match tree_option {
 				None => Err(Error::<T>::TreeDoesnotExist)?,
 				Some(tree) => {
-					let tree_index_data = tree.ids_to_node_indexes.get(&citizen_id).unwrap();
+					let tree_index_data;
+					match tree.ids_to_node_indexes.get(&citizen_id) {
+						Some(v) => tree_index_data = v,
+						None => return Ok(None)
+					}
 
 					let value: u64;
 					let tree_index = *tree_index_data;
@@ -255,11 +259,10 @@ pub mod pallet {
 					} else {
 						value = tree.nodes[tree_index as usize];
 					}
-					Ok(value)
+					Ok(Some(value))
 				}
 			}
 		}
-
 		pub fn draw(key: SumTreeName, draw_number: u64) -> Result<u128, DispatchError> {
 			let tree_option = <SortitionSumTrees<T>>::get(&key);
 

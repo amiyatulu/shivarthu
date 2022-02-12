@@ -255,9 +255,9 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn add_profile_fund(origin: OriginFor<T>, citizenid: u128) -> DispatchResult {
+		pub fn add_profile_fund(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			let _citizen_account_id = Self::get_citizen_accountid(citizenid)?;
+			let _citizen_account_id = Self::get_citizen_accountid(profile_citizenid)?;
 			let deposit = <RegistrationFee<T>>::get();
 			let now = <frame_system::Pallet<T>>::block_number();
 
@@ -270,13 +270,13 @@ pub mod pallet {
 
 			T::Currency::resolve_creating(&Self::fund_profile(), imb);
 
-			match <ProfileFundDetails<T>>::get(&citizenid) {
+			match <ProfileFundDetails<T>>::get(&profile_citizenid) {
 				// 📝 To write update stake for reapply when disapproved
 				Some(_profilefundinfo) => Err(Error::<T>::ProfileExists)?,
 				None => {
 					let profile_fund_info =
 						ProfileFundInfo { deposit, start: now, validated: false, reapply: false };
-					<ProfileFundDetails<T>>::insert(&citizenid, profile_fund_info);
+					<ProfileFundDetails<T>>::insert(&profile_citizenid, profile_fund_info);
 				}
 			}
 
@@ -287,11 +287,11 @@ pub mod pallet {
 		// Has the citizen added profile fund
 		// Create tree
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn challenge_profile(origin: OriginFor<T>, citizenid: u128) -> DispatchResult {
+		pub fn challenge_profile(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = <frame_system::Pallet<T>>::block_number();
-			let _citizen_account_id = Self::get_citizen_accountid(citizenid)?;
-			match <ProfileFundDetails<T>>::get(&citizenid) {
+			let _citizen_account_id = Self::get_citizen_accountid(profile_citizenid)?;
+			match <ProfileFundDetails<T>>::get(&profile_citizenid) {
 				Some(profilefundinfo) => {
 					if profilefundinfo.validated == true {
 						Err(Error::<T>::ProfileIsAlreadyValidated)?;
@@ -311,7 +311,7 @@ pub mod pallet {
 
 			T::Currency::resolve_creating(&Self::fund_profile(), imb);
 
-			match <ChallengerFundDetails<T>>::get(&citizenid) {
+			match <ChallengerFundDetails<T>>::get(&profile_citizenid) {
 				// 📝 To write update stake for reapply
 				Some(_challengerfundinfo) => Err(Error::<T>::ChallegerFundInfoExists)?,
 				None => {
@@ -321,12 +321,12 @@ pub mod pallet {
 						start: now,
 						challenge_completed: false,
 					};
-					<ChallengerFundDetails<T>>::insert(&citizenid, challenger_fund_info);
+					<ChallengerFundDetails<T>>::insert(&profile_citizenid, challenger_fund_info);
 				}
 			}
 
-			let key = SumTreeName::UniqueIdenfier {
-				citizen_id: citizenid,
+			let key = SumTreeName::UniqueIdenfier1 {
+				citizen_id: profile_citizenid,
 				name: "challengeprofile".as_bytes().to_vec(),
 			};
 
@@ -335,34 +335,40 @@ pub mod pallet {
 			result
 		}
 
+		// To Do
+		// Apply jurors
+		// Draw jurors
+		// Unstaking non selected jurors
+		// Commit vote
+		// Reveal vote
+		// Get winning decision
+		// Incentive distribution
+
 		// Generic Schelling game
-		// 1. Adding to SchellingStake ✔️
-		// 2. Check for minimum stake ❌
+		// 1. Adding to SchellingStake
+		// 2. Check for minimum stake
+		// 3. Block time, apply jurors time is available
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn apply_jurors(
 			origin: OriginFor<T>,
-			schellingtype: SchellingType,
+			profile_citizenid: u128,
 			stake: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let who_citizen_id = Self::get_citizen_id(who)?;
-			let stake_info = StakeDetails { stake };
-			match schellingtype {
-				SchellingType::ProfileApproval { citizen_id } => {
-					let _profile_added = Self::profile_fund_added(citizen_id);
-					match <SchellingStake<T>>::get(&who_citizen_id, &schellingtype) {
-						Some(_stake) => Err(Error::<T>::AlreadyStaked)?,
-						None => {
-							<SchellingStake<T>>::insert(
-								&who_citizen_id,
-								&schellingtype,
-								stake_info,
-							);
-						}
-					}
-					Ok(())
-				}
-			}
+
+			let key = SumTreeName::UniqueIdenfier1 {
+				citizen_id: profile_citizenid,
+				name: "challengeprofile".as_bytes().to_vec(),
+			};
+
+			let stake_of = Self::stake_of(key.clone(), profile_citizenid)?;
+
+			let stake_u64 = Self::balance_to_u64_saturated(stake);
+
+			let result = Self::set(key, stake_u64, who_citizen_id);
+
+			result
 		}
 
 		// Draw jurors
@@ -463,6 +469,10 @@ pub mod pallet {
 				}
 				None => Err(Error::<T>::ProfileNotFunded)?,
 			}
+		}
+
+		fn balance_to_u64_saturated(input: BalanceOf<T>) -> u64 {
+			input.saturated_into::<u64>()
 		}
 
 		fn fund_profile() -> T::AccountId {
@@ -632,12 +642,16 @@ pub mod pallet {
 			}
 		}
 
-		pub fn stake_of(key: SumTreeName, citizen_id: u128) -> Result<u64, DispatchError> {
+		pub fn stake_of(key: SumTreeName, citizen_id: u128) -> Result<Option<u64>, DispatchError> {
 			let tree_option = <SortitionSumTrees<T>>::get(&key);
 			match tree_option {
 				None => Err(Error::<T>::TreeDoesnotExist)?,
 				Some(tree) => {
-					let tree_index_data = tree.ids_to_node_indexes.get(&citizen_id).unwrap();
+					let tree_index_data;
+					match tree.ids_to_node_indexes.get(&citizen_id) {
+						Some(v) => tree_index_data = v,
+						None => return Ok(None)
+					}
 
 					let value: u64;
 					let tree_index = *tree_index_data;
@@ -646,7 +660,7 @@ pub mod pallet {
 					} else {
 						value = tree.nodes[tree_index as usize];
 					}
-					Ok(value)
+					Ok(Some(value))
 				}
 			}
 		}
