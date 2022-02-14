@@ -20,7 +20,7 @@ mod types;
 pub mod pallet {
 	use crate::types::{
 		ChallengerFundInfo, CitizenDetails, DepartmentDetails, ProfileFundInfo, SchellingType,
-		SortitionSumTree, StakeDetails, SumTreeName,
+		SortitionSumTree, StakeDetails, SumTreeName, Period
 	};
 	use frame_support::sp_runtime::traits::AccountIdConversion;
 	use frame_support::sp_runtime::traits::CheckedSub;
@@ -40,6 +40,7 @@ pub mod pallet {
 	type CitizenDetailsOf<T> = CitizenDetails<AccountIdOf<T>>;
 	type ChallengerFundInfoOf<T> =
 		ChallengerFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber, AccountIdOf<T>>;
+	type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
 
 	type FundIndex = u32;
 
@@ -174,6 +175,19 @@ pub mod pallet {
 	#[pallet::getter(fn sortition_sum_trees)]
 	pub type SortitionSumTrees<T> = StorageMap<_, Blake2_128Concat, SumTreeName, SortitionSumTree>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn get_period)]
+	pub type PeriodName<T> = StorageMap<_, Blake2_128Concat, SumTreeName, Period>;
+
+	#[pallet::type_value]
+	pub fn DefaultMinChallengeTime<T: Config>() -> BlockNumberOf<T>{
+		43200u128.saturated_into::<BlockNumberOf<T>>() // 3 days
+	}
+
+	#[pallet::storage]
+	#[pallet::getter(fn min_challenge_time)]
+	pub type MinChallengeTime<T> = StorageValue<_, BlockNumberOf<T>, ValueQuery, DefaultMinChallengeTime<T>>;
+
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
@@ -196,10 +210,8 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
-
 		InvalidIndex,
 		FailedUnwrap,
-
 		DepartmentExists,
 		DepartmentDoNotExists,
 		DepartmentNotAssociated,
@@ -221,6 +233,9 @@ pub mod pallet {
 		KMustGreaterThanOne,
 		TreeAlreadyExists,
 		TreeDoesnotExist,
+		PeriodExists,
+		PeriodDoesNotExists,
+		ChallengerFundDoesNotExists,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -280,6 +295,21 @@ pub mod pallet {
 				}
 			}
 
+			let key = SumTreeName::UniqueIdenfier1 {
+				citizen_id: profile_citizenid,
+				name: "challengeprofile".as_bytes().to_vec(),
+			};
+
+			match <PeriodName<T>>::get(&key) {
+				Some(_period) => Err(Error::<T>::PeriodExists)?,
+				None => {
+					let period = Period::Evidence;
+					<PeriodName<T>>::insert(&key, period);
+				}
+			}
+
+			
+
 			Ok(())
 		}
 
@@ -330,10 +360,57 @@ pub mod pallet {
 				name: "challengeprofile".as_bytes().to_vec(),
 			};
 
-			let result = Self::create_tree(key, 3);
-
+			let result = Self::create_tree(key.clone(), 3);
+            
 			result
 		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn pass_period(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
+
+			let who = ensure_signed(origin)?;
+
+			let key = SumTreeName::UniqueIdenfier1 {
+				citizen_id: profile_citizenid,
+				name: "challengeprofile".as_bytes().to_vec(),
+			};
+
+
+			let now = <frame_system::Pallet<T>>::block_number();
+
+	
+
+			match <PeriodName<T>>::get(&key) {
+				Some(period) => {
+                  if period == Period::Evidence {
+					match <ChallengerFundDetails<T>>::get(&profile_citizenid) {
+						Some(challenger_fund_info) => {
+							let block_number = challenger_fund_info.start;
+							let time = now.checked_sub(&block_number).expect("Overflow");
+							let min_challenge_time = <MinChallengeTime<T>>::get();
+							if time >= min_challenge_time {
+								let new_period = Period::Staking;
+								<PeriodName<T>>::insert(&key, new_period);
+							}
+						},
+						None => {
+							Err(Error::<T>::ChallengerFundDoesNotExists)?
+						}
+					}
+				  }
+					
+
+				},
+				None => {
+					Err(Error::<T>::PeriodDoesNotExists)?
+				}
+			}
+			
+            
+			Ok(())
+
+		}
+
 
 		// To Do
 		// Apply jurors

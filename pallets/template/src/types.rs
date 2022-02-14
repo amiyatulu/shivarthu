@@ -69,6 +69,27 @@ pub struct SortitionSumTree {
 }
 
 
+// #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
+// #[cfg_attr(feature = "std", derive(Debug))]
+// pub enum Phase {
+//     Staking, // Stake sum trees can be updated. Pass after `minStakingTime` passes and there is at least one dispute without jurors.
+//     Generating, // Waiting for a random number. Pass as soon as it is ready.
+//     Drawing // Jurors can be drawn. Pass after all disputes have jurors or `maxDrawingTime` passes.
+//   }
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub enum Period {
+    Evidence, // Evidence can be submitted. This is also when drawing has to take place.
+    Staking, // Stake sum trees can be updated. Pass after `minStakingTime` passes and there is at least one dispute without jurors.
+    Commit, // Jurors commit a hashed vote. This is skipped for courts without hidden votes.
+    Vote, // Jurors reveal/cast their vote depending on whether the court has hidden votes or not.
+    Appeal, // The dispute can be appealed.
+    Drawing, // Jurors can be drawn. Pass after all disputes have jurors or `maxDrawingTime` passes.
+    Execution // Tokens are redistributed and the ruling is executed.
+  }
+
+
 
 
 
