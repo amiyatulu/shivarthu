@@ -19,8 +19,8 @@ mod types;
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::types::{
-		ChallengerFundInfo, CitizenDetails, DepartmentDetails, ProfileFundInfo, SchellingType,
-		SortitionSumTree, StakeDetails, SumTreeName, Period
+		ChallengerFundInfo, CitizenDetails, DepartmentDetails, Period, ProfileFundInfo,
+		SchellingType, SortitionSumTree, StakeDetails, SumTreeName,
 	};
 	use frame_support::sp_runtime::traits::AccountIdConversion;
 	use frame_support::sp_runtime::traits::CheckedSub;
@@ -173,20 +173,21 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn sortition_sum_trees)]
-	pub type SortitionSumTrees<T> = StorageMap<_, Blake2_128Concat, SumTreeName, SortitionSumTree>;
+	pub type SortitionSumTrees<T> = StorageMap<_, Blake2_128Concat, SumTreeName, SortitionSumTree<AccountIdOf<T>>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_period)]
 	pub type PeriodName<T> = StorageMap<_, Blake2_128Concat, SumTreeName, Period>;
 
 	#[pallet::type_value]
-	pub fn DefaultMinChallengeTime<T: Config>() -> BlockNumberOf<T>{
+	pub fn DefaultMinChallengeTime<T: Config>() -> BlockNumberOf<T> {
 		43200u128.saturated_into::<BlockNumberOf<T>>() // 3 days
 	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn min_challenge_time)]
-	pub type MinChallengeTime<T> = StorageValue<_, BlockNumberOf<T>, ValueQuery, DefaultMinChallengeTime<T>>;
+	pub type MinChallengeTime<T> =
+		StorageValue<_, BlockNumberOf<T>, ValueQuery, DefaultMinChallengeTime<T>>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -236,6 +237,7 @@ pub mod pallet {
 		PeriodExists,
 		PeriodDoesNotExists,
 		ChallengerFundDoesNotExists,
+		PeriodDontMatch,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -308,8 +310,6 @@ pub mod pallet {
 				}
 			}
 
-			
-
 			Ok(())
 		}
 
@@ -361,13 +361,11 @@ pub mod pallet {
 			};
 
 			let result = Self::create_tree(key.clone(), 3);
-            
 			result
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn pass_period(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
-
 			let who = ensure_signed(origin)?;
 
 			let key = SumTreeName::UniqueIdenfier1 {
@@ -375,42 +373,30 @@ pub mod pallet {
 				name: "challengeprofile".as_bytes().to_vec(),
 			};
 
-
 			let now = <frame_system::Pallet<T>>::block_number();
-
-	
 
 			match <PeriodName<T>>::get(&key) {
 				Some(period) => {
-                  if period == Period::Evidence {
-					match <ChallengerFundDetails<T>>::get(&profile_citizenid) {
-						Some(challenger_fund_info) => {
-							let block_number = challenger_fund_info.start;
-							let time = now.checked_sub(&block_number).expect("Overflow");
-							let min_challenge_time = <MinChallengeTime<T>>::get();
-							if time >= min_challenge_time {
-								let new_period = Period::Staking;
-								<PeriodName<T>>::insert(&key, new_period);
+					if period == Period::Evidence {
+						match <ChallengerFundDetails<T>>::get(&profile_citizenid) {
+							Some(challenger_fund_info) => {
+								let block_number = challenger_fund_info.start;
+								let time = now.checked_sub(&block_number).expect("Overflow");
+								let min_challenge_time = <MinChallengeTime<T>>::get();
+								if time >= min_challenge_time {
+									let new_period = Period::Staking;
+									<PeriodName<T>>::insert(&key, new_period);
+								}
 							}
-						},
-						None => {
-							Err(Error::<T>::ChallengerFundDoesNotExists)?
+							None => Err(Error::<T>::ChallengerFundDoesNotExists)?,
 						}
 					}
-				  }
-					
-
-				},
-				None => {
-					Err(Error::<T>::PeriodDoesNotExists)?
 				}
+				None => Err(Error::<T>::PeriodDoesNotExists)?,
 			}
-			
-            
+
 			Ok(())
-
 		}
-
 
 		// To Do
 		// Apply jurors
@@ -432,18 +418,23 @@ pub mod pallet {
 			stake: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			let who_citizen_id = Self::get_citizen_id(who)?;
 
 			let key = SumTreeName::UniqueIdenfier1 {
 				citizen_id: profile_citizenid,
 				name: "challengeprofile".as_bytes().to_vec(),
 			};
+			match <PeriodName<T>>::get(&key) {
+				Some(period) => {
+					ensure!(period == Period::Staking, Error::<T>::PeriodDontMatch);
+				}
+				None => Err(Error::<T>::PeriodDoesNotExists)?,
+			}
 
-			let stake_of = Self::stake_of(key.clone(), profile_citizenid)?;
+			// let stake_of = Self::stake_of(key.clone(), profile_citizenid)?;
 
 			let stake_u64 = Self::balance_to_u64_saturated(stake);
 
-			let result = Self::set(key, stake_u64, who_citizen_id);
+			let result = Self::set(key, stake_u64, who);
 
 			result
 		}
@@ -599,7 +590,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		pub fn set(key: SumTreeName, value: u64, citizen_id: u128) -> DispatchResult {
+		pub fn set(key: SumTreeName, value: u64, citizen_id:AccountIdOf<T>) -> DispatchResult {
 			let tree_option = <SortitionSumTrees<T>>::get(&key);
 
 			match tree_option {
@@ -655,7 +646,7 @@ pub mod pallet {
 		}
 
 		fn update_parents(
-			mut tree: SortitionSumTree,
+			mut tree: SortitionSumTree<AccountIdOf<T>>,
 			tree_index: u64,
 			plus_or_minus: bool,
 			value: u64,
@@ -675,8 +666,8 @@ pub mod pallet {
 		}
 		fn if_tree_index_zero(
 			value: u64,
-			citizen_id: u128,
-			mut tree: SortitionSumTree,
+			citizen_id: AccountIdOf<T>,
+			mut tree: SortitionSumTree<AccountIdOf<T>>,
 			mut tree_index: u64,
 			key: SumTreeName,
 		) {
@@ -697,11 +688,11 @@ pub mod pallet {
 					if tree_index != 1 && (tree_index - 1) % tree.k == 0 {
 						// Is first child.
 						let parent_index = tree_index / tree.k;
-						let parent_id = *tree.node_indexes_to_ids.get(&parent_index).unwrap();
+						let parent_id = tree.node_indexes_to_ids.get(&parent_index).unwrap().clone();
 						let new_index = tree_index + 1;
 						tree.nodes.push(*tree.nodes.get(parent_index as usize).unwrap());
 						tree.node_indexes_to_ids.remove(&parent_index);
-						tree.ids_to_node_indexes.insert(parent_id, new_index);
+						tree.ids_to_node_indexes.insert(parent_id.clone(), new_index);
 						tree.node_indexes_to_ids.insert(new_index, parent_id);
 					}
 				} else {
@@ -710,7 +701,7 @@ pub mod pallet {
 					tree.stack.pop();
 				}
 
-				tree.ids_to_node_indexes.insert(citizen_id, tree_index);
+				tree.ids_to_node_indexes.insert(citizen_id.clone(), tree_index);
 				tree.node_indexes_to_ids.insert(tree_index, citizen_id);
 
 				// update_parents 🟥
@@ -719,7 +710,7 @@ pub mod pallet {
 			}
 		}
 
-		pub fn stake_of(key: SumTreeName, citizen_id: u128) -> Result<Option<u64>, DispatchError> {
+		pub fn stake_of(key: SumTreeName, citizen_id: AccountIdOf<T>) -> Result<Option<u64>, DispatchError> {
 			let tree_option = <SortitionSumTrees<T>>::get(&key);
 			match tree_option {
 				None => Err(Error::<T>::TreeDoesnotExist)?,
@@ -727,7 +718,7 @@ pub mod pallet {
 					let tree_index_data;
 					match tree.ids_to_node_indexes.get(&citizen_id) {
 						Some(v) => tree_index_data = v,
-						None => return Ok(None)
+						None => return Ok(None),
 					}
 
 					let value: u64;
@@ -742,7 +733,7 @@ pub mod pallet {
 			}
 		}
 
-		pub fn draw(key: SumTreeName, draw_number: u64) -> Result<u128, DispatchError> {
+		pub fn draw(key: SumTreeName, draw_number: u64) -> Result<AccountIdOf<T>, DispatchError> {
 			let tree_option = <SortitionSumTrees<T>>::get(&key);
 
 			match tree_option {
@@ -764,8 +755,8 @@ pub mod pallet {
 							}
 						}
 					}
-
-					Ok(*tree.node_indexes_to_ids.get(&tree_index).unwrap())
+                    let account_id = tree.node_indexes_to_ids.get(&tree_index).unwrap().clone();
+					Ok(account_id)
 				}
 			}
 		}

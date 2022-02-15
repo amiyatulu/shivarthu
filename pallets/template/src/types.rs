@@ -60,12 +60,12 @@ pub enum SumTreeName {
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
-pub struct SortitionSumTree {
+pub struct SortitionSumTree<AccountId> {
     pub k: u64,
     pub stack: Vec<u64>,
     pub nodes: Vec<u64>,
-    pub ids_to_node_indexes: BTreeMap<u128, u64>, // citizen id, node index
-    pub node_indexes_to_ids: BTreeMap<u64, u128>, // node index, citizen id
+    pub ids_to_node_indexes: BTreeMap<AccountId, u64>, // citizen id, node index
+    pub node_indexes_to_ids: BTreeMap<u64, AccountId>, // node index, citizen id
 }
 
 
