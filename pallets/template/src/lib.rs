@@ -23,7 +23,7 @@ pub mod pallet {
 		SchellingType, SortitionSumTree, StakeDetails, SumTreeName,
 	};
 	use frame_support::sp_runtime::traits::AccountIdConversion;
-	use frame_support::sp_runtime::traits::CheckedSub;
+	use frame_support::sp_runtime::traits::{CheckedSub, CheckedAdd};
 	use frame_support::sp_runtime::SaturatedConversion;
 	use frame_support::sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 	use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
@@ -173,7 +173,8 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn sortition_sum_trees)]
-	pub type SortitionSumTrees<T> = StorageMap<_, Blake2_128Concat, SumTreeName, SortitionSumTree<AccountIdOf<T>>>;
+	pub type SortitionSumTrees<T> =
+		StorageMap<_, Blake2_128Concat, SumTreeName, SortitionSumTree<AccountIdOf<T>>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_period)]
@@ -188,6 +189,16 @@ pub mod pallet {
 	#[pallet::getter(fn min_challenge_time)]
 	pub type MinChallengeTime<T> =
 		StorageValue<_, BlockNumberOf<T>, ValueQuery, DefaultMinChallengeTime<T>>;
+
+	#[pallet::type_value]
+	pub fn DefaultMinBlockTime<T: Config>() -> BlockNumberOf<T> {
+		144000u128.saturated_into::<BlockNumberOf<T>>() // 10 days
+	}
+
+	#[pallet::storage]
+	#[pallet::getter(fn min_block_time)]
+	pub type MinBlockTime<T> =
+		StorageValue<_, BlockNumberOf<T>, ValueQuery, DefaultMinBlockTime<T>>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -391,6 +402,22 @@ pub mod pallet {
 							None => Err(Error::<T>::ChallengerFundDoesNotExists)?,
 						}
 					}
+					if period == Period::Staking {
+						match <ChallengerFundDetails<T>>::get(&profile_citizenid) {
+							Some(challenger_fund_info) => {
+								let start_block_number = challenger_fund_info.start;								
+								let min_challenge_time = <MinChallengeTime<T>>::get();
+								let added_staking_time = start_block_number.checked_add(&min_challenge_time).expect("overflow");
+								let time = now.checked_sub(&added_staking_time).expect("Overflow");
+								let min_block_time = <MinBlockTime<T>>::get();
+								if time >= min_block_time {
+									let new_period = Period::Drawing;
+									<PeriodName<T>>::insert(&key, new_period);
+								}
+							}
+							None => Err(Error::<T>::ChallengerFundDoesNotExists)?,
+						}
+					}
 				}
 				None => Err(Error::<T>::PeriodDoesNotExists)?,
 			}
@@ -443,18 +470,8 @@ pub mod pallet {
 		// Check whether juror application time is over, if not throw error
 		// Check mininum number of juror staked
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn draw_jurors(origin: OriginFor<T>, schellingtype: SchellingType) -> DispatchResult {
+		pub fn draw_jurors(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
 			let now = <frame_system::Pallet<T>>::block_number();
-			match schellingtype {
-				SchellingType::ProfileApproval { citizen_id } => {
-					let profilefundinfo = Self::get_profile_fund_info(citizen_id)?;
-					let start_block = profilefundinfo.start;
-					let data = now.checked_sub(&start_block).unwrap();
-					if data < 432000u128.saturated_into::<BlockNumberFor<T>>() {
-						Err(Error::<T>::ApplyJurorTimeNotEnded)?
-					}
-				}
-			}
 			Ok(())
 		}
 
@@ -590,7 +607,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		pub fn set(key: SumTreeName, value: u64, citizen_id:AccountIdOf<T>) -> DispatchResult {
+		pub fn set(key: SumTreeName, value: u64, citizen_id: AccountIdOf<T>) -> DispatchResult {
 			let tree_option = <SortitionSumTrees<T>>::get(&key);
 
 			match tree_option {
@@ -688,7 +705,8 @@ pub mod pallet {
 					if tree_index != 1 && (tree_index - 1) % tree.k == 0 {
 						// Is first child.
 						let parent_index = tree_index / tree.k;
-						let parent_id = tree.node_indexes_to_ids.get(&parent_index).unwrap().clone();
+						let parent_id =
+							tree.node_indexes_to_ids.get(&parent_index).unwrap().clone();
 						let new_index = tree_index + 1;
 						tree.nodes.push(*tree.nodes.get(parent_index as usize).unwrap());
 						tree.node_indexes_to_ids.remove(&parent_index);
@@ -710,7 +728,10 @@ pub mod pallet {
 			}
 		}
 
-		pub fn stake_of(key: SumTreeName, citizen_id: AccountIdOf<T>) -> Result<Option<u64>, DispatchError> {
+		pub fn stake_of(
+			key: SumTreeName,
+			citizen_id: AccountIdOf<T>,
+		) -> Result<Option<u64>, DispatchError> {
 			let tree_option = <SortitionSumTrees<T>>::get(&key);
 			match tree_option {
 				None => Err(Error::<T>::TreeDoesnotExist)?,
@@ -755,7 +776,7 @@ pub mod pallet {
 							}
 						}
 					}
-                    let account_id = tree.node_indexes_to_ids.get(&tree_index).unwrap().clone();
+					let account_id = tree.node_indexes_to_ids.get(&tree_index).unwrap().clone();
 					Ok(account_id)
 				}
 			}
