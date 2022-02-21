@@ -23,7 +23,7 @@ pub mod pallet {
 		SchellingType, SortitionSumTree, StakeDetails, SumTreeName,
 	};
 	use frame_support::sp_runtime::traits::AccountIdConversion;
-	use frame_support::sp_runtime::traits::{CheckedSub, CheckedAdd};
+	use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
 	use frame_support::sp_runtime::SaturatedConversion;
 	use frame_support::sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 	use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
@@ -96,7 +96,7 @@ pub mod pallet {
 
 	#[pallet::type_value]
 	pub fn DefaultRegistrationFee<T: Config>() -> BalanceOf<T> {
-		100u128.saturated_into::<BalanceOf<T>>()
+		1000u128.saturated_into::<BalanceOf<T>>()
 	}
 	// Registration challege fees
 	#[pallet::type_value]
@@ -199,6 +199,17 @@ pub mod pallet {
 	#[pallet::getter(fn min_block_time)]
 	pub type MinBlockTime<T> =
 		StorageValue<_, BlockNumberOf<T>, ValueQuery, DefaultMinBlockTime<T>>;
+	#[pallet::type_value]
+	pub fn DefaultMinStake<T: Config>() -> BalanceOf<T> {
+		100u128.saturated_into::<BalanceOf<T>>()
+	}
+	#[pallet::storage]
+	#[pallet::getter(fn min_juror_stake)]
+	pub type MinJurorStake<T> = StorageValue<_, BalanceOf<T>, ValueQuery, DefaultMinStake<T>>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn draws_in_round)]
+	pub type DrawsInRound<T> = StorageMap<_, Blake2_128Concat, SumTreeName, u128, ValueQuery>; // A counter of draws made in the current round.
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -249,6 +260,7 @@ pub mod pallet {
 		PeriodDoesNotExists,
 		ChallengerFundDoesNotExists,
 		PeriodDontMatch,
+		StakeLessThanMin,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -296,7 +308,7 @@ pub mod pallet {
 				ExistenceRequirement::AllowDeath,
 			)?;
 
-			T::Currency::resolve_creating(&Self::fund_profile(), imb);
+			T::Currency::resolve_creating(&Self::fund_profile_account(), imb);
 
 			match <ProfileFundDetails<T>>::get(&profile_citizenid) {
 				// 📝 To write update stake for reapply when disapproved
@@ -350,7 +362,7 @@ pub mod pallet {
 				ExistenceRequirement::AllowDeath,
 			)?;
 
-			T::Currency::resolve_creating(&Self::fund_profile(), imb);
+			T::Currency::resolve_creating(&Self::fund_profile_account(), imb);
 
 			match <ChallengerFundDetails<T>>::get(&profile_citizenid) {
 				// 📝 To write update stake for reapply
@@ -405,9 +417,11 @@ pub mod pallet {
 					if period == Period::Staking {
 						match <ChallengerFundDetails<T>>::get(&profile_citizenid) {
 							Some(challenger_fund_info) => {
-								let start_block_number = challenger_fund_info.start;								
+								let start_block_number = challenger_fund_info.start;
 								let min_challenge_time = <MinChallengeTime<T>>::get();
-								let added_staking_time = start_block_number.checked_add(&min_challenge_time).expect("overflow");
+								let added_staking_time = start_block_number
+									.checked_add(&min_challenge_time)
+									.expect("overflow");
 								let time = now.checked_sub(&added_staking_time).expect("Overflow");
 								let min_block_time = <MinBlockTime<T>>::get();
 								if time >= min_block_time {
@@ -435,9 +449,9 @@ pub mod pallet {
 		// Incentive distribution
 
 		// Generic Schelling game
-		// 1. Adding to SchellingStake
-		// 2. Check for minimum stake
-		// 3. Block time, apply jurors time is available
+		// 1. Check for minimum stake ✔️
+		// 2. Block time, apply jurors time is available ✔️
+		// 3. Number of people staked
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn apply_jurors(
 			origin: OriginFor<T>,
@@ -457,6 +471,19 @@ pub mod pallet {
 				None => Err(Error::<T>::PeriodDoesNotExists)?,
 			}
 
+			let min_stake = <MinJurorStake<T>>::get();
+
+			ensure!(stake < min_stake, Error::<T>::StakeLessThanMin);
+
+			let imb = T::Currency::withdraw(
+				&who,
+				stake,
+				WithdrawReasons::TRANSFER,
+				ExistenceRequirement::AllowDeath,
+			)?;
+
+			T::Currency::resolve_creating(&Self::juror_stake_account(), imb);
+
 			// let stake_of = Self::stake_of(key.clone(), profile_citizenid)?;
 
 			let stake_u64 = Self::balance_to_u64_saturated(stake);
@@ -470,8 +497,30 @@ pub mod pallet {
 		// Check whether juror application time is over, if not throw error
 		// Check mininum number of juror staked
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn draw_jurors(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
+		pub fn draw_jurors(origin: OriginFor<T>, profile_citizenid: u128, interations: u128) -> DispatchResult {
 			let now = <frame_system::Pallet<T>>::block_number();
+
+			let key = SumTreeName::UniqueIdenfier1 {
+				citizen_id: profile_citizenid,
+				name: "challengeprofile".as_bytes().to_vec(),
+			};
+
+			match <PeriodName<T>>::get(&key) {
+				Some(period) => {
+					ensure!(period == Period::Drawing, Error::<T>::PeriodDontMatch);
+				}
+				None => Err(Error::<T>::PeriodDoesNotExists)?,
+			}
+
+			let draws_in_round = <DrawsInRound<T>>::get(&key);
+			let end_index = draws_in_round + interations;
+			let nonce = Self::get_and_increment_nonce();
+
+			let random_seed = T::RandomnessSource::random(&nonce).encode();
+			let random_number = u64::decode(&mut random_seed.as_ref())
+				.expect("secure hashes should always be bigger than u64; qed");
+			
+			let data = Self::draw(key.clone(), random_number);
 			Ok(())
 		}
 
@@ -560,8 +609,12 @@ pub mod pallet {
 			input.saturated_into::<u64>()
 		}
 
-		fn fund_profile() -> T::AccountId {
+		fn fund_profile_account() -> T::AccountId {
 			PALLET_ID.into_sub_account(1)
+		}
+
+		fn juror_stake_account() -> T::AccountId {
+			PALLET_ID.into_sub_account(2)
 		}
 
 		fn draw_juror_for_citizen_profile_function(
