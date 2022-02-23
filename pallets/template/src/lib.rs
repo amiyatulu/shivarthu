@@ -211,6 +211,11 @@ pub mod pallet {
 	#[pallet::getter(fn draws_in_round)]
 	pub type DrawsInRound<T> = StorageMap<_, Blake2_128Concat, SumTreeName, u128, ValueQuery>; // A counter of draws made in the current round.
 
+	#[pallet::storage]
+	#[pallet::getter(fn  drawn_jurors)]
+	pub type DrawnJurors<T: Config> =
+		StorageMap<_, Blake2_128Concat, SumTreeName, Vec<T::AccountId>, ValueQuery>;
+
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
@@ -497,7 +502,11 @@ pub mod pallet {
 		// Check whether juror application time is over, if not throw error
 		// Check mininum number of juror staked
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn draw_jurors(origin: OriginFor<T>, profile_citizenid: u128, interations: u128) -> DispatchResult {
+		pub fn draw_jurors(
+			origin: OriginFor<T>,
+			profile_citizenid: u128,
+			interations: u128,
+		) -> DispatchResult {
 			let now = <frame_system::Pallet<T>>::block_number();
 
 			let key = SumTreeName::UniqueIdenfier1 {
@@ -519,8 +528,15 @@ pub mod pallet {
 			let random_seed = T::RandomnessSource::random(&nonce).encode();
 			let random_number = u64::decode(&mut random_seed.as_ref())
 				.expect("secure hashes should always be bigger than u64; qed");
-			
-			let data = Self::draw(key.clone(), random_number);
+			let data = Self::draw(key.clone(), random_number)?;
+			let mut drawn_juror = <DrawnJurors<T>>::get(&key);
+			match drawn_juror.binary_search(&data) {
+				Ok(_) => {}
+				Err(index) => {
+					drawn_juror.insert(index, data);
+					<DrawnJurors<T>>::insert(&key, drawn_juror);
+				}
+			}
 			Ok(())
 		}
 
