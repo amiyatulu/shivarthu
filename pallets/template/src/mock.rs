@@ -1,9 +1,7 @@
 use crate as pallet_template;
 use frame_support::parameter_types;
 use frame_support_test::TestRandomness;
-use frame_support::{
-	traits::{OnFinalize, OnInitialize},
-};
+
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{
