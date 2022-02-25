@@ -4,6 +4,21 @@ use crate::{
 	Error,
 };
 use frame_support::{assert_noop, assert_ok};
+use frame_support::{
+	traits::{OnFinalize, OnInitialize},
+};
+
+fn run_to_block(n: u64) {
+	while System::block_number() < n {
+		TemplateModule::on_finalize(System::block_number());
+		Balances::on_finalize(System::block_number());
+		System::on_finalize(System::block_number());
+		System::set_block_number(System::block_number() + 1);
+		System::on_initialize(System::block_number());
+		Balances::on_initialize(System::block_number());
+		TemplateModule::on_initialize(System::block_number());
+	}
+}
 
 
 #[test]
@@ -128,6 +143,7 @@ fn draw_jurors_test() {
 			ProfileFundInfo { deposit: 1000, start: 0, validated: false, reapply: false };
 		let profile_fundinfo = TemplateModule::profile_fund(0);
 		assert_eq!(profile_fundinfo, Some(profile_fundinfocheck));
+		run_to_block(10);
 		assert_eq!(Balances::free_balance(3), 300000);
 		assert_ok!(TemplateModule::challenge_profile(Origin::signed(3), 0));
 		assert_eq!(Balances::free_balance(3), 299900);

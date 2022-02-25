@@ -1,6 +1,9 @@
 use crate as pallet_template;
 use frame_support::parameter_types;
 use frame_support_test::TestRandomness;
+use frame_support::{
+	traits::{OnFinalize, OnInitialize},
+};
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{
@@ -123,14 +126,4 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	t.into()
 }
 
-pub fn run_to_block(n: u64) {
-	while System::block_number() < n {
-		TemplateModule::on_finalize(System::block_number());
-		Balances::on_finalize(System::block_number());
-		System::on_finalize(System::block_number());
-		System::set_block_number(System::block_number() + 1);
-		System::on_initialize(System::block_number());
-		Balances::on_initialize(System::block_number());
-		TemplateModule::on_initialize(System::block_number());
-	}
-}
+
