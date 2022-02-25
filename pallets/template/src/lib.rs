@@ -19,8 +19,8 @@ mod types;
 #[frame_support::pallet]
 pub mod pallet {
 	use crate::types::{
-		ChallengerFundInfo, CitizenDetails, DepartmentDetails, Period, ProfileFundInfo,
-		SchellingType, SortitionSumTree, StakeDetails, SumTreeName,
+		ChallengerFundInfo, CitizenDetails, DepartmentDetails, DrawJurorsForProfileLimit, Period,
+		ProfileFundInfo, SchellingType, SortitionSumTree, StakeDetails, SumTreeName,
 	};
 	use frame_support::sp_runtime::traits::AccountIdConversion;
 	use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
@@ -101,7 +101,7 @@ pub mod pallet {
 	// Registration challege fees
 	#[pallet::type_value]
 	pub fn DefaultRegistrationChallengeFee<T: Config>() -> BalanceOf<T> {
-		10u128.saturated_into::<BalanceOf<T>>()
+		100u128.saturated_into::<BalanceOf<T>>()
 	}
 
 	#[pallet::storage]
@@ -216,6 +216,17 @@ pub mod pallet {
 	pub type DrawnJurors<T: Config> =
 		StorageMap<_, Blake2_128Concat, SumTreeName, Vec<T::AccountId>, ValueQuery>;
 
+	#[pallet::type_value]
+	pub fn DefaultDrawJurorsForProfileLimit<T: Config>() -> DrawJurorsForProfileLimit {
+		let draw_juror_limit = DrawJurorsForProfileLimit { max_draws: 30, max_draws_appeal: 60 };
+		draw_juror_limit
+	}
+
+	#[pallet::storage]
+	#[pallet::getter(fn draw_jurors_for_profile_limit)]
+	pub type DrawJurorsForProfileLimitData<T> =
+		StorageValue<_, DrawJurorsForProfileLimit, ValueQuery, DefaultDrawJurorsForProfileLimit<T>>;
+
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
@@ -266,6 +277,7 @@ pub mod pallet {
 		ChallengerFundDoesNotExists,
 		PeriodDontMatch,
 		StakeLessThanMin,
+		MaxDrawExceeded,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -520,22 +532,31 @@ pub mod pallet {
 				}
 				None => Err(Error::<T>::PeriodDoesNotExists)?,
 			}
-
+			let draw_limit = <DrawJurorsForProfileLimitData<T>>::get();
 			let draws_in_round = <DrawsInRound<T>>::get(&key);
-			let end_index = draws_in_round + interations;
-			let nonce = Self::get_and_increment_nonce();
+			ensure!(draws_in_round >= draw_limit.max_draws.into(), Error::<T>::MaxDrawExceeded);
+			let mut end_index = draws_in_round + interations;
+			if draws_in_round + interations >= draw_limit.max_draws as u128 {
+				end_index = draw_limit.max_draws as u128;
+			}
+			let mut draw_increment = draws_in_round.clone();
 
-			let random_seed = T::RandomnessSource::random(&nonce).encode();
-			let random_number = u64::decode(&mut random_seed.as_ref())
-				.expect("secure hashes should always be bigger than u64; qed");
-			let data = Self::draw(key.clone(), random_number)?;
-			let mut drawn_juror = <DrawnJurors<T>>::get(&key);
-			match drawn_juror.binary_search(&data) {
-				Ok(_) => {}
-				Err(index) => {
-					drawn_juror.insert(index, data);
-					<DrawnJurors<T>>::insert(&key, drawn_juror);
+			for _ in draws_in_round..end_index {
+				let nonce = Self::get_and_increment_nonce();
+				let random_seed = T::RandomnessSource::random(&nonce).encode();
+				let random_number = u64::decode(&mut random_seed.as_ref())
+					.expect("secure hashes should always be bigger than u64; qed");
+				let data = Self::draw(key.clone(), random_number)?;
+				let mut drawn_juror = <DrawnJurors<T>>::get(&key);
+				match drawn_juror.binary_search(&data) {
+					Ok(_) => {}
+					Err(index) => {
+						drawn_juror.insert(index, data);
+						<DrawnJurors<T>>::insert(&key, drawn_juror);
+						draw_increment = draw_increment + 1;
+					}
 				}
+				<DrawsInRound<T>>::insert(&key, draw_increment);
 			}
 			Ok(())
 		}

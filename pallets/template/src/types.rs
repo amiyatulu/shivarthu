@@ -89,6 +89,13 @@ pub enum Period {
     Execution // Tokens are redistributed and the ruling is executed.
   }
 
+  #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
+  #[cfg_attr(feature = "std", derive(Debug))]
+  pub struct DrawJurorsForProfileLimit {
+      pub max_draws: u64,
+      pub max_draws_appeal: u64
+  }
+
 
 
 

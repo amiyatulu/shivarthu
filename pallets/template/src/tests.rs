@@ -5,6 +5,7 @@ use crate::{
 };
 use frame_support::{assert_noop, assert_ok};
 
+
 #[test]
 fn it_works_for_default_value() {
 	new_test_ext().execute_with(|| {
@@ -43,15 +44,13 @@ fn profile_fund_test() {
 		assert_ok!(TemplateModule::add_citizen(Origin::signed(1), "hashcode".as_bytes().to_vec()));
 		assert_eq!(Balances::free_balance(2), 200000);
 		assert_ok!(TemplateModule::add_profile_fund(Origin::signed(2), 0));
-		assert_eq!(Balances::free_balance(2), 199900);
+		assert_eq!(Balances::free_balance(2), 199000);
 		let profile_fundinfocheck =
-			ProfileFundInfo { deposit: 100, start: 0, validated: false, reapply: false };
+			ProfileFundInfo { deposit: 1000, start: 0, validated: false, reapply: false };
 		let profile_fundinfo = TemplateModule::profile_fund(0);
 		assert_eq!(profile_fundinfo, Some(profile_fundinfocheck));
 	});
 }
-
-
 
 #[test]
 fn challenge_profile_test() {
@@ -60,12 +59,9 @@ fn challenge_profile_test() {
 		assert_ok!(TemplateModule::add_profile_fund(Origin::signed(2), 0));
 		assert_eq!(Balances::free_balance(3), 300000);
 		assert_ok!(TemplateModule::challenge_profile(Origin::signed(3), 0));
-		assert_eq!(Balances::free_balance(3), 299990);
+		assert_eq!(Balances::free_balance(3), 299900);
 	});
-
 }
-
-
 
 #[test]
 fn sum_tree_set() {
@@ -120,3 +116,24 @@ fn schelling_game_remove_stake() {
 		// assert_eq!(TemplateModule::draw("key1".as_bytes().to_vec(), 120), Ok(4));
 	});
 }
+
+#[test]
+fn draw_jurors_test() {
+		new_test_ext().execute_with(|| {
+		assert_ok!(TemplateModule::add_citizen(Origin::signed(1), "hashcode".as_bytes().to_vec()));
+		assert_eq!(Balances::free_balance(2), 200000);
+		assert_ok!(TemplateModule::add_profile_fund(Origin::signed(2), 0));
+		assert_eq!(Balances::free_balance(2), 199000);
+		let profile_fundinfocheck =
+			ProfileFundInfo { deposit: 1000, start: 0, validated: false, reapply: false };
+		let profile_fundinfo = TemplateModule::profile_fund(0);
+		assert_eq!(profile_fundinfo, Some(profile_fundinfocheck));
+		assert_eq!(Balances::free_balance(3), 300000);
+		assert_ok!(TemplateModule::challenge_profile(Origin::signed(3), 0));
+		assert_eq!(Balances::free_balance(3), 299900);
+		let data = TemplateModule::challenger_fund(0);
+		println!("{:?}", data);
+
+		});
+	}
+

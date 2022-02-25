@@ -1,12 +1,12 @@
 use crate as pallet_template;
 use frame_support::parameter_types;
+use frame_support_test::TestRandomness;
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
-use frame_support_test::TestRandomness;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -79,8 +79,58 @@ parameter_types! {
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	pallet_balances::GenesisConfig::<Test> { balances: vec![(1, 100000), (2, 200000),(3, 300000)] } // new code
-		.assimilate_storage(&mut t)
-		.unwrap();
+	pallet_balances::GenesisConfig::<Test> {
+		balances: vec![
+			(1, 100000),
+			(2, 200000),
+			(3, 300000),
+			(4, 300000),
+			(5, 300000),
+			(6, 300000),
+			(7, 300000),
+			(8, 300000),
+			(9, 300000),
+			(10, 300000),
+			(11, 300000),
+			(12, 300000),
+			(13, 300000),
+			(14, 300000),
+			(15, 300000),
+			(16, 300000),
+			(17, 300000),
+			(18, 300000),
+			(19, 300000),
+			(20, 300000),
+			(21, 300000),
+			(22, 300000),
+			(23, 300000),
+			(24, 300000),
+			(25, 300000),
+			(26, 300000),
+			(27, 300000),
+			(28, 300000),
+			(29, 300000),
+			(30, 300000),
+			(31, 300000),
+			(32, 300000),
+			(33, 300000),
+			(34, 300000),
+			(35, 300000),
+		],
+	} // new code
+	.assimilate_storage(&mut t)
+	.unwrap();
 	t.into()
+}
+
+pub fn run_to_block(n: u64) {
+	while System::block_number() < n {
+		TemplateModule::on_finalize(System::block_number());
+		Balances::on_finalize(System::block_number());
+		System::on_finalize(System::block_number());
+		System::set_block_number(System::block_number() + 1);
+		System::on_initialize(System::block_number());
+		Balances::on_initialize(System::block_number());
+		TemplateModule::on_initialize(System::block_number());
+	}
 }
