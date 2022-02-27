@@ -20,7 +20,7 @@ mod types;
 pub mod pallet {
 	use crate::types::{
 		ChallengerFundInfo, CitizenDetails, DepartmentDetails, DrawJurorsForProfileLimit, Period,
-		ProfileFundInfo, SchellingType, SortitionSumTree, StakeDetails, SumTreeName,
+		ProfileFundInfo, SchellingType, SortitionSumTree, StakeDetails, StakingTime, SumTreeName,
 	};
 	use frame_support::sp_runtime::traits::AccountIdConversion;
 	use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
@@ -181,24 +181,19 @@ pub mod pallet {
 	pub type PeriodName<T> = StorageMap<_, Blake2_128Concat, SumTreeName, Period>;
 
 	#[pallet::type_value]
-	pub fn DefaultMinChallengeTime<T: Config>() -> BlockNumberOf<T> {
-		43200u128.saturated_into::<BlockNumberOf<T>>() // 3 days
-	}
-
-	#[pallet::storage]
-	#[pallet::getter(fn min_challenge_time)]
-	pub type MinChallengeTime<T> =
-		StorageValue<_, BlockNumberOf<T>, ValueQuery, DefaultMinChallengeTime<T>>;
-
-	#[pallet::type_value]
-	pub fn DefaultMinBlockTime<T: Config>() -> BlockNumberOf<T> {
-		144000u128.saturated_into::<BlockNumberOf<T>>() // 10 days
+	pub fn DefaultMinBlockTime<T: Config>() -> StakingTime<BlockNumberOf<T>> {
+		let staking_time = StakingTime {
+			min_challenge_time: 43200u128.saturated_into::<BlockNumberOf<T>>(),
+			min_block_length: 144000u128.saturated_into::<BlockNumberOf<T>>(),
+		};
+		staking_time
+		// 3 days, 10 days
 	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn min_block_time)]
 	pub type MinBlockTime<T> =
-		StorageValue<_, BlockNumberOf<T>, ValueQuery, DefaultMinBlockTime<T>>;
+		StorageValue<_, StakingTime<BlockNumberOf<T>>, ValueQuery, DefaultMinBlockTime<T>>;
 	#[pallet::type_value]
 	pub fn DefaultMinStake<T: Config>() -> BalanceOf<T> {
 		100u128.saturated_into::<BalanceOf<T>>()
@@ -210,6 +205,10 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn draws_in_round)]
 	pub type DrawsInRound<T> = StorageMap<_, Blake2_128Concat, SumTreeName, u128, ValueQuery>; // A counter of draws made in the current round.
+
+	#[pallet::storage]
+	#[pallet::getter(fn staking_start_time)]
+	pub type StakingStartTime<T> = StorageMap<_, Blake2_128Concat, SumTreeName, BlockNumberOf<T>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn  drawn_jurors)]
@@ -406,7 +405,7 @@ pub mod pallet {
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn pass_period(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
-			let who = ensure_signed(origin)?;
+			let _who = ensure_signed(origin)?;
 
 			let key = SumTreeName::UniqueIdenfier1 {
 				citizen_id: profile_citizenid,
@@ -422,10 +421,11 @@ pub mod pallet {
 							Some(challenger_fund_info) => {
 								let block_number = challenger_fund_info.start;
 								let time = now.checked_sub(&block_number).expect("Overflow");
-								let min_challenge_time = <MinChallengeTime<T>>::get();
-								if time >= min_challenge_time {
+								let block_time = <MinBlockTime<T>>::get();
+								if time >= block_time.min_challenge_time {
 									let new_period = Period::Staking;
 									<PeriodName<T>>::insert(&key, new_period);
+									<StakingStartTime<T>>::insert(&key, now);
 								}
 							}
 							None => Err(Error::<T>::ChallengerFundDoesNotExists)?,
@@ -433,15 +433,10 @@ pub mod pallet {
 					}
 					if period == Period::Staking {
 						match <ChallengerFundDetails<T>>::get(&profile_citizenid) {
-							Some(challenger_fund_info) => {
-								let start_block_number = challenger_fund_info.start;
-								let min_challenge_time = <MinChallengeTime<T>>::get();
-								let added_staking_time = start_block_number
-									.checked_add(&min_challenge_time)
-									.expect("overflow");
-								let time = now.checked_sub(&added_staking_time).expect("Overflow");
-								let min_block_time = <MinBlockTime<T>>::get();
-								if time >= min_block_time {
+							Some(_challenger_fund_info) => {
+								let staking_start_time = <StakingStartTime<T>>::get(&key);
+								let block_time = <MinBlockTime<T>>::get();
+								if now >= block_time.min_block_length + staking_start_time  {
 									let new_period = Period::Drawing;
 									<PeriodName<T>>::insert(&key, new_period);
 								}
@@ -490,7 +485,7 @@ pub mod pallet {
 
 			let min_stake = <MinJurorStake<T>>::get();
 
-			ensure!(stake < min_stake, Error::<T>::StakeLessThanMin);
+			ensure!(stake >= min_stake, Error::<T>::StakeLessThanMin);
 
 			let imb = T::Currency::withdraw(
 				&who,
@@ -519,8 +514,7 @@ pub mod pallet {
 			profile_citizenid: u128,
 			interations: u128,
 		) -> DispatchResult {
-			let now = <frame_system::Pallet<T>>::block_number();
-
+			let who = ensure_signed(origin)?;
 			let key = SumTreeName::UniqueIdenfier1 {
 				citizen_id: profile_citizenid,
 				name: "challengeprofile".as_bytes().to_vec(),
@@ -534,7 +528,7 @@ pub mod pallet {
 			}
 			let draw_limit = <DrawJurorsForProfileLimitData<T>>::get();
 			let draws_in_round = <DrawsInRound<T>>::get(&key);
-			ensure!(draws_in_round >= draw_limit.max_draws.into(), Error::<T>::MaxDrawExceeded);
+			ensure!(draws_in_round < draw_limit.max_draws.into(), Error::<T>::MaxDrawExceeded);
 			let mut end_index = draws_in_round + interations;
 			if draws_in_round + interations >= draw_limit.max_draws as u128 {
 				end_index = draw_limit.max_draws as u128;

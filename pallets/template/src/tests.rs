@@ -1,12 +1,10 @@
 use crate::{
 	mock::*,
-	types::{CitizenDetails, ProfileFundInfo, SumTreeName},
+	types::{ChallengerFundInfo, CitizenDetails, ProfileFundInfo, SumTreeName},
 	Error,
 };
+use frame_support::traits::{OnFinalize, OnInitialize};
 use frame_support::{assert_noop, assert_ok};
-use frame_support::{
-	traits::{OnFinalize, OnInitialize},
-};
 
 fn run_to_block(n: u64) {
 	while System::block_number() < n {
@@ -19,7 +17,6 @@ fn run_to_block(n: u64) {
 		TemplateModule::on_initialize(System::block_number());
 	}
 }
-
 
 #[test]
 fn it_works_for_default_value() {
@@ -134,7 +131,7 @@ fn schelling_game_remove_stake() {
 
 #[test]
 fn draw_jurors_test() {
-		new_test_ext().execute_with(|| {
+	new_test_ext().execute_with(|| {
 		assert_ok!(TemplateModule::add_citizen(Origin::signed(1), "hashcode".as_bytes().to_vec()));
 		assert_eq!(Balances::free_balance(2), 200000);
 		assert_ok!(TemplateModule::add_profile_fund(Origin::signed(2), 0));
@@ -147,9 +144,20 @@ fn draw_jurors_test() {
 		assert_eq!(Balances::free_balance(3), 300000);
 		assert_ok!(TemplateModule::challenge_profile(Origin::signed(3), 0));
 		assert_eq!(Balances::free_balance(3), 299900);
-		let data = TemplateModule::challenger_fund(0);
-		println!("{:?}", data);
-
-		});
-	}
-
+		assert_eq!(
+			TemplateModule::challenger_fund(0),
+			Some(ChallengerFundInfo {
+				challengerid: 3,
+				deposit: 100,
+				start: 10,
+				challenge_completed: false
+			})
+		);
+		run_to_block(43200 + 10);
+		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
+		// Applyjuror
+		for j in 4..30 {
+			assert_ok!(TemplateModule::apply_jurors(Origin::signed(j), 0, j * 100));
+		}
+	});
+}

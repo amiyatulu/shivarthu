@@ -96,6 +96,14 @@ pub enum Period {
       pub max_draws_appeal: u64
   }
 
+  #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
+  #[cfg_attr(feature = "std", derive(Debug))]
+  pub struct StakingTime<BlockNumber> {
+      pub min_challenge_time: BlockNumber,
+      pub min_block_length: BlockNumber
+  }
+
+
 
 
 
