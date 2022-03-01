@@ -153,11 +153,32 @@ fn draw_jurors_test() {
 				challenge_completed: false
 			})
 		);
-		run_to_block(43200 + 10);
+		run_to_block(43200 + 10 +144000);
 		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
 		// Applyjuror
 		for j in 4..30 {
 			assert_ok!(TemplateModule::apply_jurors(Origin::signed(j), 0, j * 100));
 		}
+        // run_to_block(43200 + 10 +144000 + 10);
+		let key = SumTreeName::UniqueIdenfier1 {
+			citizen_id: 0,
+			name: "challengeprofile".as_bytes().to_vec(),
+		};
+
+		let staking_start_time = TemplateModule::staking_start_time(key.clone());
+		// println!("staking start time {:?}", staking_start_time);
+
+		let block_time = TemplateModule::min_block_time();
+		// println!("block time {:?}", block_time.min_block_length);
+
+		run_to_block(staking_start_time + block_time.min_block_length);
+
+		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
+
+		assert_ok!(TemplateModule::draw_jurors(Origin::signed(1), 0, 4));
+		let draws_in_round = TemplateModule::draws_in_round(key.clone());
+		println!("draws in round {:?}", draws_in_round);
+		let drawn_jurors = TemplateModule::drawn_jurors(key.clone());
+		println!("draws jurors {:?}", drawn_jurors);
 	});
 }

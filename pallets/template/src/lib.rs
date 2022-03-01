@@ -18,6 +18,7 @@ mod types;
 
 #[frame_support::pallet]
 pub mod pallet {
+	// use rand::Rng;
 	use crate::types::{
 		ChallengerFundInfo, CitizenDetails, DepartmentDetails, DrawJurorsForProfileLimit, Period,
 		ProfileFundInfo, SchellingType, SortitionSumTree, StakeDetails, StakingTime, SumTreeName,
@@ -208,7 +209,8 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn staking_start_time)]
-	pub type StakingStartTime<T> = StorageMap<_, Blake2_128Concat, SumTreeName, BlockNumberOf<T>, ValueQuery>;
+	pub type StakingStartTime<T> =
+		StorageMap<_, Blake2_128Concat, SumTreeName, BlockNumberOf<T>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn  drawn_jurors)]
@@ -234,6 +236,7 @@ pub mod pallet {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		SomethingStored(u32, T::AccountId),
+		RandomNumber(u64, T::AccountId),
 		CreateDepartment(u128, T::AccountId),
 		CitizenDepartment(u128, T::AccountId),
 		CreateCitizen(T::AccountId, Vec<u8>),
@@ -277,6 +280,8 @@ pub mod pallet {
 		PeriodDontMatch,
 		StakeLessThanMin,
 		MaxDrawExceeded,
+		StakingPeriodNotOver,
+		EvidencePeriodNotOver,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -426,6 +431,8 @@ pub mod pallet {
 									let new_period = Period::Staking;
 									<PeriodName<T>>::insert(&key, new_period);
 									<StakingStartTime<T>>::insert(&key, now);
+								} else {
+									Err(Error::<T>::EvidencePeriodNotOver)?
 								}
 							}
 							None => Err(Error::<T>::ChallengerFundDoesNotExists)?,
@@ -436,9 +443,11 @@ pub mod pallet {
 							Some(_challenger_fund_info) => {
 								let staking_start_time = <StakingStartTime<T>>::get(&key);
 								let block_time = <MinBlockTime<T>>::get();
-								if now >= block_time.min_block_length + staking_start_time  {
+								if now >= block_time.min_block_length + staking_start_time {
 									let new_period = Period::Drawing;
 									<PeriodName<T>>::insert(&key, new_period);
+								} else {
+									Err(Error::<T>::StakingPeriodNotOver)?
 								}
 							}
 							None => Err(Error::<T>::ChallengerFundDoesNotExists)?,
@@ -452,8 +461,8 @@ pub mod pallet {
 		}
 
 		// To Do
-		// Apply jurors
-		// Draw jurors
+		// Apply jurors ✔️
+		// Draw jurors ✔️
 		// Unstaking non selected jurors
 		// Commit vote
 		// Reveal vote
@@ -514,7 +523,7 @@ pub mod pallet {
 			profile_citizenid: u128,
 			interations: u128,
 		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
+			let _who = ensure_signed(origin)?;
 			let key = SumTreeName::UniqueIdenfier1 {
 				citizen_id: profile_citizenid,
 				name: "challengeprofile".as_bytes().to_vec(),
@@ -540,6 +549,9 @@ pub mod pallet {
 				let random_seed = T::RandomnessSource::random(&nonce).encode();
 				let random_number = u64::decode(&mut random_seed.as_ref())
 					.expect("secure hashes should always be bigger than u64; qed");
+				// let mut rng = rand::thread_rng();
+				// let random_number: u64 = rng.gen();
+
 				let data = Self::draw(key.clone(), random_number)?;
 				let mut drawn_juror = <DrawnJurors<T>>::get(&key);
 				match drawn_juror.binary_search(&data) {
@@ -548,10 +560,24 @@ pub mod pallet {
 						drawn_juror.insert(index, data);
 						<DrawnJurors<T>>::insert(&key, drawn_juror);
 						draw_increment = draw_increment + 1;
+						// println!("draw_increment, {:?}", draw_increment);
 					}
 				}
 				<DrawsInRound<T>>::insert(&key, draw_increment);
 			}
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn get_random_number(origin: OriginFor<T>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let nonce = Self::get_and_increment_nonce();
+			let random_seed = T::RandomnessSource::random(&nonce).encode();
+
+			let random_number = u64::decode(&mut random_seed.as_ref())
+				.expect("secure hashes should always be bigger than u64; qed");
+
+			Self::deposit_event(Event::RandomNumber(random_number, who));
 			Ok(())
 		}
 

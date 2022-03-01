@@ -18,6 +18,9 @@ features = ['derive']
 package = 'parity-scale-codec'
 version = '2.0.0'
 
+# [dependencies]
+# rand = "0.7.3"
+
 
 [dependencies.frame-benchmarking]
 default-features = false
