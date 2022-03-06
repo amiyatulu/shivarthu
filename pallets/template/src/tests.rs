@@ -177,8 +177,15 @@ fn draw_jurors_test() {
 
 		assert_ok!(TemplateModule::draw_jurors(Origin::signed(1), 0, 4));
 		let draws_in_round = TemplateModule::draws_in_round(key.clone());
-		println!("draws in round {:?}", draws_in_round);
+		assert_eq!(3, draws_in_round);
 		let drawn_jurors = TemplateModule::drawn_jurors(key.clone());
-		println!("draws jurors {:?}", drawn_jurors);
+		assert_eq!(vec![13,14,15], drawn_jurors);
+		assert_ok!(TemplateModule::draw_jurors(Origin::signed(1), 0, 4));
+		let draws_in_round = TemplateModule::draws_in_round(key.clone());
+		assert_eq!(5, draws_in_round);
+		let drawn_jurors = TemplateModule::drawn_jurors(key.clone());
+		assert_eq!(vec![4, 13, 14, 15, 16], drawn_jurors);
+		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
+		// assert_ok!(TemplateModule::draw_jurors(Origin::signed(1), 0, 4));
 	});
 }

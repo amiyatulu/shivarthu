@@ -103,6 +103,21 @@ pub enum Period {
       pub min_block_length: BlockNumber
   }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub enum VoteStatus {
+    Commited,
+    Revealed
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub struct CommitVote {
+    pub commit: Vec<u8>,
+    pub votestatus: VoteStatus,
+}
+
+
 
 
 

@@ -20,8 +20,9 @@ mod types;
 pub mod pallet {
 	// use rand::Rng;
 	use crate::types::{
-		ChallengerFundInfo, CitizenDetails, DepartmentDetails, DrawJurorsForProfileLimit, Period,
-		ProfileFundInfo, SchellingType, SortitionSumTree, StakeDetails, StakingTime, SumTreeName,
+		ChallengerFundInfo, CitizenDetails, CommitVote, DepartmentDetails,
+		DrawJurorsForProfileLimit, Period, ProfileFundInfo, SchellingType, SortitionSumTree,
+		StakeDetails, StakingTime, SumTreeName, VoteStatus,
 	};
 	use frame_support::sp_runtime::traits::AccountIdConversion;
 	use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
@@ -213,13 +214,19 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, SumTreeName, BlockNumberOf<T>, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn commit_start_time)]
+	pub type CommitStartTime<T> =
+		StorageMap<_, Blake2_128Concat, SumTreeName, BlockNumberOf<T>, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn  drawn_jurors)]
 	pub type DrawnJurors<T: Config> =
 		StorageMap<_, Blake2_128Concat, SumTreeName, Vec<T::AccountId>, ValueQuery>;
 
 	#[pallet::type_value]
 	pub fn DefaultDrawJurorsForProfileLimit<T: Config>() -> DrawJurorsForProfileLimit {
-		let draw_juror_limit = DrawJurorsForProfileLimit { max_draws: 30, max_draws_appeal: 60 };
+		let draw_juror_limit = DrawJurorsForProfileLimit { max_draws: 5, max_draws_appeal: 60 };
+		// change max draws more than 30 in production
 		draw_juror_limit
 	}
 
@@ -227,6 +234,16 @@ pub mod pallet {
 	#[pallet::getter(fn draw_jurors_for_profile_limit)]
 	pub type DrawJurorsForProfileLimitData<T> =
 		StorageValue<_, DrawJurorsForProfileLimit, ValueQuery, DefaultDrawJurorsForProfileLimit<T>>;
+	#[pallet::storage]
+	#[pallet::getter(fn vote_commits)]
+	pub type VoteCommits<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		SumTreeName,
+		Blake2_128Concat,
+		T::AccountId,
+		CommitVote,
+	>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -282,6 +299,8 @@ pub mod pallet {
 		MaxDrawExceeded,
 		StakingPeriodNotOver,
 		EvidencePeriodNotOver,
+		MaxJurorNotDrawn,
+		JurorDoesNotExists,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -453,6 +472,17 @@ pub mod pallet {
 							None => Err(Error::<T>::ChallengerFundDoesNotExists)?,
 						}
 					}
+					if period == Period::Drawing {
+						let draw_limit = <DrawJurorsForProfileLimitData<T>>::get();
+						let draws_in_round = <DrawsInRound<T>>::get(&key);
+						if draws_in_round >= draw_limit.max_draws.into() {
+							<CommitStartTime<T>>::insert(&key, now);
+							let new_period = Period::Commit;
+							<PeriodName<T>>::insert(&key, new_period);
+						} else {
+							Err(Error::<T>::MaxJurorNotDrawn)?
+						}
+					}
 				}
 				None => Err(Error::<T>::PeriodDoesNotExists)?,
 			}
@@ -564,6 +594,35 @@ pub mod pallet {
 					}
 				}
 				<DrawsInRound<T>>::insert(&key, draw_increment);
+			}
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn commit_vote(
+			origin: OriginFor<T>,
+			profile_citizenid: u128,
+			vote_commit: Vec<u8>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let key = SumTreeName::UniqueIdenfier1 {
+				citizen_id: profile_citizenid,
+				name: "challengeprofile".as_bytes().to_vec(),
+			};
+			match <PeriodName<T>>::get(&key) {
+				Some(period) => {
+					ensure!(period == Period::Commit, Error::<T>::PeriodDontMatch);
+				}
+				None => Err(Error::<T>::PeriodDoesNotExists)?,
+			}
+			let drawn_jurors = <DrawnJurors<T>>::get(&key);
+			match drawn_jurors.binary_search(&who) {
+				Ok(_) => {
+					let vote_commit_struct =
+						CommitVote { commit: vote_commit, votestatus: VoteStatus::Commited };
+					<VoteCommits<T>>::insert(&key, &who, vote_commit_struct);
+				}
+				Err(_) => Err(Error::<T>::JurorDoesNotExists)?,
 			}
 			Ok(())
 		}
@@ -689,7 +748,10 @@ pub mod pallet {
 		fn get_and_increment_nonce() -> Vec<u8> {
 			let nonce = <Nonce<T>>::get();
 			<Nonce<T>>::put(nonce.wrapping_add(1));
-			nonce.encode()
+			let n = nonce * 1000 + 1000; // remove and uncomment in production
+			n.encode()
+
+			// nonce.encode()
 		}
 
 		// SortitionSumTree
