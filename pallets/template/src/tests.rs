@@ -187,5 +187,8 @@ fn draw_jurors_test() {
 		assert_eq!(vec![4, 13, 14, 15, 16], drawn_jurors);
 		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
 		// assert_ok!(TemplateModule::draw_jurors(Origin::signed(1), 0, 4));
+	    let hash = sp_io::hashing::keccak_256("1salt".as_bytes());
+		assert_ok!(TemplateModule::commit_vote(Origin::signed(4), 0, hash));
+		assert_ok!(TemplateModule::reveal_vote(Origin::signed(4), 0, "1".as_bytes().to_vec(), "salt".as_bytes().to_vec()));
 	});
 }

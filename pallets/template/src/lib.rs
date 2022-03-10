@@ -34,6 +34,7 @@ pub mod pallet {
 		traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
 		PalletId,
 	};
+	use sp_io;
 	use frame_system::pallet_prelude::*;
 	type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
@@ -301,6 +302,8 @@ pub mod pallet {
 		EvidencePeriodNotOver,
 		MaxJurorNotDrawn,
 		JurorDoesNotExists,
+		CommitDoesNotExists,
+		CommitDoesNotMatch
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -602,7 +605,7 @@ pub mod pallet {
 		pub fn commit_vote(
 			origin: OriginFor<T>,
 			profile_citizenid: u128,
-			vote_commit: Vec<u8>,
+			vote_commit: [u8; 32],
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let key = SumTreeName::UniqueIdenfier1 {
@@ -624,6 +627,46 @@ pub mod pallet {
 				}
 				Err(_) => Err(Error::<T>::JurorDoesNotExists)?,
 			}
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn reveal_vote(
+			origin: OriginFor<T>,
+			profile_citizenid: u128,
+			choice: Vec<u8>,
+			salt: Vec<u8>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let key = SumTreeName::UniqueIdenfier1 {
+				citizen_id: profile_citizenid,
+				name: "challengeprofile".as_bytes().to_vec(),
+			};
+			// match <PeriodName<T>>::get(&key) {
+			// 	Some(period) => {
+			// 		ensure!(period == Period::Vote, Error::<T>::PeriodDontMatch);
+			// 	}
+			// 	None => Err(Error::<T>::PeriodDoesNotExists)?,
+			// }
+			let who_commit_vote = <VoteCommits<T>>::get(&key, &who);
+			match who_commit_vote {
+				Some(commit_struct) => {
+				    let mut vote = choice.clone();
+					let mut salt_a = salt.clone();
+					vote.append(&mut salt_a);
+					let vote_bytes: &[u8] = &vote;
+					let hash = sp_io::hashing::keccak_256(vote_bytes);
+					let commit: &[u8] = &commit_struct.commit;
+					if hash == commit{
+
+					} else {
+						Err(Error::<T>::CommitDoesNotMatch)?
+					}
+
+				}
+				None => Err(Error::<T>::CommitDoesNotExists)?,
+			}
+
 			Ok(())
 		}
 

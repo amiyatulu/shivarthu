@@ -113,7 +113,7 @@ pub enum VoteStatus {
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct CommitVote {
-    pub commit: Vec<u8>,
+    pub commit: [u8; 32],
     pub votestatus: VoteStatus,
 }
 
