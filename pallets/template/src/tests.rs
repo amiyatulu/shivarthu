@@ -189,6 +189,11 @@ fn draw_jurors_test() {
 		// assert_ok!(TemplateModule::draw_jurors(Origin::signed(1), 0, 4));
 	    let hash = sp_io::hashing::keccak_256("1salt".as_bytes());
 		assert_ok!(TemplateModule::commit_vote(Origin::signed(4), 0, hash));
+		let commit_start_time = TemplateModule::commit_start_time(key.clone());		
+		run_to_block(commit_start_time + block_time.min_block_length);
+		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
 		assert_ok!(TemplateModule::reveal_vote(Origin::signed(4), 0, "1".as_bytes().to_vec(), "salt".as_bytes().to_vec()));
+		let decision = TemplateModule::decision_count(key.clone());
+		assert_eq!((0, 1), decision);
 	});
 }

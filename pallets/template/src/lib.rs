@@ -220,6 +220,11 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, SumTreeName, BlockNumberOf<T>, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn vote_start_time)]
+	pub type VoteStartTime<T> =
+			StorageMap<_, Blake2_128Concat, SumTreeName, BlockNumberOf<T>, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn  drawn_jurors)]
 	pub type DrawnJurors<T: Config> =
 		StorageMap<_, Blake2_128Concat, SumTreeName, Vec<T::AccountId>, ValueQuery>;
@@ -245,6 +250,10 @@ pub mod pallet {
 		T::AccountId,
 		CommitVote,
 	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn decision_count)]
+	pub type DecisionCount<T> = StorageMap<_, Blake2_128Concat, SumTreeName, (u64, u64), ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -303,7 +312,11 @@ pub mod pallet {
 		MaxJurorNotDrawn,
 		JurorDoesNotExists,
 		CommitDoesNotExists,
-		CommitDoesNotMatch
+		CommitDoesNotMatch,
+		CommitPeriodNotOver,
+		VotePeriodNotOver,
+		VoteStatusNotCommited,
+		NotValidChoice,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -486,6 +499,29 @@ pub mod pallet {
 							Err(Error::<T>::MaxJurorNotDrawn)?
 						}
 					}
+
+					if period == Period::Commit {
+						let commit_start_time = <CommitStartTime<T>>::get(&key);
+						let block_time = <MinBlockTime<T>>::get();
+						if now >= block_time.min_block_length + commit_start_time {
+							<VoteStartTime<T>>::insert(&key, now);
+							let new_period = Period::Vote;
+							<PeriodName<T>>::insert(&key, new_period);
+						} else {
+							Err(Error::<T>::CommitPeriodNotOver)?
+						}
+					}
+
+					if period == Period::Vote {
+						let vote_start_time = <VoteStartTime<T>>::get(&key);
+						let block_time = <MinBlockTime<T>>::get();
+						if now >= block_time.min_block_length + vote_start_time {
+							let new_period = Period::Execution;
+							<PeriodName<T>>::insert(&key, new_period);
+						} else {
+							Err(Error::<T>::VotePeriodNotOver)?
+						}
+					}
 				}
 				None => Err(Error::<T>::PeriodDoesNotExists)?,
 			}
@@ -497,8 +533,8 @@ pub mod pallet {
 		// Apply jurors ✔️
 		// Draw jurors ✔️
 		// Unstaking non selected jurors
-		// Commit vote
-		// Reveal vote
+		// Commit vote ✔️
+		// Reveal vote ✔️
 		// Get winning decision
 		// Incentive distribution
 
@@ -642,15 +678,16 @@ pub mod pallet {
 				citizen_id: profile_citizenid,
 				name: "challengeprofile".as_bytes().to_vec(),
 			};
-			// match <PeriodName<T>>::get(&key) {
-			// 	Some(period) => {
-			// 		ensure!(period == Period::Vote, Error::<T>::PeriodDontMatch);
-			// 	}
-			// 	None => Err(Error::<T>::PeriodDoesNotExists)?,
-			// }
+			match <PeriodName<T>>::get(&key) {
+				Some(period) => {
+					ensure!(period == Period::Vote, Error::<T>::PeriodDontMatch);
+				}
+				None => Err(Error::<T>::PeriodDoesNotExists)?,
+			}
 			let who_commit_vote = <VoteCommits<T>>::get(&key, &who);
 			match who_commit_vote {
-				Some(commit_struct) => {
+				Some(mut commit_struct) => {
+					ensure!(commit_struct.votestatus == VoteStatus::Commited, Error::<T>::VoteStatusNotCommited);
 				    let mut vote = choice.clone();
 					let mut salt_a = salt.clone();
 					vote.append(&mut salt_a);
@@ -658,6 +695,18 @@ pub mod pallet {
 					let hash = sp_io::hashing::keccak_256(vote_bytes);
 					let commit: &[u8] = &commit_struct.commit;
 					if hash == commit{
+						let mut decision_tuple = <DecisionCount<T>>::get(&key);
+						if choice == "1".as_bytes().to_vec() {
+							decision_tuple.1 = decision_tuple.1 + 1;
+							<DecisionCount<T>>::insert(&key, decision_tuple);
+						} else if choice == "0".as_bytes().to_vec(){
+							decision_tuple.0 = decision_tuple.0 + 1;
+							<DecisionCount<T>>::insert(&key, decision_tuple);
+						} else {
+							Err(Error::<T>::NotValidChoice)?
+						}
+						commit_struct.votestatus = VoteStatus::Revealed;
+						<VoteCommits<T>>::insert(&key, &who, commit_struct);
 
 					} else {
 						Err(Error::<T>::CommitDoesNotMatch)?
