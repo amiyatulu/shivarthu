@@ -170,7 +170,6 @@ fn draw_jurors_test() {
 
 		let block_time = TemplateModule::min_block_time();
 		// println!("block time {:?}", block_time.min_block_length);
-
 		run_to_block(staking_start_time + block_time.min_block_length);
 
 		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
@@ -187,6 +186,9 @@ fn draw_jurors_test() {
 		assert_eq!(vec![4, 13, 14, 15, 16], drawn_jurors);
 		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
 		// assert_ok!(TemplateModule::draw_jurors(Origin::signed(1), 0, 4));
+		assert_eq!(299500,Balances::free_balance(5));
+		assert_ok!(TemplateModule::unstaking(Origin::signed(5), 0));
+		assert_eq!(300000,Balances::free_balance(5));
 	    let hash = sp_io::hashing::keccak_256("1salt".as_bytes());
 		assert_ok!(TemplateModule::commit_vote(Origin::signed(4), 0, hash));
 		let commit_start_time = TemplateModule::commit_start_time(key.clone());		
@@ -194,6 +196,6 @@ fn draw_jurors_test() {
 		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
 		assert_ok!(TemplateModule::reveal_vote(Origin::signed(4), 0, "1".as_bytes().to_vec(), "salt".as_bytes().to_vec()));
 		let decision = TemplateModule::decision_count(key.clone());
-		assert_eq!((0, 1), decision);
+		assert_eq!((0, 1), decision);		
 	});
 }

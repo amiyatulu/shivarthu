@@ -34,8 +34,8 @@ pub mod pallet {
 		traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
 		PalletId,
 	};
-	use sp_io;
 	use frame_system::pallet_prelude::*;
+	use sp_io;
 	type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
 	type ProfileFundInfoOf<T> =
@@ -222,11 +222,15 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn vote_start_time)]
 	pub type VoteStartTime<T> =
-			StorageMap<_, Blake2_128Concat, SumTreeName, BlockNumberOf<T>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, SumTreeName, BlockNumberOf<T>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn  drawn_jurors)]
 	pub type DrawnJurors<T: Config> =
+		StorageMap<_, Blake2_128Concat, SumTreeName, Vec<T::AccountId>, ValueQuery>;
+	#[pallet::storage]
+	#[pallet::getter(fn unstaked_jurors)]
+	pub type UnstakedJurors<T: Config> =
 		StorageMap<_, Blake2_128Concat, SumTreeName, Vec<T::AccountId>, ValueQuery>;
 
 	#[pallet::type_value]
@@ -253,7 +257,8 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn decision_count)]
-	pub type DecisionCount<T> = StorageMap<_, Blake2_128Concat, SumTreeName, (u64, u64), ValueQuery>;
+	pub type DecisionCount<T> =
+		StorageMap<_, Blake2_128Concat, SumTreeName, (u64, u64), ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -317,6 +322,8 @@ pub mod pallet {
 		VotePeriodNotOver,
 		VoteStatusNotCommited,
 		NotValidChoice,
+		StakeDoesNotExists,
+		AlreadyUnstaked,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -532,7 +539,7 @@ pub mod pallet {
 		// To Do
 		// Apply jurors ✔️
 		// Draw jurors ✔️
-		// Unstaking non selected jurors
+		// Unstaking non selected jurors ✔️
 		// Commit vote ✔️
 		// Reveal vote ✔️
 		// Get winning decision
@@ -638,6 +645,55 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn unstaking(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let key = SumTreeName::UniqueIdenfier1 {
+				citizen_id: profile_citizenid,
+				name: "challengeprofile".as_bytes().to_vec(),
+			};
+			match <PeriodName<T>>::get(&key) {
+				Some(period) => {
+					ensure!(
+						period != Period::Evidence
+							&& period != Period::Staking && period != Period::Drawing,
+						Error::<T>::PeriodDontMatch
+					);
+				}
+				None => Err(Error::<T>::PeriodDoesNotExists)?,
+			}
+
+			let stake_of = Self::stake_of(key.clone(), who.clone())?;
+
+			match stake_of {
+				Some(stake) => {
+					let balance = Self::u64_to_balance_saturated(stake);
+					let mut unstaked_jurors = <UnstakedJurors<T>>::get(&key);
+					match unstaked_jurors.binary_search(&who) {
+						Ok(_) => Err(Error::<T>::AlreadyUnstaked)?,
+						Err(index) => {
+							unstaked_jurors.insert(index, who.clone());
+							<UnstakedJurors<T>>::insert(&key, unstaked_jurors);
+							let _ = T::Currency::resolve_into_existing(
+								&who,
+								T::Currency::withdraw(
+									&Self::juror_stake_account(),
+									balance,
+									WithdrawReasons::TRANSFER,
+									ExistenceRequirement::AllowDeath,
+								)?,
+							);
+						}
+					}
+				}
+				None => Err(Error::<T>::StakeDoesNotExists)?,
+			}
+
+			// println!("stakeof {:?}", stake_of);
+
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn commit_vote(
 			origin: OriginFor<T>,
 			profile_citizenid: u128,
@@ -687,19 +743,22 @@ pub mod pallet {
 			let who_commit_vote = <VoteCommits<T>>::get(&key, &who);
 			match who_commit_vote {
 				Some(mut commit_struct) => {
-					ensure!(commit_struct.votestatus == VoteStatus::Commited, Error::<T>::VoteStatusNotCommited);
-				    let mut vote = choice.clone();
+					ensure!(
+						commit_struct.votestatus == VoteStatus::Commited,
+						Error::<T>::VoteStatusNotCommited
+					);
+					let mut vote = choice.clone();
 					let mut salt_a = salt.clone();
 					vote.append(&mut salt_a);
 					let vote_bytes: &[u8] = &vote;
 					let hash = sp_io::hashing::keccak_256(vote_bytes);
 					let commit: &[u8] = &commit_struct.commit;
-					if hash == commit{
+					if hash == commit {
 						let mut decision_tuple = <DecisionCount<T>>::get(&key);
 						if choice == "1".as_bytes().to_vec() {
 							decision_tuple.1 = decision_tuple.1 + 1;
 							<DecisionCount<T>>::insert(&key, decision_tuple);
-						} else if choice == "0".as_bytes().to_vec(){
+						} else if choice == "0".as_bytes().to_vec() {
 							decision_tuple.0 = decision_tuple.0 + 1;
 							<DecisionCount<T>>::insert(&key, decision_tuple);
 						} else {
@@ -707,11 +766,9 @@ pub mod pallet {
 						}
 						commit_struct.votestatus = VoteStatus::Revealed;
 						<VoteCommits<T>>::insert(&key, &who, commit_struct);
-
 					} else {
 						Err(Error::<T>::CommitDoesNotMatch)?
 					}
-
 				}
 				None => Err(Error::<T>::CommitDoesNotExists)?,
 			}
@@ -815,6 +872,10 @@ pub mod pallet {
 
 		fn balance_to_u64_saturated(input: BalanceOf<T>) -> u64 {
 			input.saturated_into::<u64>()
+		}
+
+		fn u64_to_balance_saturated(input: u64) -> BalanceOf<T> {
+			input.saturated_into::<BalanceOf<T>>()
 		}
 
 		fn fund_profile_account() -> T::AccountId {
