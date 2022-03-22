@@ -31,7 +31,10 @@ pub mod pallet {
 	use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 	use frame_support::{sp_runtime::app_crypto::sp_core::H256, traits::Randomness};
 	use frame_support::{
-		traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
+		traits::{
+			Currency, ExistenceRequirement, Get, Imbalance, OnUnbalanced, ReservableCurrency,
+			WithdrawReasons,
+		},
 		PalletId,
 	};
 	use frame_system::pallet_prelude::*;
@@ -44,6 +47,12 @@ pub mod pallet {
 	type ChallengerFundInfoOf<T> =
 		ChallengerFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber, AccountIdOf<T>>;
 	type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
+	type PositiveImbalanceOf<T> = <<T as Config>::Currency as Currency<
+		<T as frame_system::Config>::AccountId,
+	>>::PositiveImbalance;
+	type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
+		<T as frame_system::Config>::AccountId,
+	>>::NegativeImbalance;
 
 	type FundIndex = u32;
 
@@ -58,6 +67,12 @@ pub mod pallet {
 		type Currency: ReservableCurrency<Self::AccountId>;
 
 		type RandomnessSource: Randomness<Self::Hash, Self::BlockNumber>;
+
+		/// Handler for the unbalanced increment when rewarding (minting rewards)
+		type Reward: OnUnbalanced<PositiveImbalanceOf<Self>>;
+
+		/// Handler for the unbalanced decrement when slashing (burning collateral)
+		type Slash: OnUnbalanced<NegativeImbalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -259,6 +274,26 @@ pub mod pallet {
 	#[pallet::getter(fn decision_count)]
 	pub type DecisionCount<T> =
 		StorageMap<_, Blake2_128Concat, SumTreeName, (u64, u64), ValueQuery>;
+	#[pallet::type_value]
+	pub fn DefaultProfileJurorIncentives<T: Config>() -> (u64, u64) {
+		(100, 100)
+	}
+
+	#[pallet::storage]
+	#[pallet::getter(fn profile_juror_incentives)]
+	pub type ProfileJurorIncentives<T> = StorageMap<
+		_,
+		Blake2_128Concat,
+		SumTreeName,
+		(u64, u64),
+		ValueQuery,
+		DefaultProfileJurorIncentives<T>,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn juror_incentive_distribution)]
+	pub type JurorsIncentiveDistribution<T: Config> =
+		StorageMap<_, Blake2_128Concat, SumTreeName, Vec<T::AccountId>, ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -274,6 +309,7 @@ pub mod pallet {
 		CreateCitizen(T::AccountId, Vec<u8>),
 		VoteCast(u128, u128, u128), // Departement id, cycle, department vote count
 		NomineeDeparment(u128, u128, T::AccountId),
+		RewardFunds(T::AccountId, BalanceOf<T>, T::BlockNumber),
 	}
 
 	// Errors inform users that something went wrong.
@@ -324,6 +360,8 @@ pub mod pallet {
 		NotValidChoice,
 		StakeDoesNotExists,
 		AlreadyUnstaked,
+		VoteNotRevealed,
+		AlreadyGotIncentives,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -353,7 +391,7 @@ pub mod pallet {
 					<CitizenCount<T>>::put(newcount);
 					Self::deposit_event(Event::CreateCitizen(who, profile_hash));
 					Ok(())
-				}
+				},
 			}
 		}
 
@@ -380,7 +418,7 @@ pub mod pallet {
 					let profile_fund_info =
 						ProfileFundInfo { deposit, start: now, validated: false, reapply: false };
 					<ProfileFundDetails<T>>::insert(&profile_citizenid, profile_fund_info);
-				}
+				},
 			}
 
 			let key = SumTreeName::UniqueIdenfier1 {
@@ -393,7 +431,7 @@ pub mod pallet {
 				None => {
 					let period = Period::Evidence;
 					<PeriodName<T>>::insert(&key, period);
-				}
+				},
 			}
 
 			Ok(())
@@ -412,10 +450,10 @@ pub mod pallet {
 					if profilefundinfo.validated == true {
 						Err(Error::<T>::ProfileIsAlreadyValidated)?;
 					}
-				}
+				},
 				None => {
 					Err(Error::<T>::ProfileFundNotExists)?;
-				}
+				},
 			}
 			let deposit = <RegistrationChallengeFee<T>>::get();
 			let imb = T::Currency::withdraw(
@@ -438,7 +476,7 @@ pub mod pallet {
 						challenge_completed: false,
 					};
 					<ChallengerFundDetails<T>>::insert(&profile_citizenid, challenger_fund_info);
-				}
+				},
 			}
 
 			let key = SumTreeName::UniqueIdenfier1 {
@@ -476,7 +514,7 @@ pub mod pallet {
 								} else {
 									Err(Error::<T>::EvidencePeriodNotOver)?
 								}
-							}
+							},
 							None => Err(Error::<T>::ChallengerFundDoesNotExists)?,
 						}
 					}
@@ -491,7 +529,7 @@ pub mod pallet {
 								} else {
 									Err(Error::<T>::StakingPeriodNotOver)?
 								}
-							}
+							},
 							None => Err(Error::<T>::ChallengerFundDoesNotExists)?,
 						}
 					}
@@ -529,7 +567,7 @@ pub mod pallet {
 							Err(Error::<T>::VotePeriodNotOver)?
 						}
 					}
-				}
+				},
 				None => Err(Error::<T>::PeriodDoesNotExists)?,
 			}
 
@@ -564,7 +602,7 @@ pub mod pallet {
 			match <PeriodName<T>>::get(&key) {
 				Some(period) => {
 					ensure!(period == Period::Staking, Error::<T>::PeriodDontMatch);
-				}
+				},
 				None => Err(Error::<T>::PeriodDoesNotExists)?,
 			}
 
@@ -572,14 +610,17 @@ pub mod pallet {
 
 			ensure!(stake >= min_stake, Error::<T>::StakeLessThanMin);
 
-			let imb = T::Currency::withdraw(
-				&who,
-				stake,
-				WithdrawReasons::TRANSFER,
-				ExistenceRequirement::AllowDeath,
-			)?;
+			// let imb = T::Currency::withdraw(
+			// 	&who,
+			// 	stake,
+			// 	WithdrawReasons::TRANSFER,
+			// 	ExistenceRequirement::AllowDeath,
+			// )?;
 
-			T::Currency::resolve_creating(&Self::juror_stake_account(), imb);
+			// T::Currency::resolve_creating(&Self::juror_stake_account(), imb);
+
+			let imbalance = T::Currency::slash(&who, stake).0;
+			T::Slash::on_unbalanced(imbalance);
 
 			// let stake_of = Self::stake_of(key.clone(), profile_citizenid)?;
 
@@ -608,7 +649,7 @@ pub mod pallet {
 			match <PeriodName<T>>::get(&key) {
 				Some(period) => {
 					ensure!(period == Period::Drawing, Error::<T>::PeriodDontMatch);
-				}
+				},
 				None => Err(Error::<T>::PeriodDoesNotExists)?,
 			}
 			let draw_limit = <DrawJurorsForProfileLimitData<T>>::get();
@@ -631,13 +672,13 @@ pub mod pallet {
 				let data = Self::draw(key.clone(), random_number)?;
 				let mut drawn_juror = <DrawnJurors<T>>::get(&key);
 				match drawn_juror.binary_search(&data) {
-					Ok(_) => {}
+					Ok(_) => {},
 					Err(index) => {
 						drawn_juror.insert(index, data);
 						<DrawnJurors<T>>::insert(&key, drawn_juror);
 						draw_increment = draw_increment + 1;
 						// println!("draw_increment, {:?}", draw_increment);
-					}
+					},
 				}
 				<DrawsInRound<T>>::insert(&key, draw_increment);
 			}
@@ -658,7 +699,7 @@ pub mod pallet {
 							&& period != Period::Staking && period != Period::Drawing,
 						Error::<T>::PeriodDontMatch
 					);
-				}
+				},
 				None => Err(Error::<T>::PeriodDoesNotExists)?,
 			}
 
@@ -673,18 +714,20 @@ pub mod pallet {
 						Err(index) => {
 							unstaked_jurors.insert(index, who.clone());
 							<UnstakedJurors<T>>::insert(&key, unstaked_jurors);
-							let _ = T::Currency::resolve_into_existing(
-								&who,
-								T::Currency::withdraw(
-									&Self::juror_stake_account(),
-									balance,
-									WithdrawReasons::TRANSFER,
-									ExistenceRequirement::AllowDeath,
-								)?,
-							);
-						}
+							// let _ = T::Currency::resolve_into_existing(
+							// 	&who,
+							// 	T::Currency::withdraw(
+							// 		&Self::juror_stake_account(),
+							// 		balance,
+							// 		WithdrawReasons::TRANSFER,
+							// 		ExistenceRequirement::AllowDeath,
+							// 	)?,
+							// );
+							let r = T::Currency::deposit_into_existing(&who, balance).ok().unwrap();
+							T::Reward::on_unbalanced(r);
+						},
 					}
-				}
+				},
 				None => Err(Error::<T>::StakeDoesNotExists)?,
 			}
 
@@ -707,16 +750,19 @@ pub mod pallet {
 			match <PeriodName<T>>::get(&key) {
 				Some(period) => {
 					ensure!(period == Period::Commit, Error::<T>::PeriodDontMatch);
-				}
+				},
 				None => Err(Error::<T>::PeriodDoesNotExists)?,
 			}
 			let drawn_jurors = <DrawnJurors<T>>::get(&key);
 			match drawn_jurors.binary_search(&who) {
 				Ok(_) => {
-					let vote_commit_struct =
-						CommitVote { commit: vote_commit, votestatus: VoteStatus::Commited };
+					let vote_commit_struct = CommitVote {
+						commit: vote_commit,
+						votestatus: VoteStatus::Commited,
+						vote_revealed: None,
+					};
 					<VoteCommits<T>>::insert(&key, &who, vote_commit_struct);
-				}
+				},
 				Err(_) => Err(Error::<T>::JurorDoesNotExists)?,
 			}
 			Ok(())
@@ -737,7 +783,7 @@ pub mod pallet {
 			match <PeriodName<T>>::get(&key) {
 				Some(period) => {
 					ensure!(period == Period::Vote, Error::<T>::PeriodDontMatch);
-				}
+				},
 				None => Err(Error::<T>::PeriodDoesNotExists)?,
 			}
 			let who_commit_vote = <VoteCommits<T>>::get(&key, &who);
@@ -758,9 +804,11 @@ pub mod pallet {
 						if choice == "1".as_bytes().to_vec() {
 							decision_tuple.1 = decision_tuple.1 + 1;
 							<DecisionCount<T>>::insert(&key, decision_tuple);
+							commit_struct.vote_revealed = Some(1);
 						} else if choice == "0".as_bytes().to_vec() {
 							decision_tuple.0 = decision_tuple.0 + 1;
 							<DecisionCount<T>>::insert(&key, decision_tuple);
+							commit_struct.vote_revealed = Some(0);
 						} else {
 							Err(Error::<T>::NotValidChoice)?
 						}
@@ -769,10 +817,125 @@ pub mod pallet {
 					} else {
 						Err(Error::<T>::CommitDoesNotMatch)?
 					}
-				}
+				},
 				None => Err(Error::<T>::CommitDoesNotExists)?,
 			}
 
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn get_incentives(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let key = SumTreeName::UniqueIdenfier1 {
+				citizen_id: profile_citizenid,
+				name: "challengeprofile".as_bytes().to_vec(),
+			};
+			match <PeriodName<T>>::get(&key) {
+				Some(period) => {
+					ensure!(period == Period::Execution, Error::<T>::PeriodDontMatch);
+				},
+				None => Err(Error::<T>::PeriodDoesNotExists)?,
+			}
+
+			let who_commit_vote = <VoteCommits<T>>::get(&key, &who);
+			match who_commit_vote {
+				Some(commit_struct) => {
+					let vote_option = commit_struct.vote_revealed;
+					match vote_option {
+						Some(vote) => {
+							let decision_count = <DecisionCount<T>>::get(&key);
+							let incentives = <ProfileJurorIncentives<T>>::get(&key);
+							let (winning_decision, winning_incentives) =
+								Self::get_winning_incentives(decision_count, incentives);
+							let stake_of = Self::stake_of(key.clone(), who.clone())?;
+							if vote == winning_decision {
+								match stake_of {
+									Some(stake) => {
+										let mut juror_got_incentives =
+											<JurorsIncentiveDistribution<T>>::get(&key);
+										match juror_got_incentives.binary_search(&who) {
+											Ok(_) => Err(Error::<T>::AlreadyGotIncentives)?,
+											Err(index) => {
+												juror_got_incentives.insert(index, who.clone());
+												<JurorsIncentiveDistribution<T>>::insert(
+													&key,
+													juror_got_incentives,
+												);
+												let total_incentives = stake
+													.checked_add(winning_incentives)
+													.expect("overflow");
+												let incentives = Self::u64_to_balance_saturated(
+													total_incentives,
+												);
+												let r = T::Currency::deposit_into_existing(
+													&who, incentives,
+												)
+												.ok()
+												.unwrap();
+												T::Reward::on_unbalanced(r);
+											},
+										}
+									},
+									None => Err(Error::<T>::StakeDoesNotExists)?,
+								}
+							} else if winning_decision == 2 {
+								match stake_of {
+									Some(stake) => {
+										let balance = Self::u64_to_balance_saturated(stake);
+										let mut juror_got_incentives =
+											<JurorsIncentiveDistribution<T>>::get(&key);
+										match juror_got_incentives.binary_search(&who) {
+											Ok(_) => Err(Error::<T>::AlreadyGotIncentives)?,
+											Err(index) => {
+												juror_got_incentives.insert(index, who.clone());
+												<JurorsIncentiveDistribution<T>>::insert(
+													&key,
+													juror_got_incentives,
+												);
+												let r = T::Currency::deposit_into_existing(
+													&who, balance,
+												)
+												.ok()
+												.unwrap();
+												T::Reward::on_unbalanced(r);
+											},
+										}
+									},
+									None => Err(Error::<T>::StakeDoesNotExists)?,
+								}
+							} else {
+								match stake_of {
+									Some(stake) => {
+										let balance = Self::u64_to_balance_saturated(stake * 2 / 3);
+										let mut juror_got_incentives =
+											<JurorsIncentiveDistribution<T>>::get(&key);
+										match juror_got_incentives.binary_search(&who) {
+											Ok(_) => Err(Error::<T>::AlreadyGotIncentives)?,
+											Err(index) => {
+												juror_got_incentives.insert(index, who.clone());
+												<JurorsIncentiveDistribution<T>>::insert(
+													&key,
+													juror_got_incentives,
+												);
+												let r = T::Currency::deposit_into_existing(
+													&who, balance,
+												)
+												.ok()
+												.unwrap();
+												T::Reward::on_unbalanced(r);
+											},
+										}
+									},
+									None => Err(Error::<T>::StakeDoesNotExists)?,
+								}
+							}
+						},
+						None => Err(Error::<T>::VoteNotRevealed)?,
+					}
+				},
+				None => Err(Error::<T>::CommitDoesNotExists)?,
+			}
 			Ok(())
 		}
 
@@ -786,6 +949,37 @@ pub mod pallet {
 				.expect("secure hashes should always be bigger than u64; qed");
 
 			Self::deposit_event(Event::RandomNumber(random_number, who));
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn reward_funds(
+			origin: OriginFor<T>,
+			to_reward: T::AccountId,
+			reward: BalanceOf<T>,
+		) -> DispatchResult {
+			let _ = ensure_signed(origin)?;
+
+			let r = T::Currency::deposit_into_existing(&to_reward, reward).ok().unwrap();
+			T::Reward::on_unbalanced(r);
+
+			let now = <frame_system::Pallet<T>>::block_number();
+			Self::deposit_event(Event::RewardFunds(to_reward, reward, now));
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn slash_funds(
+			origin: OriginFor<T>,
+			to_punish: T::AccountId,
+			collateral: BalanceOf<T>,
+		) -> DispatchResult {
+			let _ = ensure_signed(origin)?;
+
+			let imbalance = T::Currency::slash(&to_punish, collateral).0;
+			T::Slash::on_unbalanced(imbalance);
+
+			let now = <frame_system::Pallet<T>>::block_number();
 			Ok(())
 		}
 
@@ -822,341 +1016,10 @@ pub mod pallet {
 					// Update the value in storage with the incremented result.
 					<Something<T>>::put(new);
 					Ok(())
-				}
-			}
-		}
-	}
-
-	impl<T: Config> Pallet<T> {
-		fn get_citizen_accountid(citizenid: u128) -> Result<T::AccountId, DispatchError> {
-			let profile = Self::citizen_profile(citizenid).ok_or(Error::<T>::CitizenDoNotExists)?;
-			Ok(profile.accountid)
-		}
-
-		fn get_citizen_id(accountid: T::AccountId) -> Result<u128, DispatchError> {
-			match Self::citizen_id(accountid) {
-				Some(citizen_id) => Ok(citizen_id),
-				None => Err(Error::<T>::ProfileNotFunded)?,
-			}
-		}
-
-		fn profile_fund_added(citizenid: u128) -> DispatchResult {
-			match <ProfileFundDetails<T>>::get(&citizenid) {
-				Some(profilefundinfo) => {
-					let validated = profilefundinfo.validated;
-					let reapply = profilefundinfo.reapply;
-					if validated == false && reapply == false {
-						Ok(())
-					} else {
-						Err(Error::<T>::ProfileValidationOver)?
-					}
-				}
-				None => Err(Error::<T>::ProfileNotFunded)?,
-			}
-		}
-
-		fn get_profile_fund_info(citizenid: u128) -> Result<ProfileFundInfoOf<T>, DispatchError> {
-			match <ProfileFundDetails<T>>::get(&citizenid) {
-				Some(profilefundinfo) => {
-					let validated = profilefundinfo.validated;
-					let reapply = profilefundinfo.reapply;
-					if validated == false && reapply == false {
-						Ok(profilefundinfo)
-					} else {
-						Err(Error::<T>::ProfileValidationOver)?
-					}
-				}
-				None => Err(Error::<T>::ProfileNotFunded)?,
-			}
-		}
-
-		fn balance_to_u64_saturated(input: BalanceOf<T>) -> u64 {
-			input.saturated_into::<u64>()
-		}
-
-		fn u64_to_balance_saturated(input: u64) -> BalanceOf<T> {
-			input.saturated_into::<BalanceOf<T>>()
-		}
-
-		fn fund_profile_account() -> T::AccountId {
-			PALLET_ID.into_sub_account(1)
-		}
-
-		fn juror_stake_account() -> T::AccountId {
-			PALLET_ID.into_sub_account(2)
-		}
-
-		fn draw_juror_for_citizen_profile_function(
-			citizen_id: u128,
-			length: usize,
-		) -> DispatchResult {
-			let nonce = Self::get_and_increment_nonce();
-
-			let random_seed = T::RandomnessSource::random(&nonce).encode();
-			let random_number = u64::decode(&mut random_seed.as_ref())
-				.expect("secure hashes should always be bigger than u64; qed");
-			Ok(())
-		}
-
-		fn get_and_increment_nonce() -> Vec<u8> {
-			let nonce = <Nonce<T>>::get();
-			<Nonce<T>>::put(nonce.wrapping_add(1));
-			let n = nonce * 1000 + 1000; // remove and uncomment in production
-			n.encode()
-
-			// nonce.encode()
-		}
-
-		// SortitionSumTree
-		pub fn create_tree(key: SumTreeName, k: u64) -> DispatchResult {
-			if k < 1 {
-				Err(Error::<T>::KMustGreaterThanOne)?
-			}
-			let tree_option = <SortitionSumTrees<T>>::get(&key);
-			match tree_option {
-				Some(_tree) => Err(Error::<T>::TreeAlreadyExists)?,
-				None => {
-					let mut sum_tree = SortitionSumTree {
-						k,
-						stack: Vec::new(),
-						nodes: Vec::new(),
-						ids_to_node_indexes: BTreeMap::new(),
-						node_indexes_to_ids: BTreeMap::new(),
-					};
-
-					sum_tree.nodes.push(0);
-
-					<SortitionSumTrees<T>>::insert(&key, &sum_tree);
-				}
-			}
-			Ok(())
-		}
-
-		pub fn set(key: SumTreeName, value: u64, citizen_id: AccountIdOf<T>) -> DispatchResult {
-			let tree_option = <SortitionSumTrees<T>>::get(&key);
-
-			match tree_option {
-				None => Err(Error::<T>::TreeDoesnotExist)?,
-				Some(mut tree) => match tree.ids_to_node_indexes.get(&citizen_id) {
-					Some(tree_index_data) => {
-						let tree_index = *tree_index_data;
-						if tree_index == 0 {
-							Self::if_tree_index_zero(value, citizen_id, tree, tree_index, key);
-						} else {
-							// Existing node
-							if value == 0 {
-								let value = tree.nodes[tree_index as usize];
-								tree.nodes[tree_index as usize] = 0;
-								tree.stack.push(tree_index);
-								tree.ids_to_node_indexes.remove(&citizen_id);
-								tree.node_indexes_to_ids.remove(&tree_index);
-
-								// UpdateParents 🟥
-								Self::update_parents(tree, tree_index, false, value, key);
-							} else if value != tree.nodes[tree_index as usize] {
-								let plus_or_minus = tree.nodes[tree_index as usize] <= value;
-								let plus_or_minus_value = if plus_or_minus {
-									value
-										.checked_sub(tree.nodes[tree_index as usize])
-										.ok_or("StorageOverflow")?
-								} else {
-									(tree.nodes[tree_index as usize])
-										.checked_sub(value)
-										.ok_or("StorageOverflow")?
-								};
-								tree.nodes[tree_index as usize] = value;
-
-								// update parents 🟥
-								Self::update_parents(
-									tree,
-									tree_index,
-									plus_or_minus,
-									plus_or_minus_value,
-									key,
-								);
-							}
-						}
-					}
-
-					None => {
-						Self::if_tree_index_zero(value, citizen_id, tree, 0, key);
-					}
 				},
 			}
-
-			Ok(())
-		}
-
-		fn update_parents(
-			mut tree: SortitionSumTree<AccountIdOf<T>>,
-			tree_index: u64,
-			plus_or_minus: bool,
-			value: u64,
-			key: SumTreeName,
-		) {
-			let mut parent_index = tree_index;
-			while parent_index != 0 {
-				parent_index = (parent_index - 1) / tree.k;
-				tree.nodes[parent_index as usize] = if plus_or_minus {
-					(tree.nodes[parent_index as usize]).checked_add(value).expect("StorageOverflow")
-				} else {
-					(tree.nodes[parent_index as usize]).checked_sub(value).expect("StorageOverflow")
-				};
-
-				<SortitionSumTrees<T>>::insert(&key, &tree);
-			}
-		}
-		fn if_tree_index_zero(
-			value: u64,
-			citizen_id: AccountIdOf<T>,
-			mut tree: SortitionSumTree<AccountIdOf<T>>,
-			mut tree_index: u64,
-			key: SumTreeName,
-		) {
-			// No existing node.
-			if value != 0 {
-				// Non zero value.
-				// Append.
-				// Add node.
-				if tree.stack.len() == 0 {
-					// No vacant spots.
-					// Get the index and append the value.
-					tree_index = tree.nodes.len() as u64;
-					tree.nodes.push(value);
-
-					// println!("{}", tree_index);
-
-					// Potentially append a new node and make the parent a sum node.
-					if tree_index != 1 && (tree_index - 1) % tree.k == 0 {
-						// Is first child.
-						let parent_index = tree_index / tree.k;
-						let parent_id =
-							tree.node_indexes_to_ids.get(&parent_index).unwrap().clone();
-						let new_index = tree_index + 1;
-						tree.nodes.push(*tree.nodes.get(parent_index as usize).unwrap());
-						tree.node_indexes_to_ids.remove(&parent_index);
-						tree.ids_to_node_indexes.insert(parent_id.clone(), new_index);
-						tree.node_indexes_to_ids.insert(new_index, parent_id);
-					}
-				} else {
-					let tree_index = tree.stack.get(tree.stack.len() - 1);
-					tree.nodes[*tree_index.unwrap() as usize] = value;
-					tree.stack.pop();
-				}
-
-				tree.ids_to_node_indexes.insert(citizen_id.clone(), tree_index);
-				tree.node_indexes_to_ids.insert(tree_index, citizen_id);
-
-				// update_parents 🟥
-
-				Self::update_parents(tree, tree_index, true, value, key);
-			}
-		}
-
-		pub fn stake_of(
-			key: SumTreeName,
-			citizen_id: AccountIdOf<T>,
-		) -> Result<Option<u64>, DispatchError> {
-			let tree_option = <SortitionSumTrees<T>>::get(&key);
-			match tree_option {
-				None => Err(Error::<T>::TreeDoesnotExist)?,
-				Some(tree) => {
-					let tree_index_data;
-					match tree.ids_to_node_indexes.get(&citizen_id) {
-						Some(v) => tree_index_data = v,
-						None => return Ok(None),
-					}
-
-					let value: u64;
-					let tree_index = *tree_index_data;
-					if tree_index == 0 {
-						value = 0;
-					} else {
-						value = tree.nodes[tree_index as usize];
-					}
-					Ok(Some(value))
-				}
-			}
-		}
-
-		pub fn draw(key: SumTreeName, draw_number: u64) -> Result<AccountIdOf<T>, DispatchError> {
-			let tree_option = <SortitionSumTrees<T>>::get(&key);
-
-			match tree_option {
-				None => Err(Error::<T>::TreeDoesnotExist)?,
-				Some(tree) => {
-					let mut tree_index = 0;
-					let mut current_draw_number = draw_number % tree.nodes[0];
-
-					while (tree.k * tree_index) + 1 < (tree.nodes.len() as u64) {
-						for i in 1..tree.k + 1 {
-							let node_index = (tree.k * tree_index) + i;
-							let node_value = tree.nodes[node_index as usize];
-
-							if current_draw_number >= node_value {
-								current_draw_number -= node_value;
-							} else {
-								tree_index = node_index;
-								break;
-							}
-						}
-					}
-					let account_id = tree.node_indexes_to_ids.get(&tree_index).unwrap().clone();
-					Ok(account_id)
-				}
-			}
-		}
-
-		/**
-		 *  @dev Query the leaves of a tree. Note that if `startIndex == 0`, the tree is empty and the root node will be returned.
-		 *  @param key The key of the tree to get the leaves from.
-		 *  @param cursor The pagination cursor.
-		 *  @param count The number of items to return.
-		 *  @return The index at which leaves start, the values of the returned leaves, and whether there are more for pagination.
-		 *  `O(n)` where
-		 *  `n` is the maximum number of nodes ever appended.
-		 */
-		pub fn query_leafs(
-			key: SumTreeName,
-			cursor: u64,
-			count: u64,
-		) -> Result<(u64, Vec<u64>, bool), DispatchError> {
-			let tree_option = <SortitionSumTrees<T>>::get(&key);
-
-			match tree_option {
-				None => Err(Error::<T>::TreeDoesnotExist)?,
-				Some(tree) => {
-					let mut start_index = 0;
-					for i in 0..tree.nodes.len() {
-						if (tree.k * i as u64) + 1 >= tree.nodes.len() as u64 {
-							start_index = i as u64;
-							break;
-						}
-					}
-					let loop_start_index = start_index + cursor;
-
-					// let value = if loop_start_index + count > tree.nodes.len() as u64 {
-					// 	tree.nodes.len() as u64 - loop_start_index
-					// } else {
-					// 	count
-					// };
-
-					let mut values = Vec::new();
-					let mut values_index = 0;
-					let mut has_more = false;
-					for j in loop_start_index..tree.nodes.len() as u64 {
-						if values_index < count {
-							values.push(tree.nodes[j as usize]);
-							values_index = values_index + 1;
-						} else {
-							has_more = true;
-							break;
-						}
-					}
-
-					Ok((start_index, values, has_more))
-				}
-			}
 		}
 	}
+
+	include!("helperfunctions.rs");
 }

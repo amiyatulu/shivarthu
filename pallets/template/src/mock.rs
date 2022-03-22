@@ -60,6 +60,8 @@ impl pallet_template::Config for Test {
 	type Event = Event;
 	type Currency = Balances; // New code
 	type RandomnessSource = TestRandomness<Self>;
+	type Slash = ();
+	type Reward = ();
 }
 
 impl pallet_balances::Config for Test {

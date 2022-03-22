@@ -115,6 +115,7 @@ pub enum VoteStatus {
 pub struct CommitVote {
     pub commit: [u8; 32],
     pub votestatus: VoteStatus,
+    pub vote_revealed: Option<u8>,
 }
 
 

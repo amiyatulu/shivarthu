@@ -199,3 +199,29 @@ fn draw_jurors_test() {
 		assert_eq!((0, 1), decision);		
 	});
 }
+
+// #[test]
+// fn reward() {
+// 	new_test_ext().execute_with(|| {
+
+// 		let balance = Balances::free_balance(2);
+// 		println!("before balance {}", balance);
+// 		assert_ok!(TemplateModule::reward_funds(Origin::signed(1),2, 100));
+// 		let balance = Balances::free_balance(2);
+// 		println!("after balance {}", balance);
+// 	});
+
+// }
+
+#[test]
+fn punish() {
+	new_test_ext().execute_with(|| {
+
+		let balance = Balances::free_balance(2);
+		println!("before balance {}", balance);
+		assert_ok!(TemplateModule::slash_funds(Origin::signed(1),2, 100));
+		let balance = Balances::free_balance(2);
+		println!("after balance {}", balance);
+	});
+
+}
