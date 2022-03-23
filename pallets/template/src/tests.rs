@@ -153,13 +153,13 @@ fn draw_jurors_test() {
 				challenge_completed: false
 			})
 		);
-		run_to_block(43200 + 10 +144000);
+		run_to_block(43200 + 10 + 144000);
 		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
 		// Applyjuror
 		for j in 4..30 {
 			assert_ok!(TemplateModule::apply_jurors(Origin::signed(j), 0, j * 100));
 		}
-        // run_to_block(43200 + 10 +144000 + 10);
+		// run_to_block(43200 + 10 +144000 + 10);
 		let key = SumTreeName::UniqueIdenfier1 {
 			citizen_id: 0,
 			name: "challengeprofile".as_bytes().to_vec(),
@@ -178,7 +178,7 @@ fn draw_jurors_test() {
 		let draws_in_round = TemplateModule::draws_in_round(key.clone());
 		assert_eq!(3, draws_in_round);
 		let drawn_jurors = TemplateModule::drawn_jurors(key.clone());
-		assert_eq!(vec![13,14,15], drawn_jurors);
+		assert_eq!(vec![13, 14, 15], drawn_jurors);
 		assert_ok!(TemplateModule::draw_jurors(Origin::signed(1), 0, 4));
 		let draws_in_round = TemplateModule::draws_in_round(key.clone());
 		assert_eq!(5, draws_in_round);
@@ -186,17 +186,82 @@ fn draw_jurors_test() {
 		assert_eq!(vec![4, 13, 14, 15, 16], drawn_jurors);
 		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
 		// assert_ok!(TemplateModule::draw_jurors(Origin::signed(1), 0, 4));
-		assert_eq!(299500,Balances::free_balance(5));
+		assert_eq!(299500, Balances::free_balance(5));
 		assert_ok!(TemplateModule::unstaking(Origin::signed(5), 0));
-		assert_eq!(300000,Balances::free_balance(5));
-	    let hash = sp_io::hashing::keccak_256("1salt".as_bytes());
+		assert_eq!(300000, Balances::free_balance(5));
+		let hash = sp_io::hashing::keccak_256("1salt".as_bytes());
 		assert_ok!(TemplateModule::commit_vote(Origin::signed(4), 0, hash));
-		let commit_start_time = TemplateModule::commit_start_time(key.clone());		
+		let hash = sp_io::hashing::keccak_256("1salt2".as_bytes());
+		assert_ok!(TemplateModule::commit_vote(Origin::signed(13), 0, hash));
+		let hash = sp_io::hashing::keccak_256("1salt3".as_bytes());
+		assert_ok!(TemplateModule::commit_vote(Origin::signed(14), 0, hash));
+		let hash = sp_io::hashing::keccak_256("1salt4".as_bytes());
+		assert_ok!(TemplateModule::commit_vote(Origin::signed(15), 0, hash));
+		let hash = sp_io::hashing::keccak_256("0salt5".as_bytes());
+		assert_ok!(TemplateModule::commit_vote(Origin::signed(16), 0, hash));
+		let commit_start_time = TemplateModule::commit_start_time(key.clone());
 		run_to_block(commit_start_time + block_time.min_block_length);
 		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
-		assert_ok!(TemplateModule::reveal_vote(Origin::signed(4), 0, "1".as_bytes().to_vec(), "salt".as_bytes().to_vec()));
+		assert_ok!(TemplateModule::reveal_vote(
+			Origin::signed(4),
+			0,
+			"1".as_bytes().to_vec(),
+			"salt".as_bytes().to_vec()
+		));
+		assert_ok!(TemplateModule::reveal_vote(
+			Origin::signed(13),
+			0,
+			"1".as_bytes().to_vec(),
+			"salt2".as_bytes().to_vec()
+		));
+		assert_ok!(TemplateModule::reveal_vote(
+			Origin::signed(14),
+			0,
+			"1".as_bytes().to_vec(),
+			"salt3".as_bytes().to_vec()
+		));
+		assert_ok!(TemplateModule::reveal_vote(
+			Origin::signed(15),
+			0,
+			"1".as_bytes().to_vec(),
+			"salt4".as_bytes().to_vec()
+		));
+		assert_ok!(TemplateModule::reveal_vote(
+			Origin::signed(16),
+			0,
+			"0".as_bytes().to_vec(),
+			"salt5".as_bytes().to_vec()
+		));
 		let decision = TemplateModule::decision_count(key.clone());
-		assert_eq!((0, 1), decision);		
+		assert_eq!((1, 4), decision);
+		let vote_start_time = TemplateModule::vote_start_time(key.clone());
+		run_to_block(vote_start_time + block_time.min_block_length);
+		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
+		let balance = Balances::free_balance(4);
+		assert_eq!(299600, balance);
+		assert_ok!(TemplateModule::get_incentives(Origin::signed(4), 0));
+		let balance = Balances::free_balance(4);
+		assert_eq!(300025, balance);
+		let balance = Balances::free_balance(13);
+		assert_eq!(298700, balance);
+		assert_ok!(TemplateModule::get_incentives(Origin::signed(13), 0));
+		let balance = Balances::free_balance(13);
+		assert_eq!(300025, balance);
+		let balance = Balances::free_balance(14);
+		assert_eq!(298600, balance);
+		assert_ok!(TemplateModule::get_incentives(Origin::signed(14), 0));
+		let balance = Balances::free_balance(14);
+		assert_eq!(300025, balance);
+		let balance = Balances::free_balance(15);
+		assert_eq!(298500, balance);
+		assert_ok!(TemplateModule::get_incentives(Origin::signed(15), 0));
+		let balance = Balances::free_balance(15);
+		assert_eq!(300025, balance);
+		let balance = Balances::free_balance(16);
+		assert_eq!(298400, balance);
+		assert_ok!(TemplateModule::get_incentives(Origin::signed(16), 0));
+		let balance = Balances::free_balance(16);
+		assert_eq!(299600, balance);
 	});
 }
 
@@ -216,12 +281,10 @@ fn draw_jurors_test() {
 #[test]
 fn punish() {
 	new_test_ext().execute_with(|| {
-
 		let balance = Balances::free_balance(2);
 		println!("before balance {}", balance);
-		assert_ok!(TemplateModule::slash_funds(Origin::signed(1),2, 100));
+		assert_ok!(TemplateModule::slash_funds(Origin::signed(1), 2, 100));
 		let balance = Balances::free_balance(2);
 		println!("after balance {}", balance);
 	});
-
 }

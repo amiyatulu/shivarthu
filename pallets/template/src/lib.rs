@@ -907,7 +907,7 @@ pub mod pallet {
 							} else {
 								match stake_of {
 									Some(stake) => {
-										let balance = Self::u64_to_balance_saturated(stake * 2 / 3);
+										let balance = Self::u64_to_balance_saturated(stake * 3 / 4);
 										let mut juror_got_incentives =
 											<JurorsIncentiveDistribution<T>>::get(&key);
 										match juror_got_incentives.binary_search(&who) {
