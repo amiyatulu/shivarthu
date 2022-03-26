@@ -42,7 +42,7 @@ pub mod pallet {
 	type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
 	type ProfileFundInfoOf<T> =
-		ProfileFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber>;
+		ProfileFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber, AccountIdOf<T>>;
 	type CitizenDetailsOf<T> = CitizenDetails<AccountIdOf<T>>;
 	type ChallengerFundInfoOf<T> =
 		ChallengerFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber, AccountIdOf<T>>;
@@ -418,6 +418,7 @@ pub mod pallet {
 				Some(_profilefundinfo) => Err(Error::<T>::ProfileExists)?,
 				None => {
 					let profile_fund_info = ProfileFundInfo {
+						funder_account_id: who,
 						deposit,
 						start: now,
 						validated: false,
@@ -947,10 +948,9 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn return_profile_fund(origin: OriginFor<T>) -> DispatchResult {
-			let who = ensure_signed(origin)?;
+		pub fn return_profile_fund(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
+			let _who = ensure_signed(origin)?;
 			let now = <frame_system::Pallet<T>>::block_number();
-			let profile_citizenid = Self::get_citizen_id(who.clone())?;
 			match <ProfileFundDetails<T>>::get(&profile_citizenid) {
 				Some(mut profilefundinfo) => {
 					let start = profilefundinfo.start;
@@ -986,7 +986,7 @@ pub mod pallet {
 					let balance = profilefundinfo.deposit;
 					if profilefundinfo.deposit_returned == false {
 						let _ = T::Currency::resolve_into_existing(
-							&who,
+							&profilefundinfo.funder_account_id,
 							T::Currency::withdraw(
 								&Self::fund_profile_account(),
 								balance,
