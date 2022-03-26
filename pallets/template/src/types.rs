@@ -26,6 +26,7 @@ pub struct ProfileFundInfo<Balance, BlockNumber> {
     pub start: BlockNumber,
     pub validated: bool,
     pub reapply: bool,
+    pub deposit_returned:bool,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, TypeInfo)]
@@ -100,7 +101,7 @@ pub enum Period {
   #[cfg_attr(feature = "std", derive(Debug))]
   pub struct StakingTime<BlockNumber> {
       pub min_challenge_time: BlockNumber,
-      pub min_block_length: BlockNumber
+      pub min_block_length: BlockNumber,
   }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]

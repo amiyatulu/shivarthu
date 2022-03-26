@@ -362,6 +362,8 @@ pub mod pallet {
 		AlreadyUnstaked,
 		VoteNotRevealed,
 		AlreadyGotIncentives,
+		FundAlreadyReturned,
+		ChallengerWinned,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -415,8 +417,13 @@ pub mod pallet {
 				// 📝 To write update stake for reapply when disapproved
 				Some(_profilefundinfo) => Err(Error::<T>::ProfileExists)?,
 				None => {
-					let profile_fund_info =
-						ProfileFundInfo { deposit, start: now, validated: false, reapply: false };
+					let profile_fund_info = ProfileFundInfo {
+						deposit,
+						start: now,
+						validated: false,
+						reapply: false,
+						deposit_returned: false,
+					};
 					<ProfileFundDetails<T>>::insert(&profile_citizenid, profile_fund_info);
 				},
 			}
@@ -936,6 +943,70 @@ pub mod pallet {
 				},
 				None => Err(Error::<T>::CommitDoesNotExists)?,
 			}
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn return_profile_fund(origin: OriginFor<T>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let now = <frame_system::Pallet<T>>::block_number();
+			let profile_citizenid = Self::get_citizen_id(who.clone())?;
+			match <ProfileFundDetails<T>>::get(&profile_citizenid) {
+				Some(mut profilefundinfo) => {
+					let start = profilefundinfo.start;
+					match <ChallengerFundDetails<T>>::get(&profile_citizenid) {
+						Some(_challengerfundinfo) => {
+							// Challenge done, check if winner, other wise error
+							let key = SumTreeName::UniqueIdenfier1 {
+								citizen_id: profile_citizenid,
+								name: "challengeprofile".as_bytes().to_vec(),
+							};
+							match <PeriodName<T>>::get(&key) {
+								Some(period) => {
+									ensure!(
+										period == Period::Execution,
+										Error::<T>::PeriodDontMatch
+									);
+								},
+								None => Err(Error::<T>::PeriodDoesNotExists)?,
+							}
+							let decision_count = <DecisionCount<T>>::get(&key);
+							let winning_decision = Self::get_winning_decision(decision_count);
+							ensure!(winning_decision == 0, Error::<T>::ChallengerWinned);
+						},
+						None => {
+							let time_lapse = now.checked_sub(&start).expect("overflow");
+							let block_time = <MinBlockTime<T>>::get();
+							if time_lapse < block_time.min_challenge_time {
+								Err(Error::<T>::EvidencePeriodNotOver)?
+							}
+						},
+					}
+
+					let balance = profilefundinfo.deposit;
+					if profilefundinfo.deposit_returned == false {
+						let _ = T::Currency::resolve_into_existing(
+							&who,
+							T::Currency::withdraw(
+								&Self::fund_profile_account(),
+								balance,
+								WithdrawReasons::TRANSFER,
+								ExistenceRequirement::AllowDeath,
+							)?,
+						);
+						profilefundinfo.deposit_returned = true;
+						profilefundinfo.validated = true;
+						<ProfileFundDetails<T>>::insert(&profile_citizenid, profilefundinfo);
+					   
+					} else {
+						Err(Error::<T>::FundAlreadyReturned)?;
+					}
+				},
+				None => {
+					Err(Error::<T>::ProfileFundNotExists)?;
+				},
+			}
+
 			Ok(())
 		}
 

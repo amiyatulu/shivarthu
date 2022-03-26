@@ -58,7 +58,7 @@ fn profile_fund_test() {
 		assert_ok!(TemplateModule::add_profile_fund(Origin::signed(2), 0));
 		assert_eq!(Balances::free_balance(2), 199000);
 		let profile_fundinfocheck =
-			ProfileFundInfo { deposit: 1000, start: 0, validated: false, reapply: false };
+			ProfileFundInfo { deposit: 1000, start: 0, validated: false, reapply: false, deposit_returned: false };
 		let profile_fundinfo = TemplateModule::profile_fund(0);
 		assert_eq!(profile_fundinfo, Some(profile_fundinfocheck));
 	});
@@ -137,7 +137,7 @@ fn draw_jurors_test() {
 		assert_ok!(TemplateModule::add_profile_fund(Origin::signed(2), 0));
 		assert_eq!(Balances::free_balance(2), 199000);
 		let profile_fundinfocheck =
-			ProfileFundInfo { deposit: 1000, start: 0, validated: false, reapply: false };
+			ProfileFundInfo { deposit: 1000, start: 0, validated: false, reapply: false, deposit_returned: false };
 		let profile_fundinfo = TemplateModule::profile_fund(0);
 		assert_eq!(profile_fundinfo, Some(profile_fundinfocheck));
 		run_to_block(10);
