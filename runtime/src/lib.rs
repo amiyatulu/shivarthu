@@ -278,6 +278,8 @@ impl pallet_template::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type RandomnessSource = RandomnessCollectiveFlip;
+	type Slash = ();
+	type Reward = ();
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

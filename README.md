@@ -3,6 +3,9 @@
 ### Decentralized democracy with experts as leaders.
 https://shivarthu.reaudito.com/#/
 
+## Frontend
+https://github.com/amiyatulu/shivarthu_frontend
+
 Whitepaper
 https://shivarthu.reaudito.com/paper/Shivarthu_whitepaper.pdf
 
