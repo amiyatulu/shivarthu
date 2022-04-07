@@ -14,49 +14,53 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+mod extras;
 mod types;
+
+use crate::types::{
+	ChallengerFundInfo, CitizenDetails, CommitVote, DepartmentDetails, DrawJurorsForProfileLimit,
+	Period, ProfileFundInfo, SchellingType, SortitionSumTree, StakeDetails, StakingTime,
+	SumTreeName, VoteStatus,
+};
+use frame_support::sp_runtime::traits::AccountIdConversion;
+use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
+use frame_support::sp_runtime::SaturatedConversion;
+use frame_support::sp_std::{collections::btree_map::BTreeMap, vec::Vec};
+use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
+use frame_support::{sp_runtime::app_crypto::sp_core::H256, traits::Randomness};
+use frame_support::{
+	traits::{
+		Currency, ExistenceRequirement, Get, Imbalance, OnUnbalanced, ReservableCurrency,
+		WithdrawReasons,
+	},
+	PalletId,
+};
+use sp_io;
+
+type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
+type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
+type ProfileFundInfoOf<T> =
+	ProfileFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber, AccountIdOf<T>>;
+type CitizenDetailsOf<T> = CitizenDetails<AccountIdOf<T>>;
+type ChallengerFundInfoOf<T> =
+	ChallengerFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber, AccountIdOf<T>>;
+type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
+type PositiveImbalanceOf<T> = <<T as Config>::Currency as Currency<
+	<T as frame_system::Config>::AccountId,
+>>::PositiveImbalance;
+type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
+	<T as frame_system::Config>::AccountId,
+>>::NegativeImbalance;
+
+type FundIndex = u32;
+
+const PALLET_ID: PalletId = PalletId(*b"ex/cfund");
 
 #[frame_support::pallet]
 pub mod pallet {
 	// use rand::Rng;
-	use crate::types::{
-		ChallengerFundInfo, CitizenDetails, CommitVote, DepartmentDetails,
-		DrawJurorsForProfileLimit, Period, ProfileFundInfo, SchellingType, SortitionSumTree,
-		StakeDetails, StakingTime, SumTreeName, VoteStatus,
-	};
-	use frame_support::sp_runtime::traits::AccountIdConversion;
-	use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
-	use frame_support::sp_runtime::SaturatedConversion;
-	use frame_support::sp_std::{collections::btree_map::BTreeMap, vec::Vec};
-	use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
-	use frame_support::{sp_runtime::app_crypto::sp_core::H256, traits::Randomness};
-	use frame_support::{
-		traits::{
-			Currency, ExistenceRequirement, Get, Imbalance, OnUnbalanced, ReservableCurrency,
-			WithdrawReasons,
-		},
-		PalletId,
-	};
+	use super::*;
 	use frame_system::pallet_prelude::*;
-	use sp_io;
-	type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
-	type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
-	type ProfileFundInfoOf<T> =
-		ProfileFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber, AccountIdOf<T>>;
-	type CitizenDetailsOf<T> = CitizenDetails<AccountIdOf<T>>;
-	type ChallengerFundInfoOf<T> =
-		ChallengerFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber, AccountIdOf<T>>;
-	type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
-	type PositiveImbalanceOf<T> = <<T as Config>::Currency as Currency<
-		<T as frame_system::Config>::AccountId,
-	>>::PositiveImbalance;
-	type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
-		<T as frame_system::Config>::AccountId,
-	>>::NegativeImbalance;
-
-	type FundIndex = u32;
-
-	const PALLET_ID: PalletId = PalletId(*b"ex/cfund");
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -948,7 +952,10 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn return_profile_fund(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
+		pub fn return_profile_fund(
+			origin: OriginFor<T>,
+			profile_citizenid: u128,
+		) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
 			let now = <frame_system::Pallet<T>>::block_number();
 			match <ProfileFundDetails<T>>::get(&profile_citizenid) {
@@ -997,7 +1004,6 @@ pub mod pallet {
 						profilefundinfo.deposit_returned = true;
 						profilefundinfo.validated = true;
 						<ProfileFundDetails<T>>::insert(&profile_citizenid, profilefundinfo);
-					   
 					} else {
 						Err(Error::<T>::FundAlreadyReturned)?;
 					}
@@ -1091,6 +1097,4 @@ pub mod pallet {
 			}
 		}
 	}
-
-	include!("helperfunctions.rs");
 }

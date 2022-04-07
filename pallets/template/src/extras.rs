@@ -1,20 +1,26 @@
-
+use crate::*;
 
 
 impl<T: Config> Pallet<T> {
-    fn get_citizen_accountid(citizenid: u128) -> Result<T::AccountId, DispatchError> {
+    pub fn hello_world() -> u128 {
+        10
+    }
+    pub (super) fn super_hello_world() -> u128 {
+        20
+    }
+    pub (super) fn get_citizen_accountid(citizenid: u128) -> Result<T::AccountId, DispatchError> {
         let profile = Self::citizen_profile(citizenid).ok_or(Error::<T>::CitizenDoNotExists)?;
         Ok(profile.accountid)
     }
 
-    fn get_citizen_id(accountid: T::AccountId) -> Result<u128, DispatchError> {
+    pub (super) fn get_citizen_id(accountid: T::AccountId) -> Result<u128, DispatchError> {
         match Self::citizen_id(accountid) {
             Some(citizen_id) => Ok(citizen_id),
             None => Err(Error::<T>::ProfileNotFunded)?,
         }
     }
 
-    fn profile_fund_added(citizenid: u128) -> DispatchResult {
+    pub (super) fn profile_fund_added(citizenid: u128) -> DispatchResult {
         match <ProfileFundDetails<T>>::get(&citizenid) {
             Some(profilefundinfo) => {
                 let validated = profilefundinfo.validated;
@@ -44,15 +50,15 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    fn balance_to_u64_saturated(input: BalanceOf<T>) -> u64 {
+    pub (super) fn balance_to_u64_saturated(input: BalanceOf<T>) -> u64 {
         input.saturated_into::<u64>()
     }
 
-    fn u64_to_balance_saturated(input: u64) -> BalanceOf<T> {
+    pub (super) fn u64_to_balance_saturated(input: u64) -> BalanceOf<T> {
         input.saturated_into::<BalanceOf<T>>()
     }
 
-    fn fund_profile_account() -> T::AccountId {
+    pub (super) fn fund_profile_account() -> T::AccountId {
         PALLET_ID.into_sub_account(1)
     }
 
@@ -72,7 +78,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    fn get_and_increment_nonce() -> Vec<u8> {
+    pub (super) fn get_and_increment_nonce() -> Vec<u8> {
         let nonce = <Nonce<T>>::get();
         <Nonce<T>>::put(nonce.wrapping_add(1));
         let n = nonce * 1000 + 1000; // remove and uncomment in production
@@ -81,7 +87,7 @@ impl<T: Config> Pallet<T> {
         // nonce.encode()
     }
 
-    fn get_winning_decision(decision_tuple: (u64, u64)) -> u8 {
+    pub (super) fn get_winning_decision(decision_tuple: (u64, u64)) -> u8 {
         if decision_tuple.1 > decision_tuple.0 {
             1
         } else if decision_tuple.0 > decision_tuple.1 {
@@ -91,7 +97,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    fn get_winning_incentives(decision_tuple: (u64, u64), incentive_tuple: (u64, u64)) -> (u8, u64) {
+    pub (super) fn get_winning_incentives(decision_tuple: (u64, u64), incentive_tuple: (u64, u64)) -> (u8, u64) {
         let winning_decision = Self::get_winning_decision(decision_tuple);
         if winning_decision == 0 {
             let winning_incentives =
