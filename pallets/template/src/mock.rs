@@ -1,6 +1,7 @@
 use crate as pallet_template;
 use frame_support::parameter_types;
 use frame_support_test::TestRandomness;
+use frame_support::traits::{ConstU16, ConstU64};
 
 use frame_system as system;
 use sp_core::H256;
@@ -51,8 +52,9 @@ impl system::Config for Test {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
-	type SS58Prefix = SS58Prefix;
+	type SS58Prefix = ConstU16<42>;
 	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 	type AccountData = pallet_balances::AccountData<u64>; // New code
 }
 

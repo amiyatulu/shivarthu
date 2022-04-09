@@ -1,6 +1,7 @@
 use frame_support::{pallet_prelude::*};
 use frame_support::sp_std::{vec::Vec, collections::btree_map::BTreeMap};
 use scale_info::TypeInfo;
+use frame_support::traits::ConstU32;
 
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -19,7 +20,7 @@ pub struct CitizenDetails<AccountId> {
 }
 
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct ProfileFundInfo<Balance, BlockNumber, AccountId> {
     pub funder_account_id: AccountId,
@@ -30,7 +31,7 @@ pub struct ProfileFundInfo<Balance, BlockNumber, AccountId> {
     pub deposit_returned:bool,
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct ChallengerFundInfo<Balance, BlockNumber, AccountId> {
     pub challengerid: AccountId,
@@ -39,14 +40,14 @@ pub struct ChallengerFundInfo<Balance, BlockNumber, AccountId> {
     pub challenge_completed: bool,
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode,MaxEncodedLen, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub enum SchellingType {
     ProfileApproval{ citizen_id: u128 }
 }
 
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct StakeDetails<Balance> {
     pub stake: Balance,
@@ -60,7 +61,7 @@ pub enum SumTreeName {
 }
 
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct SortitionSumTree<AccountId> {
     pub k: u64,
@@ -79,7 +80,7 @@ pub struct SortitionSumTree<AccountId> {
 //     Drawing // Jurors can be drawn. Pass after all disputes have jurors or `maxDrawingTime` passes.
 //   }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, MaxEncodedLen,TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub enum Period {
     Evidence, // Evidence can be submitted. This is also when drawing has to take place.
@@ -91,28 +92,28 @@ pub enum Period {
     Execution // Tokens are redistributed and the ruling is executed.
   }
 
-  #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
+  #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
   #[cfg_attr(feature = "std", derive(Debug))]
   pub struct DrawJurorsForProfileLimit {
       pub max_draws: u64,
       pub max_draws_appeal: u64
   }
 
-  #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
+  #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode,MaxEncodedLen, TypeInfo)]
   #[cfg_attr(feature = "std", derive(Debug))]
   pub struct StakingTime<BlockNumber> {
       pub min_challenge_time: BlockNumber,
       pub min_block_length: BlockNumber,
   }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode,MaxEncodedLen, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub enum VoteStatus {
     Commited,
     Revealed
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode,MaxEncodedLen, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct CommitVote {
     pub commit: [u8; 32],

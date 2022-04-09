@@ -22,6 +22,7 @@ use crate::types::{
 	Period, ProfileFundInfo, SchellingType, SortitionSumTree, StakeDetails, StakingTime,
 	SumTreeName, VoteStatus,
 };
+use frame_support::storage::{bounded_btree_map::BoundedBTreeMap, bounded_vec::BoundedVec};
 use frame_support::sp_runtime::traits::AccountIdConversion;
 use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
 use frame_support::sp_runtime::SaturatedConversion;
@@ -81,6 +82,7 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	// The pallet's runtime storage items.
