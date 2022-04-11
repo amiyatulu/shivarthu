@@ -2,7 +2,7 @@ use crate::*;
 
 
 impl<T: Config> Pallet<T> {
-    pub fn hello_world() -> u128 {
+    pub fn hello_world() -> u64 {
         10
     }
     pub (super) fn super_hello_world() -> u128 {

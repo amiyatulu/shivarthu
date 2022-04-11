@@ -2,6 +2,6 @@
 
 sp_api::decl_runtime_apis! {
 	pub trait ShivarthuApi {
-		fn hello_world() -> u128;
+		fn hello_world() -> u64;
 	}
 }

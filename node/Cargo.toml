@@ -57,6 +57,10 @@ frame-benchmarking-cli = { version = "4.0.0-dev", git = "https://github.com/pari
 # Local Dependencies
 node-template-runtime = { version = "4.0.0-dev", path = "../runtime" }
 
+shivarthu-runtime-api ={ path="../pallets/template/runtime-api", default-features = false}
+shivarthu-rpc = { path="../pallets/template/rpc"}
+
+
 [build-dependencies]
 substrate-build-script-utils = { version = "3.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
 
