@@ -12,5 +12,5 @@ sp-api = { default-features = false, version = "4.0.0-dev", git = "https://githu
 [features]
 default = ["std"]
 std = [
-	"sp-api/std",
+	"sp-api/std"
 ]

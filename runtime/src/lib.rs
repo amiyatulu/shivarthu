@@ -537,7 +537,7 @@ impl_runtime_apis! {
 	}
 
 	impl shivarthu_runtime_api::ShivarthuApi<Block> for Runtime {
-		fn hello_world() -> u64 {
+		fn hello_world() -> u128 {
 			TemplateModule::hello_world()
 		}
 	}

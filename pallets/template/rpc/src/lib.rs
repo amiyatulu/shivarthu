@@ -10,7 +10,7 @@ use shivarthu_runtime_api::ShivarthuApi as ShivarthuRuntimeApi;
 #[rpc]
 pub trait ShivarthuApi<BlockHash> {
 	#[rpc(name= "shivarthu_helloWorld")]
-	fn hello_world(&self, at: Option<BlockHash>) -> Result<u64>;
+	fn hello_world(&self, at: Option<BlockHash>) -> Result<u128>;
 }
 
 /// A struct that implements the `SumStorageApi`.
@@ -40,7 +40,7 @@ where
 	C: HeaderBackend<Block>,
 	C::Api: ShivarthuRuntimeApi<Block>,
 {
-	fn hello_world(&self, at: Option<<Block as BlockT>::Hash>) -> Result<u64> {
+	fn hello_world(&self, at: Option<<Block as BlockT>::Hash>) -> Result<u128> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.

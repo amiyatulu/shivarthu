@@ -421,7 +421,7 @@ pub mod pallet {
 
 			match <ProfileFundDetails<T>>::get(&profile_citizenid) {
 				// 📝 To write update stake for reapply when disapproved
-				Some(_profilefundinfo) => Err(Error::<T>::ProfileExists)?,
+				Some(_profilefundinfo) => Err(Error::<T>::ProfileFundExists)?,
 				None => {
 					let profile_fund_info = ProfileFundInfo {
 						funder_account_id: who,
