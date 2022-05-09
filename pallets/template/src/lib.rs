@@ -18,15 +18,15 @@ mod extras;
 mod types;
 
 use crate::types::{
-	ChallengerFundInfo, CitizenDetails, CommitVote, DepartmentDetails, DrawJurorsForProfileLimit,
-	Period, ProfileFundInfo, SchellingType, SortitionSumTree, StakeDetails, StakingTime,
-	SumTreeName, VoteStatus,
+	ChallengeEvidencePost, ChallengerFundInfo, CitizenDetails, CommitVote, DepartmentDetails,
+	DrawJurorsForProfileLimit, Period, ProfileFundInfo, SchellingType, SortitionSumTree,
+	StakeDetails, StakingTime, SumTreeName, VoteStatus,
 };
-use frame_support::storage::{bounded_btree_map::BoundedBTreeMap, bounded_vec::BoundedVec};
 use frame_support::sp_runtime::traits::AccountIdConversion;
 use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
 use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::{collections::btree_map::BTreeMap, vec::Vec};
+use frame_support::storage::{bounded_btree_map::BoundedBTreeMap, bounded_vec::BoundedVec};
 use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 use frame_support::{sp_runtime::app_crypto::sp_core::H256, traits::Randomness};
 use frame_support::{
@@ -52,6 +52,7 @@ type PositiveImbalanceOf<T> = <<T as Config>::Currency as Currency<
 type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
 	<T as frame_system::Config>::AccountId,
 >>::NegativeImbalance;
+type ChallengeEvidencePostOf<T> = ChallengeEvidencePost<AccountIdOf<T>>;
 
 type FundIndex = u32;
 
@@ -122,7 +123,7 @@ pub mod pallet {
 	pub fn DefaultRegistrationFee<T: Config>() -> BalanceOf<T> {
 		1000u128.saturated_into::<BalanceOf<T>>()
 	}
-	// Registration challege fees
+	// Registration challenge fees
 	#[pallet::type_value]
 	pub fn DefaultRegistrationChallengeFee<T: Config>() -> BalanceOf<T> {
 		100u128.saturated_into::<BalanceOf<T>>()
@@ -134,7 +135,7 @@ pub mod pallet {
 		StorageValue<_, BalanceOf<T>, ValueQuery, DefaultRegistrationFee<T>>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn profile_registration_challege_fees)]
+	#[pallet::getter(fn profile_registration_challenge_fees)]
 	pub type RegistrationChallengeFee<T> =
 		StorageValue<_, BalanceOf<T>, ValueQuery, DefaultRegistrationChallengeFee<T>>;
 
@@ -147,8 +148,21 @@ pub mod pallet {
 	pub type ChallengerFundDetails<T> =
 		StorageMap<_, Blake2_128Concat, u128, ChallengerFundInfoOf<T>>;
 
-	// #[pallet::storage]
-	// #[pallet::getter(fn citizen_profile_status)]
+	#[pallet::storage]
+	#[pallet::getter(fn challenger_evidence_list)]
+	pub type ChallengerEvidenceId<T: Config> =
+		StorageDoubleMap<_, Blake2_128Concat, u128, Blake2_128Concat, T::AccountId, u128>; // profile number, challenger accountid => Challenge post id
+	#[pallet::storage]
+	#[pallet::getter(fn post_count)]
+	pub type ChallengePostCount<T> = StorageValue<_, u128, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn challenge_post_comment)]
+	pub type ChallengePostCommentIds<T> = StorageMap<_, Blake2_128Concat, u128, Vec<u128>, ValueQuery>; // challenge post id => Vec<Comment Post It>
+
+	#[pallet::storage]
+	#[pallet::getter(fn challenge_posts)]
+	pub type ChallengePost<T: Config> = StorageMap<_, Blake2_128Concat, u128, ChallengeEvidencePostOf<T>>; // challenge post id => post
 
 	#[pallet::storage]
 	#[pallet::getter(fn department_profile)]
@@ -332,7 +346,7 @@ pub mod pallet {
 		DepartmentNotAssociated,
 		ProfileExists,
 		ProfileFundExists,
-		ChallegerFundInfoExists,
+		ChallengerFundInfoExists,
 		ProfileFundNotExists,
 		NomineeExists,
 		CitizenDoNotExists,
@@ -370,6 +384,11 @@ pub mod pallet {
 		AlreadyGotIncentives,
 		FundAlreadyReturned,
 		ChallengerWinned,
+		ChallengerFundAddedCanNotUpdate,
+		PostAlreadyExists,
+		ChallengeDoesNotExists,
+		CommentExists,
+		IsComment,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -451,6 +470,85 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn challenge_evidence(
+			origin: OriginFor<T>,
+			profile_citizenid: u128,
+			hash: Vec<u8>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let _citizen_account_id = Self::get_citizen_accountid(profile_citizenid)?;
+			let count = <ChallengePostCount<T>>::get();
+			let challenge_evidence_post = ChallengeEvidencePost {
+				author_account_id: who.clone(),
+				post_hash: hash,
+				is_comment: false,
+			};
+			match <ChallengerEvidenceId<T>>::get(&profile_citizenid, &who) {
+				None => {
+				
+					<ChallengePost<T>>::insert(&count, challenge_evidence_post);
+					let newcount = count.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
+					<ChallengePostCount<T>>::put(newcount);
+
+					<ChallengerEvidenceId<T>>::insert(&profile_citizenid, &who, count);
+				},
+				Some(_hash) => {
+					Err(Error::<T>::PostAlreadyExists)?
+					// match <ChallengerFundDetails<T>>::get(&profile_citizenid) {
+					// 	Some(_challengerfundinfo) => {
+					// 		Err(Error::<T>::ChallengerFundAddedCanNotUpdate)?
+					// 	},
+					// 	None => {
+					// 		// Update challenger profile
+					// 		<ChallengePost<T>>::insert(&count, challenge_evidence_post);
+					// 		let newcount =
+					// 			count.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
+					// 		<ChallengePostCount<T>>::put(newcount);
+					// 		<ChallengerEvidenceId<T>>::insert(&profile_citizenid, &who, count);
+					// 	},
+					// }
+				},
+			}
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn challenge_comment_create(origin:OriginFor<T>, post_id: u128, hash: Vec<u8>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let count = <ChallengePostCount<T>>::get();
+			let challenge_evidence_post = ChallengeEvidencePost {
+				author_account_id: who.clone(),
+				post_hash: hash,
+				is_comment: true,
+			};
+			match <ChallengePost<T>>::get(&post_id) {
+				None => {
+					Err(Error::<T>::ChallengeDoesNotExists)?
+				},
+				Some(challenge_evidence_post_c) => {
+					if challenge_evidence_post_c.is_comment == false {
+						<ChallengePost<T>>::insert(&count, challenge_evidence_post);
+						let newcount = count.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
+						<ChallengePostCount<T>>::put(newcount);
+						let mut comment_ids = <ChallengePostCommentIds<T>>::get(&post_id);
+						match comment_ids.binary_search(&count) {
+							Ok(_) => Err(Error::<T>::CommentExists)?,
+							Err(index) => {
+								comment_ids.insert(index, count.clone());
+								<ChallengePostCommentIds<T>>::insert(&post_id, &comment_ids);
+
+							}
+						}
+					} else {
+						Err(Error::<T>::IsComment)?
+					}
+				}
+			}
+
+			Ok(())
+		}
+
 		// Does citizen exists
 		// Has the citizen added profile fund
 		// Create tree
@@ -481,7 +579,7 @@ pub mod pallet {
 
 			match <ChallengerFundDetails<T>>::get(&profile_citizenid) {
 				// 📝 To write update stake for reapply
-				Some(_challengerfundinfo) => Err(Error::<T>::ChallegerFundInfoExists)?,
+				Some(_challengerfundinfo) => Err(Error::<T>::ChallengerFundInfoExists)?,
 				None => {
 					let challenger_fund_info = ChallengerFundInfo {
 						challengerid: who,

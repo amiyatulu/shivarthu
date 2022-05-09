@@ -121,6 +121,15 @@ pub struct CommitVote {
     pub vote_revealed: Option<u8>,
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub struct ChallengeEvidencePost<AccountId> {
+    pub author_account_id: AccountId,
+    pub post_hash: Vec<u8>,
+    pub is_comment: bool,
+}
+
+
 
 
 

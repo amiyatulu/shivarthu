@@ -540,5 +540,8 @@ impl_runtime_apis! {
 		fn hello_world() -> u128 {
 			TemplateModule::hello_world()
 		}
+		fn get_challengers_evidence(profile_citizenid: u128, offset: u64, limit: u16) -> Vec<u128> {
+			TemplateModule::get_challengers_evidence(profile_citizenid, offset, limit)
+		}
 	}
 }

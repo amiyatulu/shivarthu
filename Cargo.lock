@@ -6228,6 +6228,7 @@ dependencies = [
 name = "shivarthu-runtime-api"
 version = "4.0.0-dev"
 dependencies = [
+ "frame-support",
  "sp-api",
 ]
 

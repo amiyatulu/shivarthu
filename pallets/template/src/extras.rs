@@ -5,9 +5,15 @@ impl<T: Config> Pallet<T> {
     pub fn hello_world() -> u128 {
         10
     }
+
+    pub fn get_challengers_evidence(profile_citizenid: u128, offset: u64, limit: u16) -> Vec<u128> {
+        let data = <ChallengerEvidenceId<T>>::iter_prefix_values(&profile_citizenid).skip(offset as usize).take(limit as usize).collect::<Vec<_>>();
+        data
+    }
     pub (super) fn super_hello_world() -> u128 {
         20
     }
+
     pub (super) fn get_citizen_accountid(citizenid: u128) -> Result<T::AccountId, DispatchError> {
         let profile = Self::citizen_profile(citizenid).ok_or(Error::<T>::CitizenDoNotExists)?;
         Ok(profile.accountid)
