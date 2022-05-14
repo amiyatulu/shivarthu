@@ -13,10 +13,10 @@ pub trait ShivarthuApi<BlockHash> {
 	#[rpc(name = "shivarthu_challengerevidence")]
 	fn get_challengers_evidence(
 		&self,
-		at: Option<BlockHash>,
 		profile_citizenid: u128,
 		offset: u64,
 		limit: u16,
+		at: Option<BlockHash>,
 	) -> Result<Vec<u128>>;
 }
 
@@ -57,11 +57,11 @@ where
 		})
 	}
 	fn get_challengers_evidence(
-		&self,
-		at: Option<<Block as BlockT>::Hash>,
+		&self,		
 		profile_citizenid: u128,
 		offset: u64,
 		limit: u16,
+		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<Vec<u128>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
