@@ -70,6 +70,8 @@ fn challenge_profile_test() {
 		assert_ok!(TemplateModule::add_citizen(Origin::signed(1), "hashcode".as_bytes().to_vec()));
 		assert_ok!(TemplateModule::add_profile_fund(Origin::signed(2), 0));
 		assert_eq!(Balances::free_balance(3), 300000);
+		let block_time = TemplateModule::min_block_time();
+		run_to_block(block_time.min_challenge_time);
 		assert_ok!(TemplateModule::challenge_profile(Origin::signed(3), 0));
 		assert_eq!(Balances::free_balance(3), 299900);
 	});
@@ -140,7 +142,8 @@ fn draw_jurors_test() {
 			ProfileFundInfo { funder_account_id:2, deposit: 1000, start: 0, validated: false, reapply: false, deposit_returned: false };
 		let profile_fundinfo = TemplateModule::profile_fund(0);
 		assert_eq!(profile_fundinfo, Some(profile_fundinfocheck));
-		run_to_block(10);
+		let block_time = TemplateModule::min_block_time();
+		run_to_block(block_time.min_challenge_time);
 		assert_eq!(Balances::free_balance(3), 300000);
 		assert_ok!(TemplateModule::challenge_profile(Origin::signed(3), 0));
 		assert_eq!(Balances::free_balance(3), 299900);
@@ -149,12 +152,10 @@ fn draw_jurors_test() {
 			Some(ChallengerFundInfo {
 				challengerid: 3,
 				deposit: 100,
-				start: 10,
+				start: block_time.min_challenge_time,
 				challenge_completed: false
 			})
 		);
-		run_to_block(43200 + 10 + 144000);
-		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
 		// Applyjuror
 		for j in 4..30 {
 			assert_ok!(TemplateModule::apply_jurors(Origin::signed(j), 0, j * 100));
@@ -168,7 +169,7 @@ fn draw_jurors_test() {
 		let staking_start_time = TemplateModule::staking_start_time(key.clone());
 		// println!("staking start time {:?}", staking_start_time);
 
-		let block_time = TemplateModule::min_block_time();
+		
 		// println!("block time {:?}", block_time.min_block_length);
 		run_to_block(staking_start_time + block_time.min_block_length);
 
@@ -296,7 +297,7 @@ fn fund_withdrawal() {
 		assert_eq!(Balances::free_balance(2), 200000);
 		assert_ok!(TemplateModule::add_profile_fund(Origin::signed(2), 0));
 		assert_eq!(Balances::free_balance(2), 199000);
-		run_to_block(43200 + 10 + 144000);
+		run_to_block(43200);
 		assert_ok!(TemplateModule::return_profile_fund(Origin::signed(3),0));
 		assert_eq!(Balances::free_balance(2), 200000);
 	});
@@ -313,7 +314,8 @@ fn challeger_lost() {
 			ProfileFundInfo { funder_account_id:2, deposit: 1000, start: 0, validated: false, reapply: false, deposit_returned: false };
 		let profile_fundinfo = TemplateModule::profile_fund(0);
 		assert_eq!(profile_fundinfo, Some(profile_fundinfocheck));
-		run_to_block(10);
+		let block_time = TemplateModule::min_block_time();
+		run_to_block(block_time.min_challenge_time);
 		assert_eq!(Balances::free_balance(3), 300000);
 		assert_ok!(TemplateModule::challenge_profile(Origin::signed(3), 0));
 		assert_eq!(Balances::free_balance(3), 299900);
@@ -322,12 +324,10 @@ fn challeger_lost() {
 			Some(ChallengerFundInfo {
 				challengerid: 3,
 				deposit: 100,
-				start: 10,
+				start: block_time.min_challenge_time,
 				challenge_completed: false
 			})
 		);
-		run_to_block(43200 + 10 + 144000);
-		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
 		// Applyjuror
 		for j in 4..30 {
 			assert_ok!(TemplateModule::apply_jurors(Origin::signed(j), 0, j * 100));
@@ -341,7 +341,7 @@ fn challeger_lost() {
 		let staking_start_time = TemplateModule::staking_start_time(key.clone());
 		// println!("staking start time {:?}", staking_start_time);
 
-		let block_time = TemplateModule::min_block_time();
+		
 		// println!("block time {:?}", block_time.min_block_length);
 		run_to_block(staking_start_time + block_time.min_block_length);
 
@@ -412,6 +412,23 @@ fn challeger_lost() {
 		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
 		assert_ok!(TemplateModule::return_profile_fund(Origin::signed(3),0));
 	});
+}
+
+#[test]
+fn api_test() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(TemplateModule::add_citizen(Origin::signed(1), "hashcode".as_bytes().to_vec()));
+		assert_ok!(TemplateModule::add_profile_fund(Origin::signed(2), 0));
+		let blocknumber = TemplateModule::get_evidence_period_end_block(0);
+		println!("Blocknumber {:?}", blocknumber);
+		run_to_block(100);
+		let blocknumber = TemplateModule::get_evidence_period_end_block(0);
+		println!("Blocknumber {:?}", blocknumber);
+		let block_time = TemplateModule::min_block_time();
+		run_to_block(block_time.min_challenge_time);
+		assert_ok!(TemplateModule::challenge_profile(Origin::signed(3), 0));		
+
+	})
 }
 
 

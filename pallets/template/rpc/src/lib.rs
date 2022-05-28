@@ -18,6 +18,12 @@ pub trait ShivarthuApi<BlockHash> {
 		limit: u16,
 		at: Option<BlockHash>,
 	) -> Result<Vec<u128>>;
+	#[rpc(name = "shivarthu_evidenceperiodendblock")]
+	fn get_evidence_period_end_block(
+		&self,
+		profile_citizenid: u128,
+		at: Option<BlockHash>,
+	) -> Result<Option<u32>>;
 }
 
 /// A struct that implements the `SumStorageApi`.
@@ -57,7 +63,7 @@ where
 		})
 	}
 	fn get_challengers_evidence(
-		&self,		
+		&self,
 		profile_citizenid: u128,
 		offset: u64,
 		limit: u16,
@@ -70,6 +76,23 @@ where
 
 		let runtime_api_result =
 			api.get_challengers_evidence(&at, profile_citizenid, offset, limit);
+		runtime_api_result.map_err(|e| RpcError {
+			code: ErrorCode::ServerError(9876), // No real reason for this value
+			message: "Something wrong".into(),
+			data: Some(format!("{:?}", e).into()),
+		})
+	}
+	fn get_evidence_period_end_block(
+		&self,
+		profile_citizenid: u128,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<Option<u32>> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let runtime_api_result = api.get_evidence_period_end_block(&at, profile_citizenid);
 		runtime_api_result.map_err(|e| RpcError {
 			code: ErrorCode::ServerError(9876), // No real reason for this value
 			message: "Something wrong".into(),

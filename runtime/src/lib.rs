@@ -543,5 +543,8 @@ impl_runtime_apis! {
 		fn get_challengers_evidence(profile_citizenid: u128, offset: u64, limit: u16) -> Vec<u128> {
 			TemplateModule::get_challengers_evidence(profile_citizenid, offset, limit)
 		}
+		fn get_evidence_period_end_block(profile_citizenid: u128) -> Option<u32> {
+			TemplateModule::get_evidence_period_end_block(profile_citizenid)
+		}
 	}
 }

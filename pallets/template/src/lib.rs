@@ -45,7 +45,7 @@ type ProfileFundInfoOf<T> =
 type CitizenDetailsOf<T> = CitizenDetails<AccountIdOf<T>>;
 type ChallengerFundInfoOf<T> =
 	ChallengerFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber, AccountIdOf<T>>;
-type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
+pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
 type PositiveImbalanceOf<T> = <<T as Config>::Currency as Currency<
 	<T as frame_system::Config>::AccountId,
 >>::PositiveImbalance;
@@ -158,11 +158,13 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn challenge_post_comment)]
-	pub type ChallengePostCommentIds<T> = StorageMap<_, Blake2_128Concat, u128, Vec<u128>, ValueQuery>; // challenge post id => Vec<Comment Post It>
+	pub type ChallengePostCommentIds<T> =
+		StorageMap<_, Blake2_128Concat, u128, Vec<u128>, ValueQuery>; // challenge post id => Vec<Comment Post It>
 
 	#[pallet::storage]
-	#[pallet::getter(fn challenge_posts)]
-	pub type ChallengePost<T: Config> = StorageMap<_, Blake2_128Concat, u128, ChallengeEvidencePostOf<T>>; // challenge post id => post
+	#[pallet::getter(fn challenge_post)]
+	pub type ChallengePost<T: Config> =
+		StorageMap<_, Blake2_128Concat, u128, ChallengeEvidencePostOf<T>>; // challenge post id => post
 
 	#[pallet::storage]
 	#[pallet::getter(fn department_profile)]
@@ -364,6 +366,7 @@ pub mod pallet {
 		TreeDoesnotExist,
 		PeriodExists,
 		PeriodDoesNotExists,
+		ProfileFundDoesNotExists,
 		ChallengerFundDoesNotExists,
 		PeriodDontMatch,
 		StakeLessThanMin,
@@ -486,7 +489,6 @@ pub mod pallet {
 			};
 			match <ChallengerEvidenceId<T>>::get(&profile_citizenid, &who) {
 				None => {
-				
 					<ChallengePost<T>>::insert(&count, challenge_evidence_post);
 					let newcount = count.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
 					<ChallengePostCount<T>>::put(newcount);
@@ -514,7 +516,11 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn challenge_comment_create(origin:OriginFor<T>, post_id: u128, hash: Vec<u8>) -> DispatchResult {
+		pub fn challenge_comment_create(
+			origin: OriginFor<T>,
+			post_id: u128,
+			hash: Vec<u8>,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let count = <ChallengePostCount<T>>::get();
 			let challenge_evidence_post = ChallengeEvidencePost {
@@ -523,9 +529,7 @@ pub mod pallet {
 				is_comment: true,
 			};
 			match <ChallengePost<T>>::get(&post_id) {
-				None => {
-					Err(Error::<T>::ChallengeDoesNotExists)?
-				},
+				None => Err(Error::<T>::ChallengeDoesNotExists)?,
 				Some(challenge_evidence_post_c) => {
 					if challenge_evidence_post_c.is_comment == false {
 						<ChallengePost<T>>::insert(&count, challenge_evidence_post);
@@ -537,13 +541,12 @@ pub mod pallet {
 							Err(index) => {
 								comment_ids.insert(index, count.clone());
 								<ChallengePostCommentIds<T>>::insert(&post_id, &comment_ids);
-
-							}
+							},
 						}
 					} else {
 						Err(Error::<T>::IsComment)?
 					}
-				}
+				},
 			}
 
 			Ok(())
@@ -555,12 +558,28 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn challenge_profile(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			let key = SumTreeName::UniqueIdenfier1 {
+				citizen_id: profile_citizenid,
+				name: "challengeprofile".as_bytes().to_vec(),
+			};
 			let now = <frame_system::Pallet<T>>::block_number();
 			let _citizen_account_id = Self::get_citizen_accountid(profile_citizenid)?;
 			match <ProfileFundDetails<T>>::get(&profile_citizenid) {
 				Some(profilefundinfo) => {
 					if profilefundinfo.validated == true {
 						Err(Error::<T>::ProfileIsAlreadyValidated)?;
+					} else {
+						let block_number = profilefundinfo.start;
+						let time =
+							now.checked_sub(&block_number).expect("Overflow");
+						let block_time = <MinBlockTime<T>>::get();
+						if time >= block_time.min_challenge_time {
+							let new_period = Period::Staking;
+							<PeriodName<T>>::insert(&key, new_period);
+							<StakingStartTime<T>>::insert(&key, now);
+						} else {
+							Err(Error::<T>::EvidencePeriodNotOver)?
+						}
 					}
 				},
 				None => {
@@ -591,10 +610,7 @@ pub mod pallet {
 				},
 			}
 
-			let key = SumTreeName::UniqueIdenfier1 {
-				citizen_id: profile_citizenid,
-				name: "challengeprofile".as_bytes().to_vec(),
-			};
+		
 
 			let result = Self::create_tree(key.clone(), 3);
 			result
@@ -613,23 +629,7 @@ pub mod pallet {
 
 			match <PeriodName<T>>::get(&key) {
 				Some(period) => {
-					if period == Period::Evidence {
-						match <ChallengerFundDetails<T>>::get(&profile_citizenid) {
-							Some(challenger_fund_info) => {
-								let block_number = challenger_fund_info.start;
-								let time = now.checked_sub(&block_number).expect("Overflow");
-								let block_time = <MinBlockTime<T>>::get();
-								if time >= block_time.min_challenge_time {
-									let new_period = Period::Staking;
-									<PeriodName<T>>::insert(&key, new_period);
-									<StakingStartTime<T>>::insert(&key, now);
-								} else {
-									Err(Error::<T>::EvidencePeriodNotOver)?
-								}
-							},
-							None => Err(Error::<T>::ChallengerFundDoesNotExists)?,
-						}
-					}
+					// Also check has min number of jurors has staked
 					if period == Period::Staking {
 						match <ChallengerFundDetails<T>>::get(&profile_citizenid) {
 							Some(_challenger_fund_info) => {

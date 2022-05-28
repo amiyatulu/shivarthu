@@ -7,8 +7,25 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_challengers_evidence(profile_citizenid: u128, offset: u64, limit: u16) -> Vec<u128> {
-        let data = <ChallengerEvidenceId<T>>::iter_prefix_values(&profile_citizenid).skip(offset as usize).take(limit as usize).collect::<Vec<_>>();
+        let mut data = <ChallengerEvidenceId<T>>::iter_prefix_values(&profile_citizenid).skip(offset as usize).take(limit as usize).collect::<Vec<_>>();
+        data.sort();
+        data.reverse();
         data
+    }
+
+    pub fn get_evidence_period_end_block(profile_citizenid: u128) -> Option<u32> {
+        let now = <frame_system::Pallet<T>>::block_number();
+        match <ProfileFundDetails<T>>::get(&profile_citizenid) {
+            Some(profilefundinfo) => {
+                let block_number = profilefundinfo.start;
+                let block_time = <MinBlockTime<T>>::get();
+                let end_block = block_number.checked_add(&block_time.min_challenge_time).expect("Overflow");
+                let left_block = end_block.checked_sub(&now).expect("Overflow");
+                let left_block_u32 = Self::block_number_to_u32_saturated(left_block);
+                Some(left_block_u32)
+            },
+            None => None,
+        }
     }
     pub (super) fn super_hello_world() -> u128 {
         20
@@ -62,6 +79,10 @@ impl<T: Config> Pallet<T> {
 
     pub (super) fn u64_to_balance_saturated(input: u64) -> BalanceOf<T> {
         input.saturated_into::<BalanceOf<T>>()
+    }
+
+    pub (super) fn block_number_to_u32_saturated(input: BlockNumberOf<T>) -> u32 {
+        input.saturated_into::<u32>()
     }
 
     pub (super) fn fund_profile_account() -> T::AccountId {
