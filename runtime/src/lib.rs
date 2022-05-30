@@ -546,5 +546,21 @@ impl_runtime_apis! {
 		fn get_evidence_period_end_block(profile_citizenid: u128) -> Option<u32> {
 			TemplateModule::get_evidence_period_end_block(profile_citizenid)
 		}
+		fn get_staking_period_end_block(profile_citizenid: u128) -> Option<u32> {
+			TemplateModule::get_staking_period_end_block(profile_citizenid)
+		}
+		fn get_drawing_period_end(profile_citizenid: u128) -> (u64, u64, bool) {
+			TemplateModule::get_drawing_period_end(profile_citizenid)
+		}
+		fn get_commit_period_end_block(profile_citizenid: u128) -> Option<u32> {
+			TemplateModule::get_commit_period_end_block(profile_citizenid)
+		}
+
+		fn get_vote_period_end_block(profile_citizenid: u128) -> Option<u32> {
+			TemplateModule::get_vote_period_end_block(profile_citizenid)
+		}
+
+
+
 	}
 }

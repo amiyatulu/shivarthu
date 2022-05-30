@@ -24,6 +24,30 @@ pub trait ShivarthuApi<BlockHash> {
 		profile_citizenid: u128,
 		at: Option<BlockHash>,
 	) -> Result<Option<u32>>;
+	#[rpc(name = "shivarthu_stakingperiodendblock")]
+	fn get_staking_period_end_block(
+		&self,
+		rofile_citizenid: u128,
+		at: Option<BlockHash>,
+	) -> Result<Option<u32>>;
+	#[rpc(name = "shivarthu_drawingperiodend")]
+	fn get_drawing_period_end(
+		&self,
+		profile_citizenid: u128,
+		at: Option<BlockHash>,
+	) -> Result<(u64, u64, bool)>;
+	#[rpc(name = "shivarthu_commitendblock")]
+	fn get_commit_period_end_block(
+		&self,
+		profile_citizenid: u128,
+		at: Option<BlockHash>,
+	) -> Result<Option<u32>>;
+	#[rpc(name = "shivarthu_voteendblock")]
+	fn get_vote_period_end_block(
+		&self,
+		profile_citizenid: u128,
+		at: Option<BlockHash>,
+	) -> Result<Option<u32>>;
 }
 
 /// A struct that implements the `SumStorageApi`.
@@ -93,6 +117,76 @@ where
 			self.client.info().best_hash));
 
 		let runtime_api_result = api.get_evidence_period_end_block(&at, profile_citizenid);
+		runtime_api_result.map_err(|e| RpcError {
+			code: ErrorCode::ServerError(9876), // No real reason for this value
+			message: "Something wrong".into(),
+			data: Some(format!("{:?}", e).into()),
+		})
+	}
+	fn get_staking_period_end_block(
+		&self,
+		profile_citizenid: u128,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<Option<u32>> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let runtime_api_result = api.get_staking_period_end_block(&at, profile_citizenid);
+		runtime_api_result.map_err(|e| RpcError {
+			code: ErrorCode::ServerError(9876), // No real reason for this value
+			message: "Something wrong".into(),
+			data: Some(format!("{:?}", e).into()),
+		})
+	}
+	fn get_drawing_period_end(
+		&self,
+		profile_citizenid: u128,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<(u64, u64, bool)> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let runtime_api_result = api.get_drawing_period_end(&at, profile_citizenid);
+		runtime_api_result.map_err(|e| RpcError {
+			code: ErrorCode::ServerError(9876), // No real reason for this value
+			message: "Something wrong".into(),
+			data: Some(format!("{:?}", e).into()),
+		})
+	}
+
+	fn get_commit_period_end_block(
+		&self,
+		profile_citizenid: u128,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<Option<u32>> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let runtime_api_result = api.get_commit_period_end_block(&at, profile_citizenid);
+		runtime_api_result.map_err(|e| RpcError {
+			code: ErrorCode::ServerError(9876), // No real reason for this value
+			message: "Something wrong".into(),
+			data: Some(format!("{:?}", e).into()),
+		})
+	}
+
+	fn get_vote_period_end_block(
+		&self,
+		profile_citizenid: u128,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<Option<u32>> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let runtime_api_result = api.get_vote_period_end_block(&at, profile_citizenid);
 		runtime_api_result.map_err(|e| RpcError {
 			code: ErrorCode::ServerError(9876), // No real reason for this value
 			message: "Something wrong".into(),
