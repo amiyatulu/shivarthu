@@ -244,7 +244,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn draws_in_round)]
-	pub type DrawsInRound<T> = StorageMap<_, Blake2_128Concat, SumTreeName, u128, ValueQuery>; // A counter of draws made in the current round.
+	pub type DrawsInRound<T> = StorageMap<_, Blake2_128Concat, SumTreeName, u64, ValueQuery>; // A counter of draws made in the current round.
 
 	#[pallet::storage]
 	#[pallet::getter(fn staking_start_time)]
@@ -648,7 +648,7 @@ pub mod pallet {
 					if period == Period::Drawing {
 						let draw_limit = <DrawJurorsForProfileLimitData<T>>::get();
 						let draws_in_round = <DrawsInRound<T>>::get(&key);
-						if draws_in_round >= draw_limit.max_draws.into() {
+						if draws_in_round >= draw_limit.max_draws {
 							<CommitStartTime<T>>::insert(&key, now);
 							let new_period = Period::Commit;
 							<PeriodName<T>>::insert(&key, new_period);
@@ -750,7 +750,7 @@ pub mod pallet {
 		pub fn draw_jurors(
 			origin: OriginFor<T>,
 			profile_citizenid: u128,
-			interations: u128,
+			interations: u64,
 		) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
 			let key = SumTreeName::UniqueIdenfier1 {
@@ -768,8 +768,8 @@ pub mod pallet {
 			let draws_in_round = <DrawsInRound<T>>::get(&key);
 			ensure!(draws_in_round < draw_limit.max_draws.into(), Error::<T>::MaxDrawExceeded);
 			let mut end_index = draws_in_round + interations;
-			if draws_in_round + interations >= draw_limit.max_draws as u128 {
-				end_index = draw_limit.max_draws as u128;
+			if draws_in_round + interations >= draw_limit.max_draws {
+				end_index = draw_limit.max_draws;
 			}
 			let mut draw_increment = draws_in_round.clone();
 
