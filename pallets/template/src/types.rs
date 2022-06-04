@@ -102,8 +102,8 @@ pub enum Period {
   #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode,MaxEncodedLen, TypeInfo)]
   #[cfg_attr(feature = "std", derive(Debug))]
   pub struct StakingTime<BlockNumber> {
-      pub min_challenge_time: BlockNumber,
-      pub min_block_length: BlockNumber,
+      pub min_short_block_length: BlockNumber,
+      pub min_long_block_length: BlockNumber,
   }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode,MaxEncodedLen, TypeInfo)]

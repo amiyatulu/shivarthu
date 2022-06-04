@@ -23,7 +23,7 @@ use crate::types::{
 	StakeDetails, StakingTime, SumTreeName, VoteStatus,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
-use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
+use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub, CheckedMul};
 use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 use frame_support::storage::{bounded_btree_map::BoundedBTreeMap, bounded_vec::BoundedVec};
@@ -223,8 +223,8 @@ pub mod pallet {
 	#[pallet::type_value]
 	pub fn DefaultMinBlockTime<T: Config>() -> StakingTime<BlockNumberOf<T>> {
 		let staking_time = StakingTime {
-			min_challenge_time: 43200u128.saturated_into::<BlockNumberOf<T>>(),
-			min_block_length: 144000u128.saturated_into::<BlockNumberOf<T>>(),
+			min_short_block_length: 43200u128.saturated_into::<BlockNumberOf<T>>(),
+			min_long_block_length: 144000u128.saturated_into::<BlockNumberOf<T>>(),
 		};
 		staking_time
 		// 3 days, 10 days
@@ -573,7 +573,7 @@ pub mod pallet {
 						let time =
 							now.checked_sub(&block_number).expect("Overflow");
 						let block_time = <MinBlockTime<T>>::get();
-						if time >= block_time.min_challenge_time {
+						if time >= block_time.min_short_block_length {
 							let new_period = Period::Staking;
 							<PeriodName<T>>::insert(&key, new_period);
 							<StakingStartTime<T>>::insert(&key, now);
@@ -635,7 +635,7 @@ pub mod pallet {
 							Some(_challenger_fund_info) => {
 								let staking_start_time = <StakingStartTime<T>>::get(&key);
 								let block_time = <MinBlockTime<T>>::get();
-								if now >= block_time.min_block_length + staking_start_time {
+								if now >= block_time.min_long_block_length + staking_start_time {
 									let new_period = Period::Drawing;
 									<PeriodName<T>>::insert(&key, new_period);
 								} else {
@@ -660,7 +660,7 @@ pub mod pallet {
 					if period == Period::Commit {
 						let commit_start_time = <CommitStartTime<T>>::get(&key);
 						let block_time = <MinBlockTime<T>>::get();
-						if now >= block_time.min_block_length + commit_start_time {
+						if now >= block_time.min_long_block_length + commit_start_time {
 							<VoteStartTime<T>>::insert(&key, now);
 							let new_period = Period::Vote;
 							<PeriodName<T>>::insert(&key, new_period);
@@ -672,7 +672,7 @@ pub mod pallet {
 					if period == Period::Vote {
 						let vote_start_time = <VoteStartTime<T>>::get(&key);
 						let block_time = <MinBlockTime<T>>::get();
-						if now >= block_time.min_block_length + vote_start_time {
+						if now >= block_time.min_long_block_length + vote_start_time {
 							let new_period = Period::Execution;
 							<PeriodName<T>>::insert(&key, new_period);
 						} else {
@@ -1084,7 +1084,7 @@ pub mod pallet {
 						None => {
 							let time_lapse = now.checked_sub(&start).expect("overflow");
 							let block_time = <MinBlockTime<T>>::get();
-							if time_lapse < block_time.min_challenge_time {
+							if time_lapse < block_time.min_short_block_length + block_time.min_short_block_length {
 								Err(Error::<T>::EvidencePeriodNotOver)?
 							}
 						},

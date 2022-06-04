@@ -71,7 +71,7 @@ fn challenge_profile_test() {
 		assert_ok!(TemplateModule::add_profile_fund(Origin::signed(2), 0));
 		assert_eq!(Balances::free_balance(3), 300000);
 		let block_time = TemplateModule::min_block_time();
-		run_to_block(block_time.min_challenge_time);
+		run_to_block(block_time.min_short_block_length);
 		assert_ok!(TemplateModule::challenge_profile(Origin::signed(3), 0));
 		assert_eq!(Balances::free_balance(3), 299900);
 	});
@@ -143,7 +143,7 @@ fn draw_jurors_test() {
 		let profile_fundinfo = TemplateModule::profile_fund(0);
 		assert_eq!(profile_fundinfo, Some(profile_fundinfocheck));
 		let block_time = TemplateModule::min_block_time();
-		run_to_block(block_time.min_challenge_time);
+		run_to_block(block_time.min_short_block_length);
 		assert_eq!(Balances::free_balance(3), 300000);
 		assert_ok!(TemplateModule::challenge_profile(Origin::signed(3), 0));
 		assert_eq!(Balances::free_balance(3), 299900);
@@ -152,7 +152,7 @@ fn draw_jurors_test() {
 			Some(ChallengerFundInfo {
 				challengerid: 3,
 				deposit: 100,
-				start: block_time.min_challenge_time,
+				start: block_time.min_short_block_length,
 				challenge_completed: false
 			})
 		);
@@ -171,7 +171,7 @@ fn draw_jurors_test() {
 
 		
 		// println!("block time {:?}", block_time.min_block_length);
-		run_to_block(staking_start_time + block_time.min_block_length);
+		run_to_block(staking_start_time + block_time.min_long_block_length);
 
 		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
 
@@ -201,7 +201,7 @@ fn draw_jurors_test() {
 		let hash = sp_io::hashing::keccak_256("0salt5".as_bytes());
 		assert_ok!(TemplateModule::commit_vote(Origin::signed(16), 0, hash));
 		let commit_start_time = TemplateModule::commit_start_time(key.clone());
-		run_to_block(commit_start_time + block_time.min_block_length);
+		run_to_block(commit_start_time + block_time.min_long_block_length);
 		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
 		assert_ok!(TemplateModule::reveal_vote(
 			Origin::signed(4),
@@ -236,7 +236,7 @@ fn draw_jurors_test() {
 		let decision = TemplateModule::decision_count(key.clone());
 		assert_eq!((1, 4), decision);
 		let vote_start_time = TemplateModule::vote_start_time(key.clone());
-		run_to_block(vote_start_time + block_time.min_block_length);
+		run_to_block(vote_start_time + block_time.min_long_block_length);
 		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
 		let balance = Balances::free_balance(4);
 		assert_eq!(299600, balance);
@@ -315,7 +315,7 @@ fn challeger_lost() {
 		let profile_fundinfo = TemplateModule::profile_fund(0);
 		assert_eq!(profile_fundinfo, Some(profile_fundinfocheck));
 		let block_time = TemplateModule::min_block_time();
-		run_to_block(block_time.min_challenge_time);
+		run_to_block(block_time.min_short_block_length);
 		assert_eq!(Balances::free_balance(3), 300000);
 		assert_ok!(TemplateModule::challenge_profile(Origin::signed(3), 0));
 		assert_eq!(Balances::free_balance(3), 299900);
@@ -324,7 +324,7 @@ fn challeger_lost() {
 			Some(ChallengerFundInfo {
 				challengerid: 3,
 				deposit: 100,
-				start: block_time.min_challenge_time,
+				start: block_time.min_short_block_length,
 				challenge_completed: false
 			})
 		);
@@ -343,7 +343,7 @@ fn challeger_lost() {
 
 		
 		// println!("block time {:?}", block_time.min_block_length);
-		run_to_block(staking_start_time + block_time.min_block_length);
+		run_to_block(staking_start_time + block_time.min_long_block_length);
 
 		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
 
@@ -373,7 +373,7 @@ fn challeger_lost() {
 		let hash = sp_io::hashing::keccak_256("1salt5".as_bytes());
 		assert_ok!(TemplateModule::commit_vote(Origin::signed(16), 0, hash));
 		let commit_start_time = TemplateModule::commit_start_time(key.clone());
-		run_to_block(commit_start_time + block_time.min_block_length);
+		run_to_block(commit_start_time + block_time.min_long_block_length);
 		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
 		assert_ok!(TemplateModule::reveal_vote(
 			Origin::signed(4),
@@ -408,7 +408,7 @@ fn challeger_lost() {
 		let decision = TemplateModule::decision_count(key.clone());
 		assert_eq!((4, 1), decision);
 		let vote_start_time = TemplateModule::vote_start_time(key.clone());
-		run_to_block(vote_start_time + block_time.min_block_length);
+		run_to_block(vote_start_time + block_time.min_long_block_length);
 		assert_ok!(TemplateModule::pass_period(Origin::signed(2), 0));
 		assert_ok!(TemplateModule::return_profile_fund(Origin::signed(3),0));
 	});
@@ -425,7 +425,7 @@ fn api_test() {
 		let blocknumber = TemplateModule::get_evidence_period_end_block(0);
 		println!("Blocknumber {:?}", blocknumber);
 		let block_time = TemplateModule::min_block_time();
-		run_to_block(block_time.min_challenge_time);
+		run_to_block(block_time.min_short_block_length);
 		assert_ok!(TemplateModule::challenge_profile(Origin::signed(3), 0));		
 
 	})

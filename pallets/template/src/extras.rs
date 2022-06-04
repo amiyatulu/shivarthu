@@ -22,7 +22,7 @@ impl<T: Config> Pallet<T> {
 				let block_number = profilefundinfo.start;
 				let block_time = <MinBlockTime<T>>::get();
 				let end_block =
-					block_number.checked_add(&block_time.min_challenge_time).expect("Overflow");
+					block_number.checked_add(&block_time.min_short_block_length).expect("Overflow");
 				let left_block = end_block.checked_sub(&now).expect("Overflow");
 				let left_block_u32 = Self::block_number_to_u32_saturated(left_block);
 				Some(left_block_u32)
@@ -40,7 +40,7 @@ impl<T: Config> Pallet<T> {
 		let staking_start_time = <StakingStartTime<T>>::get(&key);
 		let block_time = <MinBlockTime<T>>::get();
 		let end_block =
-			staking_start_time.checked_add(&block_time.min_block_length).expect("Overflow");
+			staking_start_time.checked_add(&block_time.min_long_block_length).expect("Overflow");
 		let left_block = end_block.checked_sub(&now).expect("Overflow");
 		let left_block_u32 = Self::block_number_to_u32_saturated(left_block);
 		Some(left_block_u32)
@@ -69,7 +69,7 @@ impl<T: Config> Pallet<T> {
 		let commit_start_time = <CommitStartTime<T>>::get(&key);
 		let block_time = <MinBlockTime<T>>::get();
 		let end_block =
-			commit_start_time.checked_add(&block_time.min_block_length).expect("Overflow");
+			commit_start_time.checked_add(&block_time.min_long_block_length).expect("Overflow");
 		let left_block = end_block.checked_sub(&now).expect("Overflow");
 		let left_block_u32 = Self::block_number_to_u32_saturated(left_block);
 		Some(left_block_u32)
@@ -84,7 +84,7 @@ impl<T: Config> Pallet<T> {
 		let vote_start_time = <VoteStartTime<T>>::get(&key);
 		let block_time = <MinBlockTime<T>>::get();
 		let end_block =
-			vote_start_time.checked_add(&block_time.min_block_length).expect("Overflow");
+			vote_start_time.checked_add(&block_time.min_long_block_length).expect("Overflow");
 		let left_block = end_block.checked_sub(&now).expect("Overflow");
 		let left_block_u32 = Self::block_number_to_u32_saturated(left_block);
 		Some(left_block_u32)
