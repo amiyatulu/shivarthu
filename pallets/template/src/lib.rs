@@ -23,7 +23,7 @@ use crate::types::{
 	StakeDetails, StakingTime, SumTreeName, VoteStatus,
 };
 use frame_support::sp_runtime::traits::AccountIdConversion;
-use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub, CheckedMul};
+use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
 use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 use frame_support::storage::{bounded_btree_map::BoundedBTreeMap, bounded_vec::BoundedVec};
@@ -223,11 +223,13 @@ pub mod pallet {
 	#[pallet::type_value]
 	pub fn DefaultMinBlockTime<T: Config>() -> StakingTime<BlockNumberOf<T>> {
 		let staking_time = StakingTime {
-			min_short_block_length: 43200u128.saturated_into::<BlockNumberOf<T>>(),
-			min_long_block_length: 144000u128.saturated_into::<BlockNumberOf<T>>(),
+			min_short_block_length: 50u128.saturated_into::<BlockNumberOf<T>>(),
+			min_long_block_length: 50u128.saturated_into::<BlockNumberOf<T>>(),
 		};
 		staking_time
-		// 3 days, 10 days
+		// 3 days (43200), 10 days (144000)
+		// 15 mins (150)
+		// 5 mins (50)
 	}
 
 	#[pallet::storage]
@@ -570,8 +572,7 @@ pub mod pallet {
 						Err(Error::<T>::ProfileIsAlreadyValidated)?;
 					} else {
 						let block_number = profilefundinfo.start;
-						let time =
-							now.checked_sub(&block_number).expect("Overflow");
+						let time = now.checked_sub(&block_number).expect("Overflow");
 						let block_time = <MinBlockTime<T>>::get();
 						if time >= block_time.min_short_block_length {
 							let new_period = Period::Staking;
@@ -609,8 +610,6 @@ pub mod pallet {
 					<ChallengerFundDetails<T>>::insert(&profile_citizenid, challenger_fund_info);
 				},
 			}
-
-		
 
 			let result = Self::create_tree(key.clone(), 3);
 			result
@@ -687,13 +686,14 @@ pub mod pallet {
 		}
 
 		// To Do
-		// Apply jurors ✔️
+		// Apply jurors or stake ✔️
+		// Update stake
 		// Draw jurors ✔️
 		// Unstaking non selected jurors ✔️
 		// Commit vote ✔️
 		// Reveal vote ✔️
-		// Get winning decision
-		// Incentive distribution
+		// Get winning decision ✔️
+		// Incentive distribution ✔️
 
 		// Generic Schelling game
 		// 1. Check for minimum stake ✔️
@@ -738,9 +738,15 @@ pub mod pallet {
 
 			let stake_u64 = Self::balance_to_u64_saturated(stake);
 
-			let result = Self::set(key, stake_u64, who);
+			let stake_of = Self::stake_of(key.clone(), who.clone())?;
 
-			result
+			match stake_of {
+				Some(_stake) => Err(Error::<T>::AlreadyStaked)?,
+				None => {
+					let result = Self::set(key, stake_u64, who);
+					result
+				},
+			}
 		}
 
 		// Draw jurors
@@ -1084,7 +1090,10 @@ pub mod pallet {
 						None => {
 							let time_lapse = now.checked_sub(&start).expect("overflow");
 							let block_time = <MinBlockTime<T>>::get();
-							if time_lapse < block_time.min_short_block_length + block_time.min_short_block_length {
+							if time_lapse
+								< block_time.min_short_block_length
+									+ block_time.min_short_block_length
+							{
 								Err(Error::<T>::EvidencePeriodNotOver)?
 							}
 						},
