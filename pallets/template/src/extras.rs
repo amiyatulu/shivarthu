@@ -23,9 +23,14 @@ impl<T: Config> Pallet<T> {
 				let block_time = <MinBlockTime<T>>::get();
 				let end_block =
 					block_number.checked_add(&block_time.min_short_block_length).expect("Overflow");
-				let left_block = end_block.checked_sub(&now).expect("Overflow");
-				let left_block_u32 = Self::block_number_to_u32_saturated(left_block);
-				Some(left_block_u32)
+				let left_block = end_block.checked_sub(&now);
+				match left_block {
+					Some(val) => {
+						let left_block_u32 = Self::block_number_to_u32_saturated(val);
+						Some(left_block_u32)
+					},
+					None => Some(0),
+				}
 			},
 			None => None,
 		}
@@ -39,11 +44,17 @@ impl<T: Config> Pallet<T> {
 		};
 		let staking_start_time = <StakingStartTime<T>>::get(&key);
 		let block_time = <MinBlockTime<T>>::get();
-		let end_block =
-			staking_start_time.checked_add(&block_time.min_long_block_length).expect("Overflow");
-		let left_block = end_block.checked_sub(&now).expect("Overflow");
-		let left_block_u32 = Self::block_number_to_u32_saturated(left_block);
-		Some(left_block_u32)
+		let end_block = staking_start_time
+			.checked_add(&block_time.min_long_block_length)
+			.expect("Overflow");
+		let left_block = end_block.checked_sub(&now);
+		match left_block {
+			Some(val) => {
+				let left_block_u32 = Self::block_number_to_u32_saturated(val);
+				Some(left_block_u32)
+			},
+			None => Some(0),
+		}
 	}
 
 	pub fn get_drawing_period_end(profile_citizenid: u128) -> (u64, u64, bool) {
@@ -68,11 +79,17 @@ impl<T: Config> Pallet<T> {
 		};
 		let commit_start_time = <CommitStartTime<T>>::get(&key);
 		let block_time = <MinBlockTime<T>>::get();
-		let end_block =
-			commit_start_time.checked_add(&block_time.min_long_block_length).expect("Overflow");
-		let left_block = end_block.checked_sub(&now).expect("Overflow");
-		let left_block_u32 = Self::block_number_to_u32_saturated(left_block);
-		Some(left_block_u32)
+		let end_block = commit_start_time
+			.checked_add(&block_time.min_long_block_length)
+			.expect("Overflow");
+		let left_block = end_block.checked_sub(&now);
+		match left_block {
+			Some(val) => {
+				let left_block_u32 = Self::block_number_to_u32_saturated(val);
+				Some(left_block_u32)
+			},
+			None => Some(0),
+		}
 	}
 
 	pub fn get_vote_period_end_block(profile_citizenid: u128) -> Option<u32> {
@@ -83,11 +100,17 @@ impl<T: Config> Pallet<T> {
 		};
 		let vote_start_time = <VoteStartTime<T>>::get(&key);
 		let block_time = <MinBlockTime<T>>::get();
-		let end_block =
-			vote_start_time.checked_add(&block_time.min_long_block_length).expect("Overflow");
-		let left_block = end_block.checked_sub(&now).expect("Overflow");
-		let left_block_u32 = Self::block_number_to_u32_saturated(left_block);
-		Some(left_block_u32)
+		let end_block = vote_start_time
+			.checked_add(&block_time.min_long_block_length)
+			.expect("Overflow");
+		let left_block = end_block.checked_sub(&now);
+		match left_block {
+			Some(val) => {
+				let left_block_u32 = Self::block_number_to_u32_saturated(val);
+				Some(left_block_u32)
+			},
+			None => Some(0),
+		}
 	}
 	pub(super) fn super_hello_world() -> u128 {
 		20

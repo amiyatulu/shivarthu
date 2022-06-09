@@ -394,6 +394,7 @@ pub mod pallet {
 		ChallengeDoesNotExists,
 		CommentExists,
 		IsComment,
+		SelectedAsJuror,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -695,10 +696,11 @@ pub mod pallet {
 		// Get winning decision ✔️
 		// Incentive distribution ✔️
 
-		// Generic Schelling game
+		// Staking
 		// 1. Check for minimum stake ✔️
-		// 2. Block time, apply jurors time is available ✔️
+		// 2. Check period is Staking ✔️
 		// 3. Number of people staked
+
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn apply_jurors(
 			origin: OriginFor<T>,
@@ -750,8 +752,11 @@ pub mod pallet {
 		}
 
 		// Draw jurors
-		// Check whether juror application time is over, if not throw error
-		// Check mininum number of juror staked
+		// Check period is drawing ✔️
+		// Check mininum number of juror staked ✔️
+		// Improvements
+		// Set stake to zero so that they are not drawn again
+		// Store the drawn juror stake in hashmap storage
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn draw_jurors(
 			origin: OriginFor<T>,
@@ -786,7 +791,7 @@ pub mod pallet {
 					.expect("secure hashes should always be bigger than u64; qed");
 				// let mut rng = rand::thread_rng();
 				// let random_number: u64 = rng.gen();
-
+                log::info!("Random number: {:?}", random_number);
 				let data = Self::draw(key.clone(), random_number)?;
 				let mut drawn_juror = <DrawnJurors<T>>::get(&key);
 				match drawn_juror.binary_search(&data) {
@@ -802,7 +807,8 @@ pub mod pallet {
 			}
 			Ok(())
 		}
-
+		// Unstaking
+		// Stop drawn juror to unstake ✔️
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn unstaking(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -819,6 +825,12 @@ pub mod pallet {
 					);
 				},
 				None => Err(Error::<T>::PeriodDoesNotExists)?,
+			}
+
+			let drawn_juror = <DrawnJurors<T>>::get(&key);
+			match drawn_juror.binary_search(&who.clone()) {
+				Ok(_) => Err(Error::<T>::SelectedAsJuror)?,
+				Err(_) => {},
 			}
 
 			let stake_of = Self::stake_of(key.clone(), who.clone())?;
