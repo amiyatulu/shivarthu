@@ -555,9 +555,10 @@ pub mod pallet {
 			Ok(())
 		}
 
-		// Does citizen exists
-		// Has the citizen added profile fund
-		// Create tree
+		// Does citizen exists ✔️
+		// Has the citizen added profile fund ✔️
+		// Create tree ✔️
+		// Check evidence has been submitted
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn challenge_profile(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -757,6 +758,7 @@ pub mod pallet {
 		// Improvements
 		// Set stake to zero so that they are not drawn again
 		// Store the drawn juror stake in hashmap storage
+		// Add min draws along with max draws
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn draw_jurors(
 			origin: OriginFor<T>,

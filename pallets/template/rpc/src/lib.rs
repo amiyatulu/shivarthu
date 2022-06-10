@@ -1,13 +1,14 @@
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
 use shivarthu_runtime_api::ShivarthuApi as ShivarthuRuntimeApi;
+use sp_api::codec::Codec;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 use std::sync::Arc;
 
 #[rpc]
-pub trait ShivarthuApi<BlockHash> {
+pub trait ShivarthuApi<BlockHash, AccountId> {
 	#[rpc(name = "shivarthu_helloWorld")]
 	fn hello_world(&self, at: Option<BlockHash>) -> Result<u128>;
 	#[rpc(name = "shivarthu_challengerevidence")]
@@ -48,6 +49,13 @@ pub trait ShivarthuApi<BlockHash> {
 		profile_citizenid: u128,
 		at: Option<BlockHash>,
 	) -> Result<Option<u32>>;
+	#[rpc(name = "shivarthu_selectedjuror")]
+	fn selected_as_juror(
+		&self,
+		profile_citizenid: u128,
+		who: AccountId,
+		at: Option<BlockHash>,
+	) -> Result<bool>;
 }
 
 /// A struct that implements the `SumStorageApi`.
@@ -65,13 +73,14 @@ impl<C, M> Shivarthu<C, M> {
 	}
 }
 
-impl<C, Block> ShivarthuApi<<Block as BlockT>::Hash> for Shivarthu<C, Block>
+impl<C, Block, AccountId> ShivarthuApi<<Block as BlockT>::Hash, AccountId> for Shivarthu<C, Block>
 where
 	Block: BlockT,
+	AccountId: Codec,
 	C: Send + Sync + 'static,
 	C: ProvideRuntimeApi<Block>,
 	C: HeaderBackend<Block>,
-	C::Api: ShivarthuRuntimeApi<Block>,
+	C::Api: ShivarthuRuntimeApi<Block, AccountId>,
 {
 	fn hello_world(&self, at: Option<<Block as BlockT>::Hash>) -> Result<u128> {
 		let api = self.client.runtime_api();
@@ -187,6 +196,25 @@ where
 			self.client.info().best_hash));
 
 		let runtime_api_result = api.get_vote_period_end_block(&at, profile_citizenid);
+		runtime_api_result.map_err(|e| RpcError {
+			code: ErrorCode::ServerError(9876), // No real reason for this value
+			message: "Something wrong".into(),
+			data: Some(format!("{:?}", e).into()),
+		})
+	}
+
+	fn selected_as_juror(
+		&self,
+		profile_citizenid: u128,
+		who: AccountId,
+		at: Option<<Block as BlockT>::Hash>,
+	) -> Result<bool> {
+		let api = self.client.runtime_api();
+		let at = BlockId::hash(at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash));
+
+		let runtime_api_result = api.selected_as_juror(&at, profile_citizenid, who);
 		runtime_api_result.map_err(|e| RpcError {
 			code: ErrorCode::ServerError(9876), // No real reason for this value
 			message: "Something wrong".into(),

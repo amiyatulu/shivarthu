@@ -536,7 +536,7 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl shivarthu_runtime_api::ShivarthuApi<Block> for Runtime {
+	impl shivarthu_runtime_api::ShivarthuApi<Block, AccountId> for Runtime {
 		fn hello_world() -> u128 {
 			TemplateModule::hello_world()
 		}
@@ -558,6 +558,9 @@ impl_runtime_apis! {
 
 		fn get_vote_period_end_block(profile_citizenid: u128) -> Option<u32> {
 			TemplateModule::get_vote_period_end_block(profile_citizenid)
+		}
+		fn selected_as_juror(profile_citizenid: u128, who: AccountId) -> bool {
+			TemplateModule::selected_as_juror(profile_citizenid, who)
 		}
 
 

@@ -112,6 +112,18 @@ impl<T: Config> Pallet<T> {
 			None => Some(0),
 		}
 	}
+
+	pub fn selected_as_juror(profile_citizenid: u128, who: T::AccountId) -> bool {
+		let key = SumTreeName::UniqueIdenfier1 {
+			citizen_id: profile_citizenid,
+			name: "challengeprofile".as_bytes().to_vec(),
+		};
+		let drawn_juror = <DrawnJurors<T>>::get(&key);
+		match drawn_juror.binary_search(&who.clone()) {
+			Ok(_) => true,
+			Err(_) => false,
+		}
+	}
 	pub(super) fn super_hello_world() -> u128 {
 		20
 	}
