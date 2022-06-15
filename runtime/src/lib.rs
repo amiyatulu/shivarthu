@@ -42,6 +42,7 @@ pub use sp_runtime::{Perbill, Permill};
 
 /// Import the template pallet.
 pub use pallet_template;
+pub use schelling_game;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -235,6 +236,7 @@ impl pallet_timestamp::Config for Runtime {
 	type WeightInfo = ();
 }
 
+
 impl pallet_balances::Config for Runtime {
 	type MaxLocks = ConstU32<50>;
 	type MaxReserves = ();
@@ -274,6 +276,11 @@ impl pallet_template::Config for Runtime {
 	type RandomnessSource = RandomnessCollectiveFlip;
 	type Slash = ();
 	type Reward = ();
+	type SchellingGameSource = SchellingGame;
+}
+
+impl schelling_game::Config for Runtime {
+	type Event = Event;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -293,6 +300,8 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
+		SchellingGame: schelling_game,
+
 	}
 );
 

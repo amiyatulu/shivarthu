@@ -9,7 +9,7 @@ use frame_support::{assert_noop, assert_ok};
 #[test]
 fn profile_fund_test() {
 	new_test_ext().execute_with(|| {
-		let key = SumTreeName::UniqueIdenfier{citizen_id: 1, name:"key1".as_bytes().to_vec() };
+		let key = SumTreeName::UniqueIdenfier1{citizen_id: 1, name:"key1".as_bytes().to_vec() };
 		assert_ok!(TemplateModule::create_tree(key.clone(), 5));
 		assert_ok!(TemplateModule::set(key.clone(), 10, 1 ));
 		assert_ok!(TemplateModule::set(key.clone(), 20, 1 ));
@@ -24,7 +24,7 @@ fn profile_fund_test() {
 #[test]
 fn schelling_game_remove_stake() {
 	new_test_ext().execute_with(|| {
-		let key = SumTreeName::UniqueIdenfier{citizen_id: 1, name:"key1".as_bytes().to_vec() };
+		let key = SumTreeName::UniqueIdenfier1{citizen_id: 1, name:"key1".as_bytes().to_vec() };
 		assert_ok!(TemplateModule::create_tree(key.clone(), 2));
 		assert_ok!(TemplateModule::set(key.clone(), 10, 1 ));
 		assert_ok!(TemplateModule::set(key.clone(), 20, 1 ));

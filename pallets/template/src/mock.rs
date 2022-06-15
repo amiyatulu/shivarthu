@@ -23,6 +23,8 @@ frame_support::construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>}, // new code
 		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>},
+		SchellingGame: schelling_game::{Pallet, Call, Storage, Event<T>},
+
 	}
 );
 
@@ -64,6 +66,7 @@ impl pallet_template::Config for Test {
 	type RandomnessSource = TestRandomness<Self>;
 	type Slash = ();
 	type Reward = ();
+	type SchellingGameSource = SchellingGame;
 }
 
 impl pallet_balances::Config for Test {
@@ -76,6 +79,10 @@ impl pallet_balances::Config for Test {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = ();
+}
+
+impl schelling_game::Config for Test {
+	type Event = Event;
 }
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;

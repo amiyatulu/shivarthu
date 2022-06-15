@@ -19,9 +19,10 @@ mod types;
 
 use crate::types::{
 	ChallengeEvidencePost, ChallengerFundInfo, CitizenDetails, CommitVote, DepartmentDetails,
-	DrawJurorsForProfileLimit, Period, ProfileFundInfo, SchellingType, SortitionSumTree,
-	StakeDetails, StakingTime, SumTreeName, VoteStatus,
+	DrawJurorsForProfileLimit, Period, ProfileFundInfo, SchellingType,
+	StakeDetails, StakingTime, VoteStatus,
 };
+use schelling_game::types::{SumTreeName};
 use frame_support::sp_runtime::traits::AccountIdConversion;
 use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
 use frame_support::sp_runtime::SaturatedConversion;
@@ -36,7 +37,10 @@ use frame_support::{
 	},
 	PalletId,
 };
+use schelling_game_link::SchellingGameLink;
 use sp_io;
+use sp_npos_elections::{seq_phragmen, ElectionResult, PerThing128};
+use sp_runtime::Perbill;
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
@@ -69,6 +73,8 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+		type SchellingGameSource: SchellingGameLink<SumTreeName = SumTreeName, AccountId=Self::AccountId>;
 
 		type Currency: ReservableCurrency<Self::AccountId>;
 
@@ -112,6 +118,10 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn citizen_id)]
 	pub type CitizenId<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, u128>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn approved_citizen_address)]
+	pub type ApprovedCitizenAddress<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn citizen_profile)]
@@ -210,11 +220,6 @@ pub mod pallet {
 		SchellingType,
 		StakeDetails<BalanceOf<T>>,
 	>; // (citizen id, schelling type => stake)
-
-	#[pallet::storage]
-	#[pallet::getter(fn sortition_sum_trees)]
-	pub type SortitionSumTrees<T> =
-		StorageMap<_, Blake2_128Concat, SumTreeName, SortitionSumTree<AccountIdOf<T>>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_period)]
@@ -613,7 +618,7 @@ pub mod pallet {
 				},
 			}
 
-			let result = Self::create_tree(key.clone(), 3);
+			let result = T::SchellingGameSource::create_tree_link(key.clone(), 3);
 			result
 		}
 
@@ -741,12 +746,12 @@ pub mod pallet {
 
 			let stake_u64 = Self::balance_to_u64_saturated(stake);
 
-			let stake_of = Self::stake_of(key.clone(), who.clone())?;
+			let stake_of = T::SchellingGameSource::stake_of_link(key.clone(), who.clone())?;
 
 			match stake_of {
 				Some(_stake) => Err(Error::<T>::AlreadyStaked)?,
 				None => {
-					let result = Self::set(key, stake_u64, who);
+					let result = T::SchellingGameSource::set_link(key, stake_u64, who);
 					result
 				},
 			}
@@ -793,8 +798,8 @@ pub mod pallet {
 					.expect("secure hashes should always be bigger than u64; qed");
 				// let mut rng = rand::thread_rng();
 				// let random_number: u64 = rng.gen();
-                log::info!("Random number: {:?}", random_number);
-				let data = Self::draw(key.clone(), random_number)?;
+				log::info!("Random number: {:?}", random_number);
+				let data = T::SchellingGameSource::draw_link(key.clone(), random_number)?;
 				let mut drawn_juror = <DrawnJurors<T>>::get(&key);
 				match drawn_juror.binary_search(&data) {
 					Ok(_) => {},
@@ -835,7 +840,7 @@ pub mod pallet {
 				Err(_) => {},
 			}
 
-			let stake_of = Self::stake_of(key.clone(), who.clone())?;
+			let stake_of = T::SchellingGameSource::stake_of_link(key.clone(), who.clone())?;
 
 			match stake_of {
 				Some(stake) => {
@@ -980,7 +985,7 @@ pub mod pallet {
 							let incentives = <ProfileJurorIncentives<T>>::get(&key);
 							let (winning_decision, winning_incentives) =
 								Self::get_winning_incentives(decision_count, incentives);
-							let stake_of = Self::stake_of(key.clone(), who.clone())?;
+							let stake_of = T::SchellingGameSource::stake_of_link(key.clone(), who.clone())?;
 							if vote == winning_decision {
 								match stake_of {
 									Some(stake) => {
@@ -1180,6 +1185,26 @@ pub mod pallet {
 			T::Slash::on_unbalanced(imbalance);
 
 			let now = <frame_system::Pallet<T>>::block_number();
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn my_test_seq_phragmen(
+			origin: OriginFor<T>,
+			candidates: Vec<T::AccountId>,
+			voters: Vec<T::AccountId>,
+		) -> DispatchResult {
+			// (rounds: usize, initial_candidates: Vec<AccountId>, initial_voters: Vec<(AccountId, VoteWeight, Vec<AccountId>)>, balance: Option<(usize, ExtendedBalance)>)
+			let mut initial_voters = Vec::new();
+			let candidatevote1 = candidates[5..7].iter().cloned().collect::<Vec<_>>();
+			// println!("{:?}", candidatevote1);
+			initial_voters.push((voters[0].clone(), 50, candidatevote1));
+			let candidatevote2 = candidates[2..7].iter().cloned().collect::<Vec<_>>();
+			// println!("{:?}", candidatevote2);
+			initial_voters.push((voters[1].clone(), 50, candidatevote2));
+
+			let _ = seq_phragmen(5, candidates, initial_voters, None)
+				.map(|ElectionResult::<T::AccountId, Perbill> { winners, assignments: _ }| {});
 			Ok(())
 		}
 

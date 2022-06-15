@@ -23,6 +23,10 @@ frame-benchmarking = { default-features = false, version = "4.0.0-dev", git = "h
 pallet-balances = { default-features = false, version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
 sp-io = { default-features = false, version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
 log = { default-features= false, version="0.4"}
+sp-npos-elections = { default-features = false, version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
+sp-runtime = { default-features = false, version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
+schelling-game-link = {default-features = false, path="../../traits/schelling-game-link"}
+schelling-game = {default-features = false, path="../schelling-game"}
 
 
 [dev-dependencies]
@@ -41,6 +45,10 @@ std = [
 	"frame-benchmarking/std",
 	"pallet-balances/std",
 	"log/std",
+	"sp-npos-elections/std",
+    "sp-runtime/std",
+	"schelling-game-link/std",
+	"schelling-game/std",
 ]
 
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
