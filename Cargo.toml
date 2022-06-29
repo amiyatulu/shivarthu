@@ -4,6 +4,7 @@ members = [
     "pallets/template",
     "pallets/schelling-game",
     "traits/schelling-game-link",
+    "pallets/election",
     "runtime",
 ]
 [profile.release]
