@@ -19,16 +19,16 @@ mod types;
 
 use crate::types::{DepartmentDetails, SeatHolder, Voter};
 
+use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
+use frame_support::sp_std::vec::Vec;
 use frame_support::{
 	traits::{
-		Currency, ExistenceRequirement, Get, Imbalance, OnUnbalanced, ReservableCurrency,
-		WithdrawReasons,
+		Currency, CurrencyToVote, ExistenceRequirement, Get, Imbalance, OnUnbalanced,
+		ReservableCurrency, WithdrawReasons,
 	},
 	PalletId,
 };
-
-use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
-use frame_support::sp_std::vec::Vec;
+use sp_npos_elections::{ElectionResult, ExtendedBalance};
 use sp_runtime::{
 	traits::{Saturating, StaticLookup, Zero},
 	DispatchError, Perbill, RuntimeDebug,
@@ -63,6 +63,10 @@ pub mod pallet {
 
 		/// Handler for the unbalanced decrement when slashing (burning collateral)
 		type Slash: OnUnbalanced<NegativeImbalanceOf<Self>>;
+
+		/// Convert a balance into a number used for election calculation.
+		/// This must fit into a `u64` but is allowed to be sensibly lossy.
+		type CurrencyToVote: CurrencyToVote<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -195,9 +199,54 @@ pub mod pallet {
 			let candidate_ids =
 				candidates_and_deposit.iter().map(|(x, _)| x).cloned().collect::<Vec<_>>();
 
+			// helper closures to deal with balance/stake.
+			let total_issuance = T::Currency::total_issuance();
+			let to_votes = |b: BalanceOf<T>| T::CurrencyToVote::to_vote(b, total_issuance);
+			let to_balance = |e: ExtendedBalance| T::CurrencyToVote::to_currency(e, total_issuance);
 			let voters_and_score = <Voting<T>>::iter_prefix(&departmentid)
 				.map(|(voter, Voter { score, votes, .. })| (voter, score, votes))
 				.collect::<Vec<_>>();
+
+			let _ = sp_npos_elections::seq_phragmen(
+				num_to_elect,
+				candidate_ids,
+				voters_and_score,
+				None,
+			)
+			.map(|ElectionResult::<T::AccountId, Perbill> { winners, assignments: _ }| {
+				// this is already sorted by id.
+				let old_members_ids_sorted = <Members<T>>::take(departmentid)
+					.into_iter()
+					.map(|m| m.who)
+					.collect::<Vec<T::AccountId>>();
+
+				// this one needs a sort by id
+				let mut old_runners_up_ids_sorted = <RunnersUp<T>>::take(departmentid)
+					.into_iter()
+					.map(|r| r.who)
+					.collect::<Vec<T::AccountId>>();
+				old_runners_up_ids_sorted.sort();
+
+				// filter out those who end up with no backing stake.
+				let mut new_set_with_stake = winners
+					.into_iter()
+					.filter_map(|(m, b)| if b.is_zero() { None } else { Some((m, to_balance(b))) })
+					.collect::<Vec<(T::AccountId, BalanceOf<T>)>>();
+				// split new set into winners and runners up.
+				let split_point = desired_seats.min(new_set_with_stake.len());
+				let mut new_members_sorted_by_id =
+					new_set_with_stake.drain(..split_point).collect::<Vec<_>>();
+				new_members_sorted_by_id.sort_by(|i, j| i.0.cmp(&j.0));
+
+				// all the rest will be runners-up
+				new_set_with_stake.reverse();
+				let new_runners_up_sorted_by_rank = new_set_with_stake;
+				let mut new_runners_up_ids_sorted = new_runners_up_sorted_by_rank
+					.iter()
+					.map(|(r, _)| r.clone())
+					.collect::<Vec<_>>();
+				new_runners_up_ids_sorted.sort();
+			});
 
 			Ok(())
 		}
