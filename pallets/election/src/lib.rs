@@ -23,8 +23,8 @@ use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
 use frame_support::sp_std::vec::Vec;
 use frame_support::{
 	traits::{
-		Currency, CurrencyToVote, ExistenceRequirement, Get, Imbalance, OnUnbalanced,
-		ReservableCurrency, WithdrawReasons,
+		defensive_prelude::*, Currency, CurrencyToVote, ExistenceRequirement, Get, Imbalance,
+		OnUnbalanced, ReservableCurrency, WithdrawReasons,
 	},
 	PalletId,
 };
@@ -63,6 +63,12 @@ pub mod pallet {
 
 		/// Handler for the unbalanced decrement when slashing (burning collateral)
 		type Slash: OnUnbalanced<NegativeImbalanceOf<Self>>;
+
+		/// Handler for the unbalanced reduction when a candidate has lost (and is not a runner-up)
+		type LoserCandidate: OnUnbalanced<NegativeImbalanceOf<Self>>;
+
+		/// Handler for the unbalanced reduction when a member has been kicked.
+		type KickedMember: OnUnbalanced<NegativeImbalanceOf<Self>>;
 
 		/// Convert a balance into a number used for election calculation.
 		/// This must fit into a `u64` but is allowed to be sensibly lossy.
@@ -163,6 +169,12 @@ pub mod pallet {
 		/// parameters. [something, who]
 		SomethingStored(u32, T::AccountId),
 		EmptyTerm,
+		/// Note that old members and runners-up are also candidates.
+		CandidateSlashed {
+			candidate: <T as frame_system::Config>::AccountId,
+			amount: BalanceOf<T>,
+		},
+		ElectionError,
 	}
 
 	// Errors inform users that something went wrong.
@@ -246,6 +258,75 @@ pub mod pallet {
 					.map(|(r, _)| r.clone())
 					.collect::<Vec<_>>();
 				new_runners_up_ids_sorted.sort();
+
+				// new_members_sorted_by_id is sorted by account id.
+				let new_members_ids_sorted = new_members_sorted_by_id
+					.iter()
+					.map(|(m, _)| m.clone())
+					.collect::<Vec<T::AccountId>>();
+
+				// All candidates/members/runners-up who are no longer retaining a position as a
+				// seat holder will lose their bond.
+				candidates_and_deposit.iter().for_each(|(c, d)| {
+					if new_members_ids_sorted.binary_search(c).is_err()
+						&& new_runners_up_ids_sorted.binary_search(c).is_err()
+					{
+						let (imbalance, _) = T::Currency::slash_reserved(c, *d);
+						T::LoserCandidate::on_unbalanced(imbalance);
+						Self::deposit_event(Event::CandidateSlashed {
+							candidate: c.clone(),
+							amount: *d,
+						});
+					}
+				});
+				// write final values to storage.
+				let deposit_of_candidate = |x: &T::AccountId| -> BalanceOf<T> {
+					// defensive-only. This closure is used against the new members and new
+					// runners-up, both of which are phragmen winners and thus must have
+					// deposit.
+					candidates_and_deposit
+						.iter()
+						.find_map(|(c, d)| if c == x { Some(*d) } else { None })
+						.defensive_unwrap_or_default()
+				};
+
+				// fetch deposits from the one recorded one. This will make sure that a
+				// candidate who submitted candidacy before a change to candidacy deposit will
+				// have the correct amount recorded.
+				<Members<T>>::insert(
+					departmentid,
+					new_members_sorted_by_id
+						.iter()
+						.map(|(who, stake)| SeatHolder {
+							deposit: deposit_of_candidate(who),
+							who: who.clone(),
+							stake: *stake,
+						})
+						.collect::<Vec<_>>(),
+				);
+
+				<RunnersUp<T>>::insert(
+					departmentid,
+					new_runners_up_sorted_by_rank
+						.into_iter()
+						.map(|(who, stake)| SeatHolder {
+							deposit: deposit_of_candidate(&who),
+							who,
+							stake,
+						})
+						.collect::<Vec<_>>(),
+				);
+
+				// clean candidates.
+				<Candidates<T>>::remove(&departmentid);
+			})
+			.map_err(|e| {
+				log::error!(
+					target: "runtime::elections-phragmen",
+					"Failed to run election [{:?}].",
+					e,
+				);
+				Self::deposit_event(Event::ElectionError);
 			});
 
 			Ok(())

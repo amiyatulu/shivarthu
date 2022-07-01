@@ -56,6 +56,8 @@ impl pallet_template::Config for Test {
 	type Currency = Balances; // New code
 	type Slash = ();
 	type Reward = ();
+	type LoserCandidate = ();
+	type KickedMember = ();
 	type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
 }
 
