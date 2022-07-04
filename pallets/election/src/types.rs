@@ -35,3 +35,21 @@ pub struct Voter<AccountId> {
 	/// The amount of stake placed on this vote.
 	pub score: u64,
 }
+
+impl<AccountId> Default for Voter<AccountId> {
+	fn default() -> Self {
+		Self { votes: vec![], score: Default::default() }
+	}
+}
+
+
+/// An indication that the renouncing account currently has which of the below roles.
+#[derive(Encode, Decode, Clone, PartialEq, RuntimeDebug, TypeInfo)]
+pub enum Renouncing {
+	/// A member is renouncing.
+	Member,
+	/// A runner-up is renouncing.
+	RunnerUp,
+	/// A candidate is renouncing, while the given total number of candidates exists.
+	Candidate(#[codec(compact)] u32),
+}

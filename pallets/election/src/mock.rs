@@ -59,6 +59,7 @@ impl pallet_template::Config for Test {
 	type LoserCandidate = ();
 	type KickedMember = ();
 	type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
+	type CandidacyBond = CandidacyBond;
 }
 
 impl pallet_balances::Config for Test {
@@ -75,6 +76,7 @@ impl pallet_balances::Config for Test {
 
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
+	pub static CandidacyBond: u64 = 3;
 }
 
 // Build genesis storage according to the mock runtime.

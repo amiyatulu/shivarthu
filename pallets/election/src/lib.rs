@@ -17,7 +17,10 @@ mod benchmarking;
 mod extras;
 mod types;
 
-use crate::types::{DepartmentDetails, SeatHolder, Voter};
+/// The maximum votes allowed per voter.
+pub const MAXIMUM_VOTE: usize = 16;
+
+use crate::types::{DepartmentDetails, SeatHolder, Voter, Renouncing};
 
 use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
 use frame_support::sp_std::vec::Vec;
@@ -73,6 +76,9 @@ pub mod pallet {
 		/// Convert a balance into a number used for election calculation.
 		/// This must fit into a `u64` but is allowed to be sensibly lossy.
 		type CurrencyToVote: CurrencyToVote<BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type CandidacyBond: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]
@@ -157,8 +163,15 @@ pub mod pallet {
 	/// TWOX-NOTE: SAFE as `AccountId` is a crypto hash.
 	#[pallet::storage]
 	#[pallet::getter(fn voting)]
-	pub type Voting<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, u128, Twox64Concat, T::AccountId, Voter<T::AccountId>>;
+	pub type Voting<T: Config> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		u128,
+		Twox64Concat,
+		T::AccountId,
+		Voter<T::AccountId>,
+		ValueQuery,
+	>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
@@ -175,6 +188,13 @@ pub mod pallet {
 			amount: BalanceOf<T>,
 		},
 		ElectionError,
+		/// A seat holder was slashed by amount by being forcefully removed from the set.
+		SeatHolderSlashed {
+			seat_holder: <T as frame_system::Config>::AccountId,
+			amount: BalanceOf<T>,
+		},
+		/// Someone has renounced their candidacy.
+		Renounced { candidate: <T as frame_system::Config>::AccountId },
 	}
 
 	// Errors inform users that something went wrong.
@@ -185,6 +205,17 @@ pub mod pallet {
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
 		EmptyTermError,
+		MaximumVotesExceeded,
+		NoVotes,
+		UnableToVote,
+		TooManyVotes,
+		InvalidWitnessData,
+		DuplicatedCandidate,
+		MemberSubmit,
+		RunnerUpSubmit, 
+		InsufficientCandidateFunds, 
+		NotMember,
+		InvalidRenouncing,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -192,6 +223,104 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(2))]
+		// We get scores of the who for score schelling game pallet 🟩
+		pub fn vote(
+			origin: OriginFor<T>,
+			departmentid: u128,
+			votes: Vec<T::AccountId>,
+			score: u64,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			// votes should not be empty and more than `MAXIMUM_VOTE` in any case.
+			ensure!(votes.len() <= MAXIMUM_VOTE, Error::<T>::MaximumVotesExceeded);
+			ensure!(!votes.is_empty(), Error::<T>::NoVotes);
+
+			let candidates_count = <Candidates<T>>::decode_len(&departmentid).unwrap_or(0);
+			let members_count = <Members<T>>::decode_len(&departmentid).unwrap_or(0);
+			let runners_up_count = <RunnersUp<T>>::decode_len(&departmentid).unwrap_or(0);
+
+			// can never submit a vote of there are no members, and cannot submit more votes than
+			// all potential vote targets.
+			// addition is valid: candidates, members and runners-up will never overlap.
+			let allowed_votes =
+				candidates_count.saturating_add(members_count).saturating_add(runners_up_count);
+			ensure!(!allowed_votes.is_zero(), Error::<T>::UnableToVote);
+			ensure!(votes.len() <= allowed_votes, Error::<T>::TooManyVotes);
+
+			Voting::<T>::insert(&departmentid, &who, Voter { votes, score });
+
+			Ok(())
+		}
+
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(2))]
+		pub fn submit_candidacy(
+			origin: OriginFor<T>,
+			departmentid: u128,
+			#[pallet::compact] candidate_count: u32,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			let actual_count = <Candidates<T>>::decode_len(&departmentid).unwrap_or(0);
+			ensure!(actual_count as u32 <= candidate_count, Error::<T>::InvalidWitnessData);
+
+			let index = Self::is_candidate(&who, departmentid).err().ok_or(Error::<T>::DuplicatedCandidate)?;
+
+			ensure!(!Self::is_member(&who, departmentid), Error::<T>::MemberSubmit);
+			ensure!(!Self::is_runner_up(&who,  departmentid), Error::<T>::RunnerUpSubmit);
+
+			T::Currency::reserve(&who, T::CandidacyBond::get())
+				.map_err(|_| Error::<T>::InsufficientCandidateFunds)?;
+
+			<Candidates<T>>::mutate(departmentid, |c| c.insert(index, (who, T::CandidacyBond::get())));
+			Ok(None.into())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(2))]
+		pub fn renounce_candidacy(
+			origin: OriginFor<T>,
+			renouncing: Renouncing,
+			departmentid: u128,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			match renouncing {
+				Renouncing::Member => {
+					let _ = Self::remove_and_replace_member(&who, false, departmentid)
+						.map_err(|_| Error::<T>::InvalidRenouncing)?;
+					Self::deposit_event(Event::Renounced { candidate: who });
+				},
+				Renouncing::RunnerUp => {
+					<RunnersUp<T>>::try_mutate::<_,_, Error<T>, _>(departmentid, |runners_up| {
+						let index = runners_up
+							.iter()
+							.position(|SeatHolder { who: r, .. }| r == &who)
+							.ok_or(Error::<T>::InvalidRenouncing)?;
+						// can't fail anymore.
+						let SeatHolder { deposit, .. } = runners_up.remove(index);
+						let _remainder = T::Currency::unreserve(&who, deposit);
+						debug_assert!(_remainder.is_zero());
+						Self::deposit_event(Event::Renounced { candidate: who });
+						Ok(())
+					})?;
+				},
+				Renouncing::Candidate(count) => {
+					<Candidates<T>>::try_mutate::<_,_, Error<T>, _>(departmentid, |candidates| {
+						ensure!(count >= candidates.len() as u32, Error::<T>::InvalidWitnessData);
+						let index = candidates
+							.binary_search_by(|(c, _)| c.cmp(&who))
+							.map_err(|_| Error::<T>::InvalidRenouncing)?;
+						let (_removed, deposit) = candidates.remove(index);
+						let _remainder = T::Currency::unreserve(&who, deposit);
+						debug_assert!(_remainder.is_zero());
+						Self::deposit_event(Event::Renounced { candidate: who });
+						Ok(())
+					})?;
+				},
+			};
+			Ok(None.into())
+		}
+
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(2))]
 		pub fn do_phragmen(origin: OriginFor<T>, departmentid: u128) -> DispatchResult {
 			let desired_seats = <DesiredMembers<T>>::get(&departmentid) as usize;
