@@ -1,15 +1,16 @@
-use frame_support::{pallet_prelude::*};
-use frame_support::sp_std::{vec::Vec};
-use scale_info::TypeInfo;
+use frame_support::pallet_prelude::*;
+use frame_support::sp_std::vec::Vec;
 use frame_support::traits::ConstU32;
+use scale_info::TypeInfo;
 
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[derive(
+	PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, RuntimeDebug, TypeInfo,
+)]
 pub struct DepartmentDetails {
-    pub name: Vec<u8>,
-    pub locationid: u128,
-    pub details: Vec<u8>,
-    pub departmentid: u128,
+	pub name: Vec<u8>,
+	pub locationid: u128,
+	pub details: Vec<u8>,
+	pub departmentid: u128,
 }
 
 /// A holder of a seat as either a member or a runner-up.
@@ -24,7 +25,6 @@ pub struct SeatHolder<AccountId, Balance> {
 	/// To be unreserved upon renouncing, or slashed upon being a loser.
 	pub deposit: Balance,
 }
-
 
 /// An active voter.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
@@ -41,7 +41,6 @@ impl<AccountId> Default for Voter<AccountId> {
 		Self { votes: vec![], score: Default::default() }
 	}
 }
-
 
 /// An indication that the renouncing account currently has which of the below roles.
 #[derive(Encode, Decode, Clone, PartialEq, RuntimeDebug, TypeInfo)]

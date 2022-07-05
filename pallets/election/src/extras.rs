@@ -22,20 +22,33 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Check if `who` is a voter. It may or may not be a _current_ one.
-	pub (super) fn is_voter(who: &T::AccountId, departmentid: u128) -> bool {
+	pub(super) fn is_voter(who: &T::AccountId, departmentid: u128) -> bool {
 		Voting::<T>::contains_key(departmentid, who)
 	}
 
 	/// Check if `who` is currently an active member.
-	pub (super) fn is_member(who: &T::AccountId, departmentid: u128) -> bool {
+	pub(super) fn is_member(who: &T::AccountId, departmentid: u128) -> bool {
 		Self::members(departmentid).binary_search_by(|m| m.who.cmp(who)).is_ok()
 	}
 
 	/// Check if `who` is currently an active runner-up.
-	pub (super) fn is_runner_up(who: &T::AccountId, departmentid: u128) -> bool {
+	pub(super) fn is_runner_up(who: &T::AccountId, departmentid: u128) -> bool {
 		Self::runners_up(departmentid).iter().any(|r| &r.who == who)
 	}
-	pub (super) fn remove_and_replace_member(who: &T::AccountId, slash: bool,  departmentid: u128) -> Result<bool, DispatchError> {
+
+	/// Get the members' account ids.
+	pub(super) fn members_ids(departmentid: u128) -> Vec<T::AccountId> {
+		Self::members(departmentid)
+			.into_iter()
+			.map(|m| m.who)
+			.collect::<Vec<T::AccountId>>()
+	}
+
+	pub(super) fn remove_and_replace_member(
+		who: &T::AccountId,
+		slash: bool,
+		departmentid: u128,
+	) -> Result<bool, DispatchError> {
 		// closure will return:
 		// - `Ok(Option(replacement))` if member was removed and replacement was replaced.
 		// - `Ok(None)` if member was removed but no replacement was found
@@ -60,21 +73,22 @@ impl<T: Config> Pallet<T> {
 				T::Currency::unreserve(who, removed.deposit);
 			}
 
-			let maybe_next_best = <RunnersUp<T>>::mutate(departmentid, |r| r.pop()).map(|next_best| {
-				// defensive-only: Members and runners-up are disjoint. This will always be err and
-				// give us an index to insert.
-				if let Err(index) = members.binary_search_by(|m| m.who.cmp(&next_best.who)) {
-					members.insert(index, next_best.clone());
-				} else {
-					// overlap. This can never happen. If so, it seems like our intended replacement
-					// is already a member, so not much more to do.
-					log::error!(
-						target: "runtime::elections-phragmen",
-						"A member seems to also be a runner-up.",
-					);
-				}
-				next_best
-			});
+			let maybe_next_best =
+				<RunnersUp<T>>::mutate(departmentid, |r| r.pop()).map(|next_best| {
+					// defensive-only: Members and runners-up are disjoint. This will always be err and
+					// give us an index to insert.
+					if let Err(index) = members.binary_search_by(|m| m.who.cmp(&next_best.who)) {
+						members.insert(index, next_best.clone());
+					} else {
+						// overlap. This can never happen. If so, it seems like our intended replacement
+						// is already a member, so not much more to do.
+						log::error!(
+							target: "runtime::elections-phragmen",
+							"A member seems to also be a runner-up.",
+						);
+					}
+					next_best
+				});
 			Ok(maybe_next_best)
 		})?;
 

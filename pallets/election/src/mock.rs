@@ -1,6 +1,9 @@
 use crate as pallet_template;
 use frame_support::parameter_types;
-use frame_support::traits::{ConstU16, ConstU64};
+use frame_support::{
+	dispatch::DispatchResultWithPostInfo,
+	traits::{ConstU16, ConstU64},
+};
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{
@@ -20,7 +23,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>}, // new code
-		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>},
+		Elections: pallet_template::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -124,4 +127,48 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	.assimilate_storage(&mut t)
 	.unwrap();
 	t.into()
+}
+
+pub(super) fn candidate_ids(departmentid: u128) -> Vec<u64> {
+	Elections::candidates(departmentid)
+		.into_iter()
+		.map(|(c, _)| c)
+		.collect::<Vec<_>>()
+}
+
+pub(super) fn balances(who: &u64) -> (u64, u64) {
+	(Balances::free_balance(who), Balances::reserved_balance(who))
+}
+
+pub(super) fn submit_candidacy(origin: Origin, departmentid: u128) -> DispatchResultWithPostInfo {
+	Elections::submit_candidacy(
+		origin,
+		departmentid,
+		Elections::candidates(departmentid).len() as u32,
+	)
+}
+
+pub(super) fn candidate_deposit(who: &u64, departmentid: u128) -> u64 {
+	Elections::candidates(departmentid)
+		.into_iter()
+		.find_map(|(c, d)| if c == *who { Some(d) } else { None })
+		.unwrap_or_default()
+}
+
+pub(super) fn vote(
+	origin: Origin,
+	departmentid: u128,
+	votes: Vec<u64>,
+	score: u64,
+) -> DispatchResultWithPostInfo {
+	Elections::vote(origin, departmentid, votes, score)
+}
+
+
+pub(super) fn runners_up_ids(departmentid: u128) -> Vec<u64> {
+	Elections::runners_up(departmentid).into_iter().map(|r| r.who).collect::<Vec<_>>()
+}
+
+pub(super) fn members_ids(departmentid: u128) -> Vec<u64> {
+	Elections::members_ids(departmentid)
 }

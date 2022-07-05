@@ -20,7 +20,7 @@ mod types;
 /// The maximum votes allowed per voter.
 pub const MAXIMUM_VOTE: usize = 16;
 
-use crate::types::{DepartmentDetails, SeatHolder, Voter, Renouncing};
+use crate::types::{DepartmentDetails, Renouncing, SeatHolder, Voter};
 
 use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
 use frame_support::sp_std::vec::Vec;
@@ -113,12 +113,12 @@ pub mod pallet {
 
 	#[pallet::type_value]
 	pub fn DefaultDesiredMembers<T: Config>() -> u128 {
-		1000
+		2
 	}
 
 	#[pallet::type_value]
 	pub fn DefaultDesiredRunnersUp<T: Config>() -> u128 {
-		1000
+		2
 	}
 
 	#[pallet::storage]
@@ -194,7 +194,9 @@ pub mod pallet {
 			amount: BalanceOf<T>,
 		},
 		/// Someone has renounced their candidacy.
-		Renounced { candidate: <T as frame_system::Config>::AccountId },
+		Renounced {
+			candidate: <T as frame_system::Config>::AccountId,
+		},
 	}
 
 	// Errors inform users that something went wrong.
@@ -212,8 +214,8 @@ pub mod pallet {
 		InvalidWitnessData,
 		DuplicatedCandidate,
 		MemberSubmit,
-		RunnerUpSubmit, 
-		InsufficientCandidateFunds, 
+		RunnerUpSubmit,
+		InsufficientCandidateFunds,
 		NotMember,
 		InvalidRenouncing,
 	}
@@ -230,7 +232,7 @@ pub mod pallet {
 			departmentid: u128,
 			votes: Vec<T::AccountId>,
 			score: u64,
-		) -> DispatchResult {
+		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
 			// votes should not be empty and more than `MAXIMUM_VOTE` in any case.
@@ -251,10 +253,27 @@ pub mod pallet {
 
 			Voting::<T>::insert(&departmentid, &who, Voter { votes, score });
 
-			Ok(())
+			Ok(None.into())
 		}
+        
 
-        #[pallet::weight(10_000 + T::DbWeight::get().writes(2))]
+		/// Submit oneself for candidacy. A fixed amount of deposit is recorded.
+		///
+		/// All candidates are wiped at the end of the term. They either become a member/runner-up,
+		/// or leave the system while their deposit is slashed.
+		///
+		/// The dispatch origin of this call must be signed.
+		///
+		/// ### Warning
+		///
+		/// Even if a candidate ends up being a member, they must call [`Call::renounce_candidacy`]
+		/// to get their deposit back. Losing the spot in an election will always lead to a slash.
+		///
+		/// # <weight>
+		/// The number of current candidates must be provided as witness data.
+		/// # </weight>
+		/// 
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(2))]
 		pub fn submit_candidacy(
 			origin: OriginFor<T>,
 			departmentid: u128,
@@ -265,15 +284,19 @@ pub mod pallet {
 			let actual_count = <Candidates<T>>::decode_len(&departmentid).unwrap_or(0);
 			ensure!(actual_count as u32 <= candidate_count, Error::<T>::InvalidWitnessData);
 
-			let index = Self::is_candidate(&who, departmentid).err().ok_or(Error::<T>::DuplicatedCandidate)?;
+			let index = Self::is_candidate(&who, departmentid)
+				.err()
+				.ok_or(Error::<T>::DuplicatedCandidate)?;
 
 			ensure!(!Self::is_member(&who, departmentid), Error::<T>::MemberSubmit);
-			ensure!(!Self::is_runner_up(&who,  departmentid), Error::<T>::RunnerUpSubmit);
+			ensure!(!Self::is_runner_up(&who, departmentid), Error::<T>::RunnerUpSubmit);
 
 			T::Currency::reserve(&who, T::CandidacyBond::get())
 				.map_err(|_| Error::<T>::InsufficientCandidateFunds)?;
 
-			<Candidates<T>>::mutate(departmentid, |c| c.insert(index, (who, T::CandidacyBond::get())));
+			<Candidates<T>>::mutate(departmentid, |c| {
+				c.insert(index, (who, T::CandidacyBond::get()))
+			});
 			Ok(None.into())
 		}
 
@@ -291,7 +314,7 @@ pub mod pallet {
 					Self::deposit_event(Event::Renounced { candidate: who });
 				},
 				Renouncing::RunnerUp => {
-					<RunnersUp<T>>::try_mutate::<_,_, Error<T>, _>(departmentid, |runners_up| {
+					<RunnersUp<T>>::try_mutate::<_, _, Error<T>, _>(departmentid, |runners_up| {
 						let index = runners_up
 							.iter()
 							.position(|SeatHolder { who: r, .. }| r == &who)
@@ -305,7 +328,7 @@ pub mod pallet {
 					})?;
 				},
 				Renouncing::Candidate(count) => {
-					<Candidates<T>>::try_mutate::<_,_, Error<T>, _>(departmentid, |candidates| {
+					<Candidates<T>>::try_mutate::<_, _, Error<T>, _>(departmentid, |candidates| {
 						ensure!(count >= candidates.len() as u32, Error::<T>::InvalidWitnessData);
 						let index = candidates
 							.binary_search_by(|(c, _)| c.cmp(&who))
@@ -323,6 +346,7 @@ pub mod pallet {
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(2))]
 		pub fn do_phragmen(origin: OriginFor<T>, departmentid: u128) -> DispatchResult {
+			let who = ensure_signed(origin)?;
 			let desired_seats = <DesiredMembers<T>>::get(&departmentid) as usize;
 			let desired_runners_up = <DesiredRunnersup<T>>::get(&departmentid) as usize;
 			let num_to_elect = desired_runners_up + desired_seats;
