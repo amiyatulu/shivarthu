@@ -43,6 +43,7 @@ pub use sp_runtime::{Perbill, Permill};
 /// Import the template pallet.
 pub use pallet_template;
 pub use schelling_game;
+pub use election;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -283,6 +284,24 @@ impl schelling_game::Config for Runtime {
 	type Event = Event;
 }
 
+
+parameter_types! {
+	pub const CandidacyBond: u64 = 3;
+}
+
+impl election::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances; // New code
+	type Slash = ();
+	type Reward = ();
+	type LoserCandidate = ();
+	type KickedMember = ();
+	type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
+	type CandidacyBond = CandidacyBond;
+}
+
+
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -301,6 +320,7 @@ construct_runtime!(
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
 		SchellingGame: schelling_game,
+		Election: election,
 
 	}
 );

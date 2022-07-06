@@ -77,24 +77,24 @@ fn simple_voting_should_work() {
 }
 
 #[test]
-fn runners_up_should_be_kept(){
+fn runners_up_should_be_kept() {
 	new_test_ext().execute_with(|| {
 		// Ensure the expected error is thrown when no value is present.
 		let departmentid = 1;
 		assert_ok!(submit_candidacy(Origin::signed(5), departmentid));
-			assert_ok!(submit_candidacy(Origin::signed(4), departmentid));
-			assert_ok!(submit_candidacy(Origin::signed(3), departmentid));
-			assert_ok!(submit_candidacy(Origin::signed(2), departmentid));
+		assert_ok!(submit_candidacy(Origin::signed(4), departmentid));
+		assert_ok!(submit_candidacy(Origin::signed(3), departmentid));
+		assert_ok!(submit_candidacy(Origin::signed(2), departmentid));
 
-			assert_ok!(vote(Origin::signed(2),departmentid, vec![3], 20));
-			assert_ok!(vote(Origin::signed(3),departmentid, vec![2], 30));
-			assert_ok!(vote(Origin::signed(4), departmentid, vec![5], 40));
-			assert_ok!(vote(Origin::signed(5),departmentid, vec![4], 50));
+		assert_ok!(vote(Origin::signed(2), departmentid, vec![3], 20));
+		assert_ok!(vote(Origin::signed(3), departmentid, vec![2], 30));
+		assert_ok!(vote(Origin::signed(4), departmentid, vec![5], 40));
+		assert_ok!(vote(Origin::signed(5), departmentid, vec![4], 50));
 
-			assert_ok!(Elections::do_phragmen(Origin::signed(2), departmentid));
-			// sorted based on account id.
-			assert_eq!(members_ids(departmentid), vec![4, 5]);
-			// sorted based on merit (least -> most)
-			assert_eq!(runners_up_ids(departmentid), vec![3, 2]);
+		assert_ok!(Elections::do_phragmen(Origin::signed(2), departmentid));
+		// sorted based on account id.
+		assert_eq!(members_ids(departmentid), vec![4, 5]);
+		// sorted based on merit (least -> most)
+		assert_eq!(runners_up_ids(departmentid), vec![3, 2]);
 	});
 }

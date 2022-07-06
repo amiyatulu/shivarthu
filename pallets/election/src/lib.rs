@@ -23,7 +23,6 @@ pub const MAXIMUM_VOTE: usize = 16;
 use crate::types::{DepartmentDetails, Renouncing, SeatHolder, Voter};
 
 use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
-use frame_support::sp_std::vec::Vec;
 use frame_support::{
 	traits::{
 		defensive_prelude::*, Currency, CurrencyToVote, ExistenceRequirement, Get, Imbalance,
@@ -36,6 +35,7 @@ use sp_runtime::{
 	traits::{Saturating, StaticLookup, Zero},
 	DispatchError, Perbill, RuntimeDebug,
 };
+use sp_std::{cmp::Ordering, prelude::*};
 
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
 type PositiveImbalanceOf<T> = <<T as Config>::Currency as Currency<

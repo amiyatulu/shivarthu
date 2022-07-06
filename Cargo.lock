@@ -1315,6 +1315,7 @@ dependencies = [
  "sp-io",
  "sp-npos-elections",
  "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -3709,6 +3710,7 @@ dependencies = [
 name = "node-template-runtime"
 version = "4.0.0-dev"
 dependencies = [
+ "election",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
