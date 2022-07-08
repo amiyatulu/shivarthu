@@ -59,6 +59,8 @@ node-template-runtime = { version = "4.0.0-dev", path = "../runtime" }
 
 shivarthu-runtime-api ={ path="../pallets/template/runtime-api", default-features = false}
 shivarthu-rpc = { path="../pallets/template/rpc"}
+election-runtime-api = {path="../pallets/election/election-runtime-api", default-features = false}
+election-rpc = {path="../pallets/election/election-rpc", default-features = false}
 
 
 [build-dependencies]

@@ -1319,6 +1319,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "election-rpc"
+version = "0.1.0"
+dependencies = [
+ "election-runtime-api",
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "parity-scale-codec 2.3.1",
+ "sc-rpc",
+ "sc-rpc-api",
+ "sp-api",
+ "sp-blockchain",
+ "sp-runtime",
+]
+
+[[package]]
+name = "election-runtime-api"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "sp-api",
+]
+
+[[package]]
 name = "enum-as-inner"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3670,6 +3694,8 @@ name = "node-template"
 version = "4.0.0-dev"
 dependencies = [
  "clap",
+ "election-rpc",
+ "election-runtime-api",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "jsonrpc-core",
@@ -3711,6 +3737,7 @@ name = "node-template-runtime"
 version = "4.0.0-dev"
 dependencies = [
  "election",
+ "election-runtime-api",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",

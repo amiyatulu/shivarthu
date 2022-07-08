@@ -34,6 +34,7 @@ where
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
 	C::Api: BlockBuilder<Block>,
 	C::Api: shivarthu_runtime_api::ShivarthuApi<Block, AccountId>,
+	C::Api: election_runtime_api::ElectionApi<Block, AccountId>,
 	P: TransactionPool + 'static,
 {
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
@@ -56,8 +57,14 @@ where
 	));
 
 	io.extend_with(shivarthu_rpc::ShivarthuApi::to_delegate(
-		shivarthu_rpc::Shivarthu::new(client),
+		shivarthu_rpc::Shivarthu::new(client.clone()),
 	));
+
+	io.extend_with(election_rpc::ElectionApi::to_delegate(
+		election_rpc::Election::new(client),
+	));
+
+
 
 	io
 }

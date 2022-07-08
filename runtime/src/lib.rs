@@ -595,4 +595,17 @@ impl_runtime_apis! {
 
 
 	}
+
+	impl election_runtime_api::ElectionApi<Block, AccountId> for Runtime {
+		fn candidate_ids(departmentid: u128) -> Vec<AccountId> {
+			Election::candidate_ids(departmentid)
+		}
+		fn members_ids(departmentid: u128) -> Vec<AccountId> {
+			Election::members_ids(departmentid)
+		}
+		fn runners_up_ids(departmentid: u128) -> Vec<AccountId> {
+			Election::runners_up_ids(departmentid)
+		}
+
+	}
 }

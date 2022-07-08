@@ -1,0 +1,18 @@
+[package]
+name = "election-runtime-api"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sp-api = { default-features = false, version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
+frame-support = { default-features = false, version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18"}
+
+[features]
+default = ["std"]
+std = [
+	"sp-api/std",
+    "frame-support/std",
+]

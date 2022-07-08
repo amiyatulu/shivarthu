@@ -36,13 +36,29 @@ impl<T: Config> Pallet<T> {
 		Self::runners_up(departmentid).iter().any(|r| &r.who == who)
 	}
 
+	pub fn candidate_ids(departmentid: u128) -> Vec<T::AccountId> {
+		Self::candidates(departmentid)
+			.into_iter()
+			.map(|(c, _)| c)
+			.collect::<Vec<T::AccountId>>()
+	}
+
 	/// Get the members' account ids.
-	pub(super) fn members_ids(departmentid: u128) -> Vec<T::AccountId> {
+	pub fn members_ids(departmentid: u128) -> Vec<T::AccountId> {
 		Self::members(departmentid)
 			.into_iter()
 			.map(|m| m.who)
 			.collect::<Vec<T::AccountId>>()
 	}
+
+	pub fn runners_up_ids(departmentid: u128) -> Vec<T::AccountId> {
+		Self::runners_up(departmentid)
+			.into_iter()
+			.map(|r| r.who)
+			.collect::<Vec<T::AccountId>>()
+	}
+
+	
 
 	pub(super) fn remove_and_replace_member(
 		who: &T::AccountId,
