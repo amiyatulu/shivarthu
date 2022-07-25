@@ -859,7 +859,7 @@ pub mod pallet {
 		pub fn reveal_vote(
 			origin: OriginFor<T>,
 			profile_citizenid: u128,
-			choice: Vec<u8>,
+			choice: u128,
 			salt: Vec<u8>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -880,8 +880,8 @@ pub mod pallet {
 						commit_struct.votestatus == VoteStatus::Commited,
 						Error::<T>::VoteStatusNotCommited
 					);
-					// let mut vote =  format!("{}", choice).as_bytes().to_vec();
-					let mut vote = choice.clone();
+					let mut vote =  format!("{}", choice).as_bytes().to_vec();
+					// let mut vote = choice.clone();
 					let mut salt_a = salt.clone();
 					vote.append(&mut salt_a);
 					let vote_bytes: &[u8] = &vote;
@@ -889,11 +889,11 @@ pub mod pallet {
 					let commit: &[u8] = &commit_struct.commit;
 					if hash == commit {
 						let mut decision_tuple = <DecisionCount<T>>::get(&key);
-						if choice == "1".as_bytes().to_vec() {
+						if choice == 1 {
 							decision_tuple.1 = decision_tuple.1 + 1;
 							<DecisionCount<T>>::insert(&key, decision_tuple);
 							commit_struct.vote_revealed = Some(1);
-						} else if choice == "0".as_bytes().to_vec() {
+						} else if choice == 0 {
 							decision_tuple.0 = decision_tuple.0 + 1;
 							<DecisionCount<T>>::insert(&key, decision_tuple);
 							commit_struct.vote_revealed = Some(0);

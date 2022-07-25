@@ -155,31 +155,31 @@ fn draw_jurors_test() {
 		assert_ok!(TemplateModule::reveal_vote(
 			Origin::signed(4),
 			0,
-			"1".as_bytes().to_vec(),
+			1,
 			"salt".as_bytes().to_vec()
 		));
 		assert_ok!(TemplateModule::reveal_vote(
 			Origin::signed(13),
 			0,
-			"1".as_bytes().to_vec(),
+			1,
 			"salt2".as_bytes().to_vec()
 		));
 		assert_ok!(TemplateModule::reveal_vote(
 			Origin::signed(14),
 			0,
-			"1".as_bytes().to_vec(),
+			1,
 			"salt3".as_bytes().to_vec()
 		));
 		assert_ok!(TemplateModule::reveal_vote(
 			Origin::signed(15),
 			0,
-			"1".as_bytes().to_vec(),
+			1,
 			"salt4".as_bytes().to_vec()
 		));
 		assert_ok!(TemplateModule::reveal_vote(
 			Origin::signed(16),
 			0,
-			"0".as_bytes().to_vec(),
+			0,
 			"salt5".as_bytes().to_vec()
 		));
 		let decision = TemplateModule::decision_count(key.clone());
@@ -327,31 +327,31 @@ fn challeger_lost() {
 		assert_ok!(TemplateModule::reveal_vote(
 			Origin::signed(4),
 			0,
-			"0".as_bytes().to_vec(),
+			0,
 			"salt".as_bytes().to_vec()
 		));
 		assert_ok!(TemplateModule::reveal_vote(
 			Origin::signed(13),
 			0,
-			"0".as_bytes().to_vec(),
+			0,
 			"salt2".as_bytes().to_vec()
 		));
 		assert_ok!(TemplateModule::reveal_vote(
 			Origin::signed(14),
 			0,
-			"0".as_bytes().to_vec(),
+			0,
 			"salt3".as_bytes().to_vec()
 		));
 		assert_ok!(TemplateModule::reveal_vote(
 			Origin::signed(15),
 			0,
-			"0".as_bytes().to_vec(),
+			0,
 			"salt4".as_bytes().to_vec()
 		));
 		assert_ok!(TemplateModule::reveal_vote(
 			Origin::signed(16),
 			0,
-			"1".as_bytes().to_vec(),
+			1,
 			"salt5".as_bytes().to_vec()
 		));
 		let decision = TemplateModule::decision_count(key.clone());
