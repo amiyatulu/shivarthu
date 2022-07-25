@@ -42,8 +42,9 @@ pub use sp_runtime::{Perbill, Permill};
 
 /// Import the template pallet.
 pub use pallet_template;
-pub use schelling_game;
+pub use sortition_sum_game;
 pub use election;
+pub use score_game;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -277,10 +278,10 @@ impl pallet_template::Config for Runtime {
 	type RandomnessSource = RandomnessCollectiveFlip;
 	type Slash = ();
 	type Reward = ();
-	type SchellingGameSource = SchellingGame;
+	type SortitionSumGameSource = SortitionSumGame;
 }
 
-impl schelling_game::Config for Runtime {
+impl sortition_sum_game::Config for Runtime {
 	type Event = Event;
 }
 
@@ -298,6 +299,10 @@ impl election::Config for Runtime {
 	type KickedMember = ();
 	type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
 	type CandidacyBond = CandidacyBond;
+}
+
+impl score_game::Config for Runtime {
+	type Event = Event;
 }
 
 
@@ -319,8 +324,9 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
-		SchellingGame: schelling_game,
+		SortitionSumGame: sortition_sum_game,
 		Election: election,
+		ScoreGame: score_game,
 
 	}
 );

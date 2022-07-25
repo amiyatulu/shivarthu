@@ -2,9 +2,11 @@
 members = [
     "node",
     "pallets/template",
-    "pallets/schelling-game",
-    "traits/schelling-game-link",
+    "pallets/sortition-sum-game",
+    "traits/sortition-sum-game-link",
     "pallets/election",
+    "pallets/score-game",
+    "pallets/schelling-game-shared",
     "runtime",
 ]
 [profile.release]

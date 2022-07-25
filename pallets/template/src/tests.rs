@@ -3,7 +3,7 @@ use crate::{
 	types::{ChallengerFundInfo, CitizenDetails, ProfileFundInfo},
 	Error,
 };
-use schelling_game::types::{SumTreeName};
+use sortition_sum_game::types::{SumTreeName};
 use frame_support::traits::{OnFinalize, OnInitialize};
 use frame_support::{assert_noop, assert_ok};
 
@@ -233,7 +233,7 @@ fn punish() {
 	new_test_ext().execute_with(|| {
 		let balance = Balances::free_balance(2);
 		println!("before balance {}", balance);
-		assert_ok!(TemplateModule::slash_funds(Origin::signed(1), 2, 100));
+		// assert_ok!(TemplateModule::slash_funds(Origin::signed(1), 2, 100));
 		let balance = Balances::free_balance(2);
 		println!("after balance {}", balance);
 	});

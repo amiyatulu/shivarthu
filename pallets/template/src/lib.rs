@@ -22,7 +22,8 @@ use crate::types::{
 	DrawJurorsForProfileLimit, Period, ProfileFundInfo, SchellingType,
 	StakeDetails, StakingTime, VoteStatus,
 };
-use schelling_game::types::{SumTreeName};
+use scale_info::prelude::format;
+use sortition_sum_game::types::{SumTreeName};
 use frame_support::sp_runtime::traits::AccountIdConversion;
 use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
 use frame_support::sp_runtime::SaturatedConversion;
@@ -37,11 +38,8 @@ use frame_support::{
 	},
 	PalletId,
 };
-use schelling_game_link::SchellingGameLink;
+use sortition_sum_game_link::SortitionSumGameLink;
 use sp_io;
-use sp_npos_elections::{seq_phragmen, ElectionResult, PerThing128};
-use sp_runtime::Perbill;
-
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
 type ProfileFundInfoOf<T> =
@@ -74,7 +72,7 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-		type SchellingGameSource: SchellingGameLink<SumTreeName = SumTreeName, AccountId=Self::AccountId>;
+		type SortitionSumGameSource: SortitionSumGameLink<SumTreeName = SumTreeName, AccountId=Self::AccountId>;
 
 		type Currency: ReservableCurrency<Self::AccountId>;
 
@@ -103,13 +101,6 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type Nonce<T> = StorageValue<_, u64, ValueQuery>;
 
-	#[pallet::storage]
-	#[pallet::getter(fn department_count)]
-	pub type DepartmentCount<T> = StorageValue<_, u128, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn admin)]
-	pub type Admin<T: Config> = StorageValue<_, T::AccountId>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn citizen_count)]
@@ -176,50 +167,9 @@ pub mod pallet {
 	pub type ChallengePost<T: Config> =
 		StorageMap<_, Blake2_128Concat, u128, ChallengeEvidencePostOf<T>>; // challenge post id => post
 
-	#[pallet::storage]
-	#[pallet::getter(fn department_profile)]
-	pub type Department<T> = StorageMap<_, Blake2_128Concat, u128, DepartmentDetails>; // Deparment id => (Name, Location, Details hash)
-
-	#[pallet::storage]
-	#[pallet::getter(fn outergroup)]
-	pub type OuterGroup<T> = StorageMap<_, Blake2_128Concat, u128, Vec<u128>>; // Department id => Candidate account address set
-
-	#[pallet::storage]
-	#[pallet::getter(fn innergroup)]
-	pub type InnerGroup<T> = StorageMap<_, Blake2_128Concat, u128, Vec<u128>>; // Department id => Candidate account address set
-
-	#[pallet::storage]
-	#[pallet::getter(fn fullgroup)]
-	pub type FullGroup<T> = StorageMap<_, Blake2_128Concat, u128, Vec<u128>>; // Department id => Candidate account address set
-
-	#[pallet::storage]
-	#[pallet::getter(fn citizen_departments)]
-	pub type CitizenDepartments<T> = StorageMap<_, Blake2_128Concat, u128, Vec<u128>>; // Peer account address => Department id set
-
-	#[pallet::storage]
-	#[pallet::getter(fn governor_group)]
-	pub type GovernorGroup<T> = StorageMap<_, Blake2_128Concat, u128, Vec<u128>>; // Department id => Candidate account address set
-
-	#[pallet::storage]
-	#[pallet::getter(fn candidate_nominee)]
-	pub type CandidateNominees<T> = StorageMap<_, Blake2_128Concat, (u128, u128), Vec<u128>>; // Department id, Voting cycle => Candidate account address set
-
-	#[pallet::storage]
-	#[pallet::getter(fn candidate_approval_votes)]
-	pub type CandidateApprovalVotes<T> = StorageMap<_, Blake2_128Concat, (u128, u128, u128), u128>; // Candidate account address, Department id, voting cycle=> Positive Votes
 
 	// Schelling Game Storage
 
-	#[pallet::storage]
-	#[pallet::getter(fn schelling_stake)]
-	pub type SchellingStake<T> = StorageDoubleMap<
-		_,
-		Twox64Concat,
-		u128,
-		Twox64Concat,
-		SchellingType,
-		StakeDetails<BalanceOf<T>>,
-	>; // (citizen id, schelling type => stake)
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_period)]
@@ -618,7 +568,7 @@ pub mod pallet {
 				},
 			}
 
-			let result = T::SchellingGameSource::create_tree_link(key.clone(), 3);
+			let result = T::SortitionSumGameSource::create_tree_link(key.clone(), 3);
 			result
 		}
 
@@ -746,12 +696,12 @@ pub mod pallet {
 
 			let stake_u64 = Self::balance_to_u64_saturated(stake);
 
-			let stake_of = T::SchellingGameSource::stake_of_link(key.clone(), who.clone())?;
+			let stake_of = T::SortitionSumGameSource::stake_of_link(key.clone(), who.clone())?;
 
 			match stake_of {
 				Some(_stake) => Err(Error::<T>::AlreadyStaked)?,
 				None => {
-					let result = T::SchellingGameSource::set_link(key, stake_u64, who);
+					let result = T::SortitionSumGameSource::set_link(key, stake_u64, who);
 					result
 				},
 			}
@@ -799,7 +749,7 @@ pub mod pallet {
 				// let mut rng = rand::thread_rng();
 				// let random_number: u64 = rng.gen();
 				log::info!("Random number: {:?}", random_number);
-				let data = T::SchellingGameSource::draw_link(key.clone(), random_number)?;
+				let data = T::SortitionSumGameSource::draw_link(key.clone(), random_number)?;
 				let mut drawn_juror = <DrawnJurors<T>>::get(&key);
 				match drawn_juror.binary_search(&data) {
 					Ok(_) => {},
@@ -840,7 +790,7 @@ pub mod pallet {
 				Err(_) => {},
 			}
 
-			let stake_of = T::SchellingGameSource::stake_of_link(key.clone(), who.clone())?;
+			let stake_of = T::SortitionSumGameSource::stake_of_link(key.clone(), who.clone())?;
 
 			match stake_of {
 				Some(stake) => {
@@ -930,6 +880,7 @@ pub mod pallet {
 						commit_struct.votestatus == VoteStatus::Commited,
 						Error::<T>::VoteStatusNotCommited
 					);
+					// let mut vote =  format!("{}", choice).as_bytes().to_vec();
 					let mut vote = choice.clone();
 					let mut salt_a = salt.clone();
 					vote.append(&mut salt_a);
@@ -985,7 +936,7 @@ pub mod pallet {
 							let incentives = <ProfileJurorIncentives<T>>::get(&key);
 							let (winning_decision, winning_incentives) =
 								Self::get_winning_incentives(decision_count, incentives);
-							let stake_of = T::SchellingGameSource::stake_of_link(key.clone(), who.clone())?;
+							let stake_of = T::SortitionSumGameSource::stake_of_link(key.clone(), who.clone())?;
 							if vote == winning_decision {
 								match stake_of {
 									Some(stake) => {
@@ -1144,69 +1095,49 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn get_random_number(origin: OriginFor<T>) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			let nonce = Self::get_and_increment_nonce();
-			let random_seed = T::RandomnessSource::random(&nonce).encode();
+		// #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		// pub fn get_random_number(origin: OriginFor<T>) -> DispatchResult {
+		// 	let who = ensure_signed(origin)?;
+		// 	let nonce = Self::get_and_increment_nonce();
+		// 	let random_seed = T::RandomnessSource::random(&nonce).encode();
 
-			let random_number = u64::decode(&mut random_seed.as_ref())
-				.expect("secure hashes should always be bigger than u64; qed");
+		// 	let random_number = u64::decode(&mut random_seed.as_ref())
+		// 		.expect("secure hashes should always be bigger than u64; qed");
 
-			Self::deposit_event(Event::RandomNumber(random_number, who));
-			Ok(())
-		}
+		// 	Self::deposit_event(Event::RandomNumber(random_number, who));
+		// 	Ok(())
+		// }
 
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn reward_funds(
-			origin: OriginFor<T>,
-			to_reward: T::AccountId,
-			reward: BalanceOf<T>,
-		) -> DispatchResult {
-			let _ = ensure_signed(origin)?;
+		// #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		// pub fn reward_funds(
+		// 	origin: OriginFor<T>,
+		// 	to_reward: T::AccountId,
+		// 	reward: BalanceOf<T>,
+		// ) -> DispatchResult {
+		// 	let _ = ensure_signed(origin)?;
 
-			let r = T::Currency::deposit_into_existing(&to_reward, reward).ok().unwrap();
-			T::Reward::on_unbalanced(r);
+		// 	let r = T::Currency::deposit_into_existing(&to_reward, reward).ok().unwrap();
+		// 	T::Reward::on_unbalanced(r);
 
-			let now = <frame_system::Pallet<T>>::block_number();
-			Self::deposit_event(Event::RewardFunds(to_reward, reward, now));
-			Ok(())
-		}
+		// 	let now = <frame_system::Pallet<T>>::block_number();
+		// 	Self::deposit_event(Event::RewardFunds(to_reward, reward, now));
+		// 	Ok(())
+		// }
 
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn slash_funds(
-			origin: OriginFor<T>,
-			to_punish: T::AccountId,
-			collateral: BalanceOf<T>,
-		) -> DispatchResult {
-			let _ = ensure_signed(origin)?;
+		// #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		// pub fn slash_funds(
+		// 	origin: OriginFor<T>,
+		// 	to_punish: T::AccountId,
+		// 	collateral: BalanceOf<T>,
+		// ) -> DispatchResult {
+		// 	let _ = ensure_signed(origin)?;
 
-			let imbalance = T::Currency::slash(&to_punish, collateral).0;
-			T::Slash::on_unbalanced(imbalance);
+		// 	let imbalance = T::Currency::slash(&to_punish, collateral).0;
+		// 	T::Slash::on_unbalanced(imbalance);
 
-			let now = <frame_system::Pallet<T>>::block_number();
-			Ok(())
-		}
-
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn my_test_seq_phragmen(
-			origin: OriginFor<T>,
-			candidates: Vec<T::AccountId>,
-			voters: Vec<T::AccountId>,
-		) -> DispatchResult {
-			// (rounds: usize, initial_candidates: Vec<AccountId>, initial_voters: Vec<(AccountId, VoteWeight, Vec<AccountId>)>, balance: Option<(usize, ExtendedBalance)>)
-			let mut initial_voters = Vec::new();
-			let candidatevote1 = candidates[5..7].iter().cloned().collect::<Vec<_>>();
-			// println!("{:?}", candidatevote1);
-			initial_voters.push((voters[0].clone(), 50, candidatevote1));
-			let candidatevote2 = candidates[2..7].iter().cloned().collect::<Vec<_>>();
-			// println!("{:?}", candidatevote2);
-			initial_voters.push((voters[1].clone(), 50, candidatevote2));
-
-			let _ = seq_phragmen(5, candidates, initial_voters, None)
-				.map(|ElectionResult::<T::AccountId, Perbill> { winners, assignments: _ }| {});
-			Ok(())
-		}
+		// 	let now = <frame_system::Pallet<T>>::block_number();
+		// 	Ok(())
+		// }
 
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.

@@ -26,7 +26,7 @@ use frame_support::traits::Randomness;
 use frame_support::traits::{Currency, ReservableCurrency};
 use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
-use schelling_game_link::SchellingGameLink;
+use sortition_sum_game_link::SortitionSumGameLink;
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
@@ -83,5 +83,5 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {}
+	impl<T: Config> Pallet<T> {	}
 }

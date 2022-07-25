@@ -1,5 +1,5 @@
 [package]
-name = "pallet-template"
+name = "score-game"
 version = "4.0.0-dev"
 description = "FRAME pallet template for defining custom runtime logic."
 authors = ["Substrate DevHub <https://github.com/substrate-developer-hub>"]
@@ -24,8 +24,9 @@ pallet-balances = { default-features = false, version = "4.0.0-dev", git = "http
 sp-io = { default-features = false, version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
 log = { default-features= false, version="0.4"}
 sp-runtime = { default-features = false, version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
-sortition-sum-game-link = {default-features = false, path="../../traits/sortition-sum-game-link"}
-sortition-sum-game = {default-features = false, path="../sortition-sum-game"}
+sp-std = { default-features = false, version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
+sp-arithmetic = { default-features = false, version = "5.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
+num-integer = {default-features = false, version= "0.1.44"}
 
 
 [dev-dependencies]
@@ -45,8 +46,9 @@ std = [
 	"pallet-balances/std",
 	"log/std",
     "sp-runtime/std",
-	"sortition-sum-game-link/std",
-	"sortition-sum-game/std",
+	"sp-std/std",
+    "sp-arithmetic/std", 
+	"num-integer/std",
 ]
 
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]

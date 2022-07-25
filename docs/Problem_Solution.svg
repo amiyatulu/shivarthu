@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:osb="http://www.openswatchbook.org/uri/2009/osb"
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="200.7444mm"
+   height="354.92508mm"
+   viewBox="0 0 200.7444 354.92508"
+   version="1.1"
+   id="svg8"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+   sodipodi:docname="Problem_Solution.svg">
+  <defs
+     id="defs2">
+    <linearGradient
+       osb:paint="solid"
+       id="linearGradient890">
+      <stop
+         id="stop888"
+         offset="0"
+         style="stop-color:#00ff00;stop-opacity:1;" />
+    </linearGradient>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.7"
+     inkscape:cx="304.11708"
+     inkscape:cy="513.5149"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     inkscape:document-rotation="0"
+     showgrid="false"
+     fit-margin-top="5"
+     fit-margin-left="5"
+     fit-margin-right="5"
+     fit-margin-bottom="5"
+     inkscape:window-width="1880"
+     inkscape:window-height="1016"
+     inkscape:window-x="40"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-0.94498158,1.6832932)">
+    <text
+       xml:space="preserve"
+       style="font-size:10.5833px;line-height:1.25;font-family:Aachen-Bold;-inkscape-font-specification:Aachen-Bold;stroke-width:0.264583"
+       x="10.377873"
+       y="15.590883"
+       id="text835"><tspan
+         sodipodi:role="line"
+         id="tspan833"
+         x="10.377873"
+         y="15.590883"
+         style="stroke-width:0.264583" /></text>
+    <text
+       xml:space="preserve"
+       style="font-size:4.93889px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:0.264583"
+       x="8.2525883"
+       y="14.764464"
+       id="text839"><tspan
+         sodipodi:role="line"
+         id="tspan837"
+         x="8.2525883"
+         y="14.764464"
+         style="font-size:4.93889px;stroke-width:0.264583" /></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.76111px;line-height:1.25;font-family:Adelon-Bold;-inkscape-font-specification:Adelon-Bold;stroke-width:0.264583"
+       x="88.231987"
+       y="9.2133312"
+       id="text843"><tspan
+         sodipodi:role="line"
+         id="tspan841"
+         x="88.231987"
+         y="9.2133312"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.76111px;font-family:Adelon-Bold;-inkscape-font-specification:Adelon-Bold;stroke-width:0.264583">Locality</tspan><tspan
+         id="tspan910"
+         sodipodi:role="line"
+         x="88.231987"
+         y="18.914719"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.76111px;font-family:'Abyssinica SIL';-inkscape-font-specification:'Abyssinica SIL';stroke-width:0.264583">Simulia</tspan><tspan
+         id="tspan894"
+         sodipodi:role="line"
+         x="88.231987"
+         y="29.024633"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.76111px;font-family:Adelon-Bold;-inkscape-font-specification:Adelon-Bold;stroke-width:0.264583" /></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:0.264583"
+       x="6.1873298"
+       y="26.370436"
+       id="text847"><tspan
+         sodipodi:role="line"
+         id="tspan845"
+         x="6.1873298"
+         y="26.370436"
+         style="stroke-width:0.264583" /><tspan
+         sodipodi:role="line"
+         x="6.1873298"
+         y="35.463921"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Adelon;-inkscape-font-specification:Adelon;stroke-width:0.264583"
+         id="tspan849">Problem</tspan><tspan
+         sodipodi:role="line"
+         x="6.1873298"
+         y="44.283371"
+         style="stroke-width:0.264583"
+         id="tspan851" /><tspan
+         sodipodi:role="line"
+         x="6.1873298"
+         y="53.102821"
+         style="stroke-width:0.264583"
+         id="tspan853" /><tspan
+         sodipodi:role="line"
+         x="6.1873298"
+         y="61.922272"
+         style="stroke-width:0.264583"
+         id="tspan855" /></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:0.264583"
+       x="5.7315164"
+       y="122.53635"
+       id="text859"><tspan
+         sodipodi:role="line"
+         id="tspan857"
+         x="5.7315164"
+         y="122.53635"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Adelon;-inkscape-font-specification:Adelon;stroke-width:0.264583">Solution</tspan></text>
+    <rect
+       ry="14.805367"
+       style="fill:#00ff00;fill-opacity:1;fill-rule:nonzero;stroke-width:0.271;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect863"
+       width="190.7444"
+       height="51.329708"
+       x="5.9449816"
+       y="43.343632" />
+    <rect
+       ry="5.9444971"
+       style="fill:#00ffff;fill-rule:evenodd;stroke-width:0.264583"
+       id="rect865"
+       width="186.70129"
+       height="54.618713"
+       x="7.417275"
+       y="129.17848" />
+    <rect
+       ry="6.7858191"
+       style="fill:#ff00ff;fill-rule:evenodd;stroke-width:0.264583"
+       id="rect867"
+       width="52.79073"
+       height="17.965048"
+       x="74.921814"
+       y="49.423214" />
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:0.264583"
+       x="91.100746"
+       y="60.667065"
+       id="text871"><tspan
+         sodipodi:role="line"
+         id="tspan869"
+         x="91.100746"
+         y="60.667065"
+         style="stroke-width:0.264583">Photo</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:0.264583"
+       x="68.129128"
+       y="81.612137"
+       id="text875"><tspan
+         sodipodi:role="line"
+         id="tspan873"
+         x="68.129128"
+         y="81.612137"
+         style="stroke-width:0.264583" /></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:0.264583"
+       x="82.574135"
+       y="80.782104"
+       id="text879"><tspan
+         sodipodi:role="line"
+         id="tspan877"
+         x="82.574135"
+         y="80.782104"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Adelon-Regular;-inkscape-font-specification:Adelon-Regular;stroke-width:0.264583">Water logging</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:0.264583"
+       x="80.693825"
+       y="146.88432"
+       id="text883"><tspan
+         sodipodi:role="line"
+         id="tspan881"
+         x="80.693825"
+         y="146.88432"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Adelon-Regular;-inkscape-font-specification:Adelon-Regular;stroke-width:0.264583">The Detail Plan</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:0.264583"
+       x="75.577133"
+       y="163.76372"
+       id="text887"><tspan
+         sodipodi:role="line"
+         id="tspan885"
+         x="75.577133"
+         y="163.76372"
+         style="stroke-width:0.264583">Percolation pit</tspan></text>
+    <rect
+       ry="5.3731494"
+       style="fill:#ff9955;fill-rule:evenodd;stroke-width:0.264583"
+       id="rect889"
+       width="184.06061"
+       height="41.339275"
+       x="9.8775578"
+       y="195.35173" />
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:center;text-anchor:middle;stroke-width:0.264583"
+       x="101.27757"
+       y="203.26172"
+       id="text893"><tspan
+         sodipodi:role="line"
+         id="tspan891"
+         x="101.27757"
+         y="203.26172"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Adelon-Regular;-inkscape-font-specification:Adelon-Regular;text-align:center;text-anchor:middle;stroke-width:0.264583">Peer Review </tspan><tspan
+         id="tspan896"
+         sodipodi:role="line"
+         x="101.27757"
+         y="212.37227"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Adelon-Regular;-inkscape-font-specification:Adelon-Regular;text-align:center;text-anchor:middle;stroke-width:0.264583">as per scientific guidlines</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:0.264583"
+       x="71.991035"
+       y="222.80949"
+       id="text897"><tspan
+         sodipodi:role="line"
+         id="tspan895"
+         x="71.991035"
+         y="222.80949"
+         style="stroke-width:0.264583" /></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:0.264583"
+       x="57.368073"
+       y="224.51627"
+       id="text901"><tspan
+         sodipodi:role="line"
+         id="tspan899"
+         x="57.368073"
+         y="224.51627"
+         style="stroke-width:0.264583">Problems of the plan</tspan><tspan
+         sodipodi:role="line"
+         x="57.368073"
+         y="233.33571"
+         style="stroke-width:0.264583"
+         id="tspan903">Improvement of the plan</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:0.264583"
+       x="11.161256"
+       y="140.29553"
+       id="text907"><tspan
+         sodipodi:role="line"
+         id="tspan905"
+         x="11.161256"
+         y="140.29553"
+         style="stroke-width:0.264583">Solution 1</tspan></text>
+    <rect
+       ry="7.089776"
+       y="245.37364"
+       x="7.8150682"
+       height="54.618713"
+       width="186.70129"
+       id="rect909"
+       style="fill:#00ffff;fill-rule:evenodd;stroke-width:0.264583" />
+    <rect
+       ry="5.8739591"
+       y="308.71533"
+       x="7.1499419"
+       height="42.019604"
+       width="186.02893"
+       id="rect911"
+       style="fill:#ff9955;fill-rule:evenodd;stroke-width:0.268174" />
+    <text
+       id="text921"
+       y="337.79419"
+       x="57.368073"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="stroke-width:0.264583"
+         y="337.79419"
+         x="57.368073"
+         id="tspan917"
+         sodipodi:role="line">Problems of the plan</tspan><tspan
+         id="tspan919"
+         style="stroke-width:0.264583"
+         y="346.61365"
+         x="57.368073"
+         sodipodi:role="line">Improvement of the plan</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:0.264583"
+       x="13.740856"
+       y="253.07707"
+       id="text925"><tspan
+         sodipodi:role="line"
+         id="tspan923"
+         x="13.740856"
+         y="253.07707"
+         style="stroke-width:0.264583">Solution 2</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:0.264583"
+       x="74.92601"
+       y="264.42932"
+       id="text929"><tspan
+         sodipodi:role="line"
+         id="tspan927"
+         x="74.92601"
+         y="264.42932"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Adelon-Regular;-inkscape-font-specification:Adelon-Regular;stroke-width:0.264583">The Detail Plan</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:0.264583"
+       x="42.381893"
+       y="278.24774"
+       id="text933"><tspan
+         sodipodi:role="line"
+         id="tspan931"
+         x="42.381893"
+         y="278.24774"
+         style="stroke-width:0.264583">Improvement of drainage system</tspan></text>
+    <text
+       id="text902"
+       y="316.5036"
+       x="101.27757"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;text-align:center;text-anchor:middle;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Adelon-Regular;-inkscape-font-specification:Adelon-Regular;text-align:center;text-anchor:middle;stroke-width:0.264583"
+         y="316.5036"
+         x="101.27757"
+         id="tspan898"
+         sodipodi:role="line">Peer Review </tspan><tspan
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Adelon-Regular;-inkscape-font-specification:Adelon-Regular;text-align:center;text-anchor:middle;stroke-width:0.264583"
+         y="325.61417"
+         x="101.27757"
+         sodipodi:role="line"
+         id="tspan900">as per scientific guidlines</tspan></text>
+    <text
+       id="text906"
+       y="80.534775"
+       x="144.37398"
+       style="font-size:7.05556px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:sans-serif;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Aachen-Light;-inkscape-font-specification:Aachen-Light;stroke-width:0.264583"
+         y="80.534775"
+         x="144.37398"
+         id="tspan904"
+         sodipodi:role="line">Department:</tspan><tspan
+         id="tspan908"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Adelon;-inkscape-font-specification:Adelon;stroke-width:0.264583"
+         y="89.628258"
+         x="144.37398"
+         sodipodi:role="line">City Planning</tspan></text>
+  </g>
+</svg>

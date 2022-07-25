@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 
-pub trait SchellingGameLink {
+pub trait SortitionSumGameLink {
 	type SumTreeName;
 	type AccountId;
 	fn create_tree_link(key: Self::SumTreeName, k: u64) -> DispatchResult;

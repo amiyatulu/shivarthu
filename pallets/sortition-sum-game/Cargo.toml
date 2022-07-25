@@ -4,7 +4,7 @@ description = 'FRAME pallet template for defining custom runtime logic.'
 edition = '2018'
 homepage = 'https://substrate.dev'
 license = 'Unlicense'
-name = 'schelling-game'
+name = 'sortition-sum-game'
 publish = false
 repository = 'https://github.com/substrate-developer-hub/substrate-node-template/'
 version = "4.0.0-dev"
@@ -24,7 +24,7 @@ pallet-balances = {default-features = false, version = "4.0.0-dev", git = "https
 scale-info = {version = "2.0.1", default-features = false, features = ["derive"]}
 sp-io = {default-features = false, version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18"}
 sp-runtime = {default-features = false, version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18"}
-schelling-game-link = {default-features = false, path="../../traits/schelling-game-link"}
+sortition-sum-game-link = {default-features = false, path="../../traits/sortition-sum-game-link"}
 
 
 [dev-dependencies]
@@ -44,7 +44,7 @@ std = [
 	"pallet-balances/std",
 	"log/std",
     "sp-runtime/std",
-    "schelling-game-link/std",
+    "sortition-sum-game-link/std",
 ]
 
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]

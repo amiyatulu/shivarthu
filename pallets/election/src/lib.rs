@@ -37,6 +37,7 @@ use sp_runtime::{
 };
 use sp_std::{cmp::Ordering, prelude::*};
 
+
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
 type PositiveImbalanceOf<T> = <<T as Config>::Currency as Currency<
 	<T as frame_system::Config>::AccountId,
@@ -47,6 +48,7 @@ type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
+
 
 #[frame_support::pallet]
 pub mod pallet {

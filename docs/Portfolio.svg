@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   sodipodi:docname="Portfolio.svg"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+   id="svg2079"
+   version="1.1"
+   viewBox="0 0 210 297"
+   height="297mm"
+   width="210mm">
+  <defs
+     id="defs2073" />
+  <sodipodi:namedview
+     inkscape:window-maximized="0"
+     inkscape:window-y="251"
+     inkscape:window-x="331"
+     inkscape:window-height="752"
+     inkscape:window-width="1514"
+     showgrid="false"
+     inkscape:document-rotation="0"
+     inkscape:current-layer="layer1"
+     inkscape:document-units="mm"
+     inkscape:cy="468.84694"
+     inkscape:cx="407.25124"
+     inkscape:zoom="0.50334158"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     borderopacity="1.0"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     id="base" />
+  <metadata
+     id="metadata2076">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Layer 1">
+    <text
+       id="text2644"
+       y="16.143112"
+       x="69.332909"
+       style="font-size:7.05556px;line-height:1.25;font-family:Aachen-Bold;-inkscape-font-specification:Aachen-Bold;letter-spacing:0px;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Aachen BT';-inkscape-font-specification:'Aachen BT';stroke-width:0.264583"
+         y="16.143112"
+         x="69.332909"
+         id="tspan2642"
+         sodipodi:role="line">Representive Portfolio</tspan></text>
+    <rect
+       ry="6.2079453"
+       y="29.075314"
+       x="4.5914164"
+       height="27.989868"
+       width="200.75691"
+       id="rect2646"
+       style="fill:#ffd5d5;stroke:#faebd7;stroke-width:0.529;stroke-linecap:round;stroke-linejoin:bevel" />
+    <text
+       id="text2650"
+       y="40.881828"
+       x="16.494596"
+       style="font-size:7.05556px;line-height:1.25;font-family:aakar;-inkscape-font-specification:aakar;letter-spacing:0px;stroke-width:0.264583;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;"
+       xml:space="preserve"><tspan
+         style="stroke-width:0.264583;-inkscape-font-specification:aakar;font-family:aakar;font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal;"
+         y="40.881828"
+         x="16.494596"
+         id="tspan2648"
+         sodipodi:role="line">Ruby Griffith</tspan></text>
+    <rect
+       ry="3.6602373"
+       y="90.151909"
+       x="6.8319306"
+       height="68.832306"
+       width="195.17036"
+       id="rect2652"
+       style="fill:#ffd5d5;stroke:#faebd7;stroke-width:0.406324;stroke-linecap:round;stroke-linejoin:bevel" />
+    <text
+       id="text2656"
+       y="85.633179"
+       x="12.858655"
+       style="font-size:7.05556px;line-height:1.25;font-family:Aachen-Bold;-inkscape-font-specification:Aachen-Bold;letter-spacing:0px;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:aakar;-inkscape-font-specification:aakar;stroke-width:0.264583"
+         y="85.633179"
+         x="12.858655"
+         id="tspan2654"
+         sodipodi:role="line">Experience</tspan></text>
+    <rect
+       style="fill:#ffd5d5;stroke:#faebd7;stroke-width:0.349851;stroke-linecap:round;stroke-linejoin:bevel"
+       id="rect2658"
+       width="195.04768"
+       height="51.060555"
+       x="6.8932686"
+       y="179.7084"
+       ry="2.715204" />
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:1.25;font-family:Aachen-Bold;-inkscape-font-specification:Aachen-Bold;letter-spacing:0px;stroke-width:0.264583"
+       x="12.858655"
+       y="176.12006"
+       id="text2662"><tspan
+         sodipodi:role="line"
+         id="tspan2660"
+         x="12.858655"
+         y="176.12006"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:aakar;-inkscape-font-specification:aakar;stroke-width:0.264583">Ideas</tspan></text>
+    <rect
+       ry="6.9829021"
+       y="250.35997"
+       x="134.09966"
+       height="19.977068"
+       width="69.708191"
+       id="rect2664"
+       style="fill:#fff6d5;stroke:#faebd7;stroke-width:0.636881;stroke-linecap:round;stroke-linejoin:bevel" />
+    <text
+       id="text2668"
+       y="257.6763"
+       x="148.81406"
+       style="font-size:7.05556px;line-height:1.25;font-family:Aachen-Bold;-inkscape-font-specification:Aachen-Bold;letter-spacing:0px;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:aakar;-inkscape-font-specification:aakar;stroke-width:0.264583"
+         y="257.6763"
+         x="148.81406"
+         id="tspan2666"
+         sodipodi:role="line">Schelling Game </tspan><tspan
+         id="tspan2670"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:aakar;-inkscape-font-specification:aakar;stroke-width:0.264583"
+         y="267.21069"
+         x="148.81406"
+         sodipodi:role="line">Evaluation</tspan></text>
+  </g>
+</svg>

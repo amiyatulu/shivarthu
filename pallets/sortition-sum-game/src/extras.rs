@@ -1,6 +1,6 @@
 use crate::*;
 
-impl<T: Config> SchellingGameLink for Pallet<T> {
+impl<T: Config> SortitionSumGameLink for Pallet<T> {
 	type SumTreeName = SumTreeName;
 	type AccountId = AccountIdOf<T>;
 	fn create_tree_link(key: Self::SumTreeName, k: u64) -> DispatchResult {

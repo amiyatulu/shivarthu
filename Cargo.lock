@@ -3757,8 +3757,9 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "parity-scale-codec 3.1.2",
  "scale-info",
- "schelling-game",
+ "score-game",
  "shivarthu-runtime-api",
+ "sortition-sum-game",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-aura",
@@ -4102,11 +4103,10 @@ dependencies = [
  "pallet-balances",
  "parity-scale-codec 3.1.2",
  "scale-info",
- "schelling-game",
- "schelling-game-link",
+ "sortition-sum-game",
+ "sortition-sum-game-link",
  "sp-core",
  "sp-io",
- "sp-npos-elections",
  "sp-runtime",
 ]
 
@@ -5988,29 +5988,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "schelling-game"
-version = "4.0.0-dev"
+name = "schelling-game-shared"
+version = "0.1.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-support-test",
  "frame-system",
  "log",
+ "num-integer",
  "pallet-balances",
  "parity-scale-codec 3.1.2",
  "scale-info",
- "schelling-game-link",
+ "sortition-sum-game",
+ "sp-arithmetic",
  "sp-core",
  "sp-io",
  "sp-runtime",
-]
-
-[[package]]
-name = "schelling-game-link"
-version = "0.1.0"
-dependencies = [
- "frame-support",
- "parity-scale-codec 3.1.2",
+ "sp-std",
 ]
 
 [[package]]
@@ -6042,6 +6037,26 @@ name = "scopeguard"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
+
+[[package]]
+name = "score-game"
+version = "4.0.0-dev"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-support-test",
+ "frame-system",
+ "log",
+ "num-integer",
+ "pallet-balances",
+ "parity-scale-codec 3.1.2",
+ "scale-info",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
 
 [[package]]
 name = "sct"
@@ -6415,6 +6430,32 @@ dependencies = [
  "log",
  "rand 0.8.5",
  "sha-1 0.9.8",
+]
+
+[[package]]
+name = "sortition-sum-game"
+version = "4.0.0-dev"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-support-test",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "parity-scale-codec 3.1.2",
+ "scale-info",
+ "sortition-sum-game-link",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
+name = "sortition-sum-game-link"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec 3.1.2",
 ]
 
 [[package]]
