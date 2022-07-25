@@ -24,6 +24,8 @@ sp-std = { default-features = false, version = "4.0.0-dev", git = "https://githu
 sp-arithmetic = { default-features = false, version = "5.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
 num-integer = {default-features = false, version= "0.1.44"}
 sortition-sum-game = {default-features = false, path="../sortition-sum-game"}
+sortition-sum-game-link = {default-features = false, path="../../traits/sortition-sum-game-link"}
+
 
 
 
@@ -48,6 +50,7 @@ std = [
     "sp-arithmetic/std", 
 	"num-integer/std",
 	"sortition-sum-game/std",
+	"sortition-sum-game-link/std",
 ]
 
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]

@@ -17,8 +17,9 @@ mod benchmarking;
 mod extras;
 mod types;
 
-use crate::types::{CommitVote, DrawJurorsLimitNum, Period, SchellingGameType, StakingTime};
+use crate::types::{CommitVote, DrawJurorsLimit, Period, SchellingGameType, StakingTime, VoteStatus};
 use frame_support::pallet_prelude::*;
+use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
 use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::prelude::*;
 use frame_support::{
@@ -31,7 +32,8 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use num_integer::Roots;
 use sortition_sum_game::types::SumTreeName;
-use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
+use sortition_sum_game_link::SortitionSumGameLink;
+use frame_support::{traits::Randomness};
 
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -53,7 +55,12 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
+		type SortitionSumGameSource: SortitionSumGameLink<SumTreeName = SumTreeName, AccountId=Self::AccountId>;
+
+	
 		type Currency: ReservableCurrency<Self::AccountId>;
+
+		type RandomnessSource: Randomness<Self::Hash, Self::BlockNumber>;
 
 		/// Handler for the unbalanced increment when rewarding (minting rewards)
 		type Reward: OnUnbalanced<PositiveImbalanceOf<Self>>;
@@ -76,6 +83,9 @@ pub mod pallet {
 	pub type Something<T> = StorageValue<_, u32>;
 
 	// Schelling Game Storage:
+
+	#[pallet::storage]
+	pub type Nonce<T> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_period)]
@@ -149,16 +159,22 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, SumTreeName, Vec<T::AccountId>, ValueQuery>;
 
 	#[pallet::type_value]
-	pub fn DefaultDrawJurorsLimitNum<T: Config>() -> DrawJurorsLimitNum {
-		let draw_juror_limit = DrawJurorsLimitNum { max_draws: 5, max_draws_appeal: 10 };
+	pub fn DefaultDrawJurorsLimitNum<T: Config>() -> DrawJurorsLimit {
+		let draw_juror_limit = DrawJurorsLimit { max_draws: 5, max_draws_appeal: 10 };
 		// change max draws more than 30 in production
 		draw_juror_limit
 	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn draw_jurors_for_profile_limit)]
-	pub type DrawDrawJurorsLimitNum<T> =
-		StorageValue<_, DrawJurorsLimitNum, ValueQuery, DefaultDrawJurorsLimitNum<T>>;
+	pub type DrawJurorsLimitNum<T> = StorageMap<
+		_,
+		Blake2_128Concat,
+		SchellingGameType,
+		DrawJurorsLimit,
+		ValueQuery,
+		DefaultDrawJurorsLimitNum<T>,
+	>;
 	#[pallet::storage]
 	#[pallet::getter(fn vote_commits)]
 	pub type VoteCommits<T: Config> = StorageDoubleMap<
@@ -213,6 +229,23 @@ pub mod pallet {
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
 		PeriodExists,
+		StakingPeriodNotOver,
+		MaxJurorNotDrawn,
+		CommitPeriodNotOver,
+		VotePeriodNotOver,
+		PeriodDoesNotExists,
+		PeriodDontMatch,
+		StakeLessThanMin,
+		AlreadyStaked,
+		MaxDrawExceeded, 
+		SelectedAsJuror,
+		AlreadyUnstaked,
+		StakeDoesNotExists,
+		JurorDoesNotExists,
+		VoteStatusNotCommited,
+		NotValidChoice,
+		CommitDoesNotMatch,
+		CommitDoesNotExists
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.

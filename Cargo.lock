@@ -6001,6 +6001,7 @@ dependencies = [
  "parity-scale-codec 3.1.2",
  "scale-info",
  "sortition-sum-game",
+ "sortition-sum-game-link",
  "sp-arithmetic",
  "sp-core",
  "sp-io",

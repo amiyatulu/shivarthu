@@ -33,7 +33,7 @@ pub struct StakingTime<BlockNumber> {
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
-pub struct DrawJurorsLimitNum {
+pub struct DrawJurorsLimit {
 	pub max_draws: u64,
 	pub max_draws_appeal: u64,
 }

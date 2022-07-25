@@ -30,7 +30,305 @@ impl<T: Config> Pallet<T> {
 				<StakingStartTime<T>>::insert(&key, now);
 			}
 		}
-		
+
 		Ok(())
+	}
+
+	pub(super) fn change_period(
+		key: SumTreeName,
+		now: BlockNumberOf<T>,
+		game_type: SchellingGameType,
+	) -> DispatchResult {
+		match <PeriodName<T>>::get(&key) {
+			Some(period) => {
+				// Also check has min number of jurors has staked
+				if period == Period::Staking {
+					let staking_start_time = <StakingStartTime<T>>::get(&key);
+					let block_time = <MinBlockTime<T>>::get(&game_type);
+					if now >= block_time.min_long_block_length + staking_start_time {
+						let new_period = Period::Drawing;
+						<PeriodName<T>>::insert(&key, new_period);
+					} else {
+						Err(Error::<T>::StakingPeriodNotOver)?
+					}
+				}
+				if period == Period::Drawing {
+					let draw_limit = <DrawJurorsLimitNum<T>>::get(&game_type);
+					let draws_in_round = <DrawsInRound<T>>::get(&key);
+					if draws_in_round >= draw_limit.max_draws {
+						<CommitStartTime<T>>::insert(&key, now);
+						let new_period = Period::Commit;
+						<PeriodName<T>>::insert(&key, new_period);
+					} else {
+						Err(Error::<T>::MaxJurorNotDrawn)?
+					}
+				}
+
+				if period == Period::Commit {
+					let commit_start_time = <CommitStartTime<T>>::get(&key);
+					let block_time = <MinBlockTime<T>>::get(&game_type);
+					if now >= block_time.min_long_block_length + commit_start_time {
+						<VoteStartTime<T>>::insert(&key, now);
+						let new_period = Period::Vote;
+						<PeriodName<T>>::insert(&key, new_period);
+					} else {
+						Err(Error::<T>::CommitPeriodNotOver)?
+					}
+				}
+
+				if period == Period::Vote {
+					let vote_start_time = <VoteStartTime<T>>::get(&key);
+					let block_time = <MinBlockTime<T>>::get(&game_type);
+					if now >= block_time.min_long_block_length + vote_start_time {
+						let new_period = Period::Execution;
+						<PeriodName<T>>::insert(&key, new_period);
+					} else {
+						Err(Error::<T>::VotePeriodNotOver)?
+					}
+				}
+			},
+			None => Err(Error::<T>::PeriodDoesNotExists)?,
+		}
+		Ok(())
+	}
+
+	pub(super) fn apply_jurors_helper(
+		key: SumTreeName,
+		game_type: SchellingGameType,
+		who: AccountIdOf<T>,
+		stake: BalanceOf<T>,
+	) -> DispatchResult {
+		match <PeriodName<T>>::get(&key) {
+			Some(period) => {
+				ensure!(period == Period::Staking, Error::<T>::PeriodDontMatch);
+			},
+			None => Err(Error::<T>::PeriodDoesNotExists)?,
+		}
+		let min_stake = <MinJurorStake<T>>::get(&game_type);
+
+		ensure!(stake >= min_stake, Error::<T>::StakeLessThanMin);
+
+		// let imb = T::Currency::withdraw(
+		// 	&who,
+		// 	stake,
+		// 	WithdrawReasons::TRANSFER,
+		// 	ExistenceRequirement::AllowDeath,
+		// )?;
+
+		// T::Currency::resolve_creating(&Self::juror_stake_account(), imb);
+
+		let imbalance = T::Currency::slash(&who, stake).0;
+		T::Slash::on_unbalanced(imbalance);
+
+		// let stake_of = Self::stake_of(key.clone(), profile_citizenid)?;
+
+		let stake_u64 = Self::balance_to_u64_saturated(stake);
+
+		let stake_of = T::SortitionSumGameSource::stake_of_link(key.clone(), who.clone())?;
+
+		match stake_of {
+			Some(_stake) => Err(Error::<T>::AlreadyStaked)?,
+			None => {
+				let result = T::SortitionSumGameSource::set_link(key, stake_u64, who);
+				result
+			},
+		}
+	}
+
+	pub(super) fn draw_jurors_helper(
+		key: SumTreeName,
+		game_type: SchellingGameType,
+		interations: u64,
+	) -> DispatchResult {
+		match <PeriodName<T>>::get(&key) {
+			Some(period) => {
+				ensure!(period == Period::Drawing, Error::<T>::PeriodDontMatch);
+			},
+			None => Err(Error::<T>::PeriodDoesNotExists)?,
+		}
+		let draw_limit = <DrawJurorsLimitNum<T>>::get(&game_type);
+		let draws_in_round = <DrawsInRound<T>>::get(&key);
+		ensure!(draws_in_round < draw_limit.max_draws.into(), Error::<T>::MaxDrawExceeded);
+		let mut end_index = draws_in_round + interations;
+		if draws_in_round + interations >= draw_limit.max_draws {
+			end_index = draw_limit.max_draws;
+		}
+		let mut draw_increment = draws_in_round.clone();
+
+		for _ in draws_in_round..end_index {
+			let nonce = Self::get_and_increment_nonce();
+			let random_seed = T::RandomnessSource::random(&nonce).encode();
+			let random_number = u64::decode(&mut random_seed.as_ref())
+				.expect("secure hashes should always be bigger than u64; qed");
+			// let mut rng = rand::thread_rng();
+			// let random_number: u64 = rng.gen();
+			log::info!("Random number: {:?}", random_number);
+			let data = T::SortitionSumGameSource::draw_link(key.clone(), random_number)?;
+			let mut drawn_juror = <DrawnJurors<T>>::get(&key);
+			match drawn_juror.binary_search(&data) {
+				Ok(_) => {},
+				Err(index) => {
+					drawn_juror.insert(index, data);
+					<DrawnJurors<T>>::insert(&key, drawn_juror);
+					draw_increment = draw_increment + 1;
+					// println!("draw_increment, {:?}", draw_increment);
+				},
+			}
+			<DrawsInRound<T>>::insert(&key, draw_increment);
+		}
+		Ok(())
+	}
+
+	pub(super) fn unstaking_helper(
+		key: SumTreeName,
+		game_type: SchellingGameType,
+		who: AccountIdOf<T>,
+	) -> DispatchResult {
+		match <PeriodName<T>>::get(&key) {
+			Some(period) => {
+				ensure!(
+					period != Period::Evidence
+						&& period != Period::Staking
+						&& period != Period::Drawing,
+					Error::<T>::PeriodDontMatch
+				);
+			},
+			None => Err(Error::<T>::PeriodDoesNotExists)?,
+		}
+
+		let drawn_juror = <DrawnJurors<T>>::get(&key);
+		match drawn_juror.binary_search(&who.clone()) {
+			Ok(_) => Err(Error::<T>::SelectedAsJuror)?,
+			Err(_) => {},
+		}
+
+		let stake_of = T::SortitionSumGameSource::stake_of_link(key.clone(), who.clone())?;
+
+		match stake_of {
+			Some(stake) => {
+				let balance = Self::u64_to_balance_saturated(stake);
+				let mut unstaked_jurors = <UnstakedJurors<T>>::get(&key);
+				match unstaked_jurors.binary_search(&who) {
+					Ok(_) => Err(Error::<T>::AlreadyUnstaked)?,
+					Err(index) => {
+						unstaked_jurors.insert(index, who.clone());
+						<UnstakedJurors<T>>::insert(&key, unstaked_jurors);
+						// let _ = T::Currency::resolve_into_existing(
+						// 	&who,
+						// 	T::Currency::withdraw(
+						// 		&Self::juror_stake_account(),
+						// 		balance,
+						// 		WithdrawReasons::TRANSFER,
+						// 		ExistenceRequirement::AllowDeath,
+						// 	)?,
+						// );
+						let r = T::Currency::deposit_into_existing(&who, balance).ok().unwrap();
+						T::Reward::on_unbalanced(r);
+					},
+				}
+			},
+			None => Err(Error::<T>::StakeDoesNotExists)?,
+		}
+
+		// println!("stakeof {:?}", stake_of);
+
+		Ok(())
+	}
+
+	pub(super) fn commit_vote_helper(
+		key: SumTreeName,
+		who: AccountIdOf<T>,
+		vote_commit: [u8; 32],
+	) -> DispatchResult {
+		match <PeriodName<T>>::get(&key) {
+			Some(period) => {
+				ensure!(period == Period::Commit, Error::<T>::PeriodDontMatch);
+			},
+			None => Err(Error::<T>::PeriodDoesNotExists)?,
+		}
+		let drawn_jurors = <DrawnJurors<T>>::get(&key);
+		match drawn_jurors.binary_search(&who) {
+			Ok(_) => {
+				let vote_commit_struct = CommitVote {
+					commit: vote_commit,
+					votestatus: VoteStatus::Commited,
+					vote_revealed: None,
+				};
+				<VoteCommits<T>>::insert(&key, &who, vote_commit_struct);
+			},
+			Err(_) => Err(Error::<T>::JurorDoesNotExists)?,
+		}
+		Ok(())
+	}
+
+	pub(super) fn reveal_vote_two_choice_helper(
+		key: SumTreeName,
+		who: AccountIdOf<T>,
+		choice: u128,
+		salt: Vec<u8>,
+	) -> DispatchResult {
+		match <PeriodName<T>>::get(&key) {
+			Some(period) => {
+				ensure!(period == Period::Vote, Error::<T>::PeriodDontMatch);
+			},
+			None => Err(Error::<T>::PeriodDoesNotExists)?,
+		}
+		let who_commit_vote = <VoteCommits<T>>::get(&key, &who);
+		match who_commit_vote {
+			Some(mut commit_struct) => {
+				ensure!(
+					commit_struct.votestatus == VoteStatus::Commited,
+					Error::<T>::VoteStatusNotCommited
+				);
+				let mut vote = format!("{}", choice).as_bytes().to_vec();
+				// let mut vote = choice.clone();
+				let mut salt_a = salt.clone();
+				vote.append(&mut salt_a);
+				let vote_bytes: &[u8] = &vote;
+				let hash = sp_io::hashing::keccak_256(vote_bytes);
+				let commit: &[u8] = &commit_struct.commit;
+				if hash == commit {
+					let mut decision_tuple = <DecisionCount<T>>::get(&key);
+					if choice == 1 {
+						decision_tuple.1 = decision_tuple.1 + 1;
+						<DecisionCount<T>>::insert(&key, decision_tuple);
+						commit_struct.vote_revealed = Some(1);
+					} else if choice == 0 {
+						decision_tuple.0 = decision_tuple.0 + 1;
+						<DecisionCount<T>>::insert(&key, decision_tuple);
+						commit_struct.vote_revealed = Some(0);
+					} else {
+						Err(Error::<T>::NotValidChoice)?
+					}
+					commit_struct.votestatus = VoteStatus::Revealed;
+					<VoteCommits<T>>::insert(&key, &who, commit_struct);
+				} else {
+					Err(Error::<T>::CommitDoesNotMatch)?
+				}
+			},
+			None => Err(Error::<T>::CommitDoesNotExists)?,
+		}
+
+		Ok(())
+	}
+
+	pub(super) fn balance_to_u64_saturated(input: BalanceOf<T>) -> u64 {
+		input.saturated_into::<u64>()
+	}
+
+	pub(super) fn u64_to_balance_saturated(input: u64) -> BalanceOf<T> {
+		input.saturated_into::<BalanceOf<T>>()
+	}
+
+	pub(super) fn block_number_to_u32_saturated(input: BlockNumberOf<T>) -> u32 {
+		input.saturated_into::<u32>()
+	}
+	pub(super) fn get_and_increment_nonce() -> Vec<u8> {
+		let nonce = <Nonce<T>>::get();
+		<Nonce<T>>::put(nonce.wrapping_add(1));
+		let n = nonce * 1000 + 1000; // remove and uncomment in production
+		n.encode()
+
+		// nonce.encode()
 	}
 }
