@@ -189,7 +189,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn decision_count)]
 	pub type DecisionCount<T> =
-		StorageMap<_, Blake2_128Concat, SumTreeName, (u64, u64), ValueQuery>;
+		StorageMap<_, Blake2_128Concat, SumTreeName, (u64, u64), ValueQuery>; // Count for 0, Count for 1
 	#[pallet::type_value]
 	pub fn DefaultJurorIncentives<T: Config>() -> (u64, u64) {
 		(100, 100)

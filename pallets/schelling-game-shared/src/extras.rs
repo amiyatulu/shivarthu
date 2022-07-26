@@ -135,7 +135,6 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	
 	// Improvements: Set stake to zero after a juror is drawn, so that they are not drawn again. Store the stake in storage map in DrawnJurors, and use it in get_incentives_helper
 	pub(super) fn draw_jurors_helper(
 		key: SumTreeName,
@@ -180,7 +179,7 @@ impl<T: Config> Pallet<T> {
 		}
 		Ok(())
 	}
-   
+
 	// When DrawnJurors contains stake, use drawn_juror.binary_search_by(|(c, _)| c.cmp(&who));
 	pub(super) fn unstaking_helper(
 		key: SumTreeName,
@@ -315,7 +314,11 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	pub(super) fn get_incentives_helper(key: SumTreeName,game_type: SchellingGameType,who: AccountIdOf<T>) -> DispatchResult {
+	pub(super) fn get_incentives_two_choice_helper(
+		key: SumTreeName,
+		game_type: SchellingGameType,
+		who: AccountIdOf<T>,
+	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
 			Some(period) => {
 				ensure!(period == Period::Execution, Error::<T>::PeriodDontMatch);
@@ -333,7 +336,8 @@ impl<T: Config> Pallet<T> {
 						let incentives = <JurorIncentives<T>>::get(&game_type);
 						let (winning_decision, winning_incentives) =
 							Self::get_winning_incentives(decision_count, incentives);
-						let stake_of = T::SortitionSumGameSource::stake_of_link(key.clone(), who.clone())?;
+						let stake_of =
+							T::SortitionSumGameSource::stake_of_link(key.clone(), who.clone())?;
 						if vote == winning_decision {
 							match stake_of {
 								Some(stake) => {
@@ -350,9 +354,8 @@ impl<T: Config> Pallet<T> {
 											let total_incentives = stake
 												.checked_add(winning_incentives)
 												.expect("overflow");
-											let incentives = Self::u64_to_balance_saturated(
-												total_incentives,
-											);
+											let incentives =
+												Self::u64_to_balance_saturated(total_incentives);
 											let r = T::Currency::deposit_into_existing(
 												&who, incentives,
 											)
@@ -379,11 +382,10 @@ impl<T: Config> Pallet<T> {
 												&key,
 												juror_got_incentives,
 											);
-											let r = T::Currency::deposit_into_existing(
-												&who, balance,
-											)
-											.ok()
-											.unwrap();
+											let r =
+												T::Currency::deposit_into_existing(&who, balance)
+													.ok()
+													.unwrap();
 											T::Reward::on_unbalanced(r);
 										},
 									}
@@ -405,11 +407,10 @@ impl<T: Config> Pallet<T> {
 												&key,
 												juror_got_incentives,
 											);
-											let r = T::Currency::deposit_into_existing(
-												&who, balance,
-											)
-											.ok()
-											.unwrap();
+											let r =
+												T::Currency::deposit_into_existing(&who, balance)
+													.ok()
+													.unwrap();
 											T::Reward::on_unbalanced(r);
 										},
 									}
@@ -424,7 +425,6 @@ impl<T: Config> Pallet<T> {
 			None => Err(Error::<T>::CommitDoesNotExists)?,
 		}
 		Ok(())
-
 	}
 
 	pub(super) fn get_winning_decision(decision_tuple: (u64, u64)) -> u8 {
@@ -454,7 +454,7 @@ impl<T: Config> Pallet<T> {
 			(winning_decision, 0)
 		}
 	}
-	
+
 	pub(super) fn balance_to_u64_saturated(input: BalanceOf<T>) -> u64 {
 		input.saturated_into::<u64>()
 	}
@@ -473,5 +473,104 @@ impl<T: Config> Pallet<T> {
 		n.encode()
 
 		// nonce.encode()
+	}
+	pub fn get_evidence_period_end_block_helper(
+		game_type: SchellingGameType,
+		start_block_number: BlockNumberOf<T>,
+		now: BlockNumberOf<T>,
+	) -> Option<u32> {
+		let block_time = <MinBlockTime<T>>::get(&game_type);
+		let end_block = start_block_number
+			.checked_add(&block_time.min_short_block_length)
+			.expect("Overflow");
+		let left_block = end_block.checked_sub(&now);
+		match left_block {
+			Some(val) => {
+				let left_block_u32 = Self::block_number_to_u32_saturated(val);
+				Some(left_block_u32)
+			},
+			None => Some(0),
+		}
+	}
+
+	pub fn get_staking_period_end_block_helper(
+		key: SumTreeName,
+		game_type: SchellingGameType,
+		now: BlockNumberOf<T>,
+	) -> Option<u32> {
+		let staking_start_time = <StakingStartTime<T>>::get(&key);
+		let block_time = <MinBlockTime<T>>::get(&game_type);
+		let end_block = staking_start_time
+			.checked_add(&block_time.min_long_block_length)
+			.expect("Overflow");
+		let left_block = end_block.checked_sub(&now);
+		match left_block {
+			Some(val) => {
+				let left_block_u32 = Self::block_number_to_u32_saturated(val);
+				Some(left_block_u32)
+			},
+			None => Some(0),
+		}
+	}
+
+	pub fn get_drawing_period_end_helper(
+		key: SumTreeName,
+		game_type: SchellingGameType,
+	) -> (u64, u64, bool) {
+		let draw_limit = <DrawJurorsLimitNum<T>>::get(&game_type);
+		let draws_in_round = <DrawsInRound<T>>::get(&key);
+		if draws_in_round >= draw_limit.max_draws.into() {
+			(draw_limit.max_draws, draws_in_round, true)
+		} else {
+			(draw_limit.max_draws, draws_in_round, false)
+		}
+	}
+
+	pub fn get_commit_period_end_block_helper(
+		key: SumTreeName,
+		game_type: SchellingGameType,
+		now: BlockNumberOf<T>,
+	) -> Option<u32> {
+		let commit_start_time = <CommitStartTime<T>>::get(&key);
+		let block_time = <MinBlockTime<T>>::get(&game_type);
+		let end_block = commit_start_time
+			.checked_add(&block_time.min_long_block_length)
+			.expect("Overflow");
+		let left_block = end_block.checked_sub(&now);
+		match left_block {
+			Some(val) => {
+				let left_block_u32 = Self::block_number_to_u32_saturated(val);
+				Some(left_block_u32)
+			},
+			None => Some(0),
+		}
+	}
+
+	pub fn get_vote_period_end_block_helper(
+		key: SumTreeName,
+		game_type: SchellingGameType,
+		now: BlockNumberOf<T>,
+	) -> Option<u32> {
+		let vote_start_time = <VoteStartTime<T>>::get(&key);
+		let block_time = <MinBlockTime<T>>::get(&game_type);
+		let end_block = vote_start_time
+			.checked_add(&block_time.min_long_block_length)
+			.expect("Overflow");
+		let left_block = end_block.checked_sub(&now);
+		match left_block {
+			Some(val) => {
+				let left_block_u32 = Self::block_number_to_u32_saturated(val);
+				Some(left_block_u32)
+			},
+			None => Some(0),
+		}
+	}
+
+	pub fn selected_as_juror_helper(key: SumTreeName, who: T::AccountId) -> bool {
+		let drawn_juror = <DrawnJurors<T>>::get(&key);
+		match drawn_juror.binary_search(&who) {
+			Ok(_) => true,
+			Err(_) => false,
+		}
 	}
 }

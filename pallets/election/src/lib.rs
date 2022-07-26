@@ -101,6 +101,8 @@ pub mod pallet {
 	pub type Candidates<T: Config> =
 		StorageMap<_, Blake2_128Concat, u128, Vec<(T::AccountId, BalanceOf<T>)>, ValueQuery>; // departmentid => Vec(Candidate Account Id and deposit)
 
+    
+	// Departments will remain in separate pallet
 	#[pallet::storage]
 	#[pallet::getter(fn department_count)]
 	pub type DepartmentCount<T> = StorageValue<_, u128, ValueQuery>;
