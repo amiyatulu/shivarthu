@@ -208,8 +208,8 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn juror_incentive_distribution)]
-	pub type JurorsIncentiveDistribution<T: Config> =
-		StorageMap<_, Blake2_128Concat, SchellingGameType, Vec<T::AccountId>, ValueQuery>;
+	pub type JurorsIncentiveDistributedAccounts<T: Config> =
+		StorageMap<_, Blake2_128Concat, SumTreeName, Vec<T::AccountId>, ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
@@ -245,7 +245,9 @@ pub mod pallet {
 		VoteStatusNotCommited,
 		NotValidChoice,
 		CommitDoesNotMatch,
-		CommitDoesNotExists
+		CommitDoesNotExists,
+		AlreadyGotIncentives,
+		VoteNotRevealed,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.

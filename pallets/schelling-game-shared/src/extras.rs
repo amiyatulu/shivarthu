@@ -135,6 +135,8 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+	
+	// Improvements: Set stake to zero after a juror is drawn, so that they are not drawn again. Store the stake in storage map in DrawnJurors, and use it in get_incentives_helper
 	pub(super) fn draw_jurors_helper(
 		key: SumTreeName,
 		game_type: SchellingGameType,
@@ -178,7 +180,8 @@ impl<T: Config> Pallet<T> {
 		}
 		Ok(())
 	}
-
+   
+	// When DrawnJurors contains stake, use drawn_juror.binary_search_by(|(c, _)| c.cmp(&who));
 	pub(super) fn unstaking_helper(
 		key: SumTreeName,
 		game_type: SchellingGameType,
@@ -312,6 +315,146 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	pub(super) fn get_incentives_helper(key: SumTreeName,game_type: SchellingGameType,who: AccountIdOf<T>) -> DispatchResult {
+		match <PeriodName<T>>::get(&key) {
+			Some(period) => {
+				ensure!(period == Period::Execution, Error::<T>::PeriodDontMatch);
+			},
+			None => Err(Error::<T>::PeriodDoesNotExists)?,
+		}
+
+		let who_commit_vote = <VoteCommits<T>>::get(&key, &who);
+		match who_commit_vote {
+			Some(commit_struct) => {
+				let vote_option = commit_struct.vote_revealed;
+				match vote_option {
+					Some(vote) => {
+						let decision_count = <DecisionCount<T>>::get(&key);
+						let incentives = <JurorIncentives<T>>::get(&game_type);
+						let (winning_decision, winning_incentives) =
+							Self::get_winning_incentives(decision_count, incentives);
+						let stake_of = T::SortitionSumGameSource::stake_of_link(key.clone(), who.clone())?;
+						if vote == winning_decision {
+							match stake_of {
+								Some(stake) => {
+									let mut juror_got_incentives =
+										<JurorsIncentiveDistributedAccounts<T>>::get(&key);
+									match juror_got_incentives.binary_search(&who) {
+										Ok(_) => Err(Error::<T>::AlreadyGotIncentives)?,
+										Err(index) => {
+											juror_got_incentives.insert(index, who.clone());
+											<JurorsIncentiveDistributedAccounts<T>>::insert(
+												&key,
+												juror_got_incentives,
+											);
+											let total_incentives = stake
+												.checked_add(winning_incentives)
+												.expect("overflow");
+											let incentives = Self::u64_to_balance_saturated(
+												total_incentives,
+											);
+											let r = T::Currency::deposit_into_existing(
+												&who, incentives,
+											)
+											.ok()
+											.unwrap();
+											T::Reward::on_unbalanced(r);
+										},
+									}
+								},
+								None => Err(Error::<T>::StakeDoesNotExists)?,
+							}
+						} else if winning_decision == 2 {
+							// winning decision 2 means draw, so return the money
+							match stake_of {
+								Some(stake) => {
+									let balance = Self::u64_to_balance_saturated(stake);
+									let mut juror_got_incentives =
+										<JurorsIncentiveDistributedAccounts<T>>::get(&key);
+									match juror_got_incentives.binary_search(&who) {
+										Ok(_) => Err(Error::<T>::AlreadyGotIncentives)?,
+										Err(index) => {
+											juror_got_incentives.insert(index, who.clone());
+											<JurorsIncentiveDistributedAccounts<T>>::insert(
+												&key,
+												juror_got_incentives,
+											);
+											let r = T::Currency::deposit_into_existing(
+												&who, balance,
+											)
+											.ok()
+											.unwrap();
+											T::Reward::on_unbalanced(r);
+										},
+									}
+								},
+								None => Err(Error::<T>::StakeDoesNotExists)?,
+							}
+						} else {
+							// Lost jurors
+							match stake_of {
+								Some(stake) => {
+									let balance = Self::u64_to_balance_saturated(stake * 3 / 4);
+									let mut juror_got_incentives =
+										<JurorsIncentiveDistributedAccounts<T>>::get(&key);
+									match juror_got_incentives.binary_search(&who) {
+										Ok(_) => Err(Error::<T>::AlreadyGotIncentives)?,
+										Err(index) => {
+											juror_got_incentives.insert(index, who.clone());
+											<JurorsIncentiveDistributedAccounts<T>>::insert(
+												&key,
+												juror_got_incentives,
+											);
+											let r = T::Currency::deposit_into_existing(
+												&who, balance,
+											)
+											.ok()
+											.unwrap();
+											T::Reward::on_unbalanced(r);
+										},
+									}
+								},
+								None => Err(Error::<T>::StakeDoesNotExists)?,
+							}
+						}
+					},
+					None => Err(Error::<T>::VoteNotRevealed)?,
+				}
+			},
+			None => Err(Error::<T>::CommitDoesNotExists)?,
+		}
+		Ok(())
+
+	}
+
+	pub(super) fn get_winning_decision(decision_tuple: (u64, u64)) -> u8 {
+		if decision_tuple.1 > decision_tuple.0 {
+			1 // Decision 1 won
+		} else if decision_tuple.0 > decision_tuple.1 {
+			0 // Decision 0 won
+		} else {
+			2 // draw
+		}
+	}
+
+	pub(super) fn get_winning_incentives(
+		decision_tuple: (u64, u64),
+		incentive_tuple: (u64, u64),
+	) -> (u8, u64) {
+		let winning_decision = Self::get_winning_decision(decision_tuple);
+		if winning_decision == 0 {
+			let winning_incentives =
+				(incentive_tuple.1).checked_div(decision_tuple.0).expect("Overflow");
+			(winning_decision, winning_incentives)
+		} else if winning_decision == 1 {
+			let winning_incentives =
+				(incentive_tuple.1).checked_div(decision_tuple.1).expect("Overflow");
+			(winning_decision, winning_incentives)
+		} else {
+			(winning_decision, 0)
+		}
+	}
+	
 	pub(super) fn balance_to_u64_saturated(input: BalanceOf<T>) -> u64 {
 		input.saturated_into::<u64>()
 	}
