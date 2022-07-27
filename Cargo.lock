@@ -6000,6 +6000,7 @@ dependencies = [
  "pallet-balances",
  "parity-scale-codec 3.1.2",
  "scale-info",
+ "schelling-game-shared-link",
  "sortition-sum-game",
  "sortition-sum-game-link",
  "sp-arithmetic",
@@ -6007,6 +6008,14 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "schelling-game-shared-link"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec 3.1.2",
 ]
 
 [[package]]

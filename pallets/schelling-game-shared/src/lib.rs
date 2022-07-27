@@ -229,6 +229,7 @@ pub mod pallet {
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
 		PeriodExists,
+		EvidencePeriodNotOver,
 		StakingPeriodNotOver,
 		MaxJurorNotDrawn,
 		CommitPeriodNotOver,

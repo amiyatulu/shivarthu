@@ -1,4 +1,109 @@
 use crate::*;
+use schelling_game_shared_link::SchellingGameSharedLink;
+
+impl<T: Config> SchellingGameSharedLink for Pallet<T> {
+	type SumTreeName = SumTreeName;
+	type SchellingGameType = SchellingGameType;
+	type BlockNumber = BlockNumberOf<T>;
+	type AccountId = AccountIdOf<T>;
+	type Balance = BalanceOf<T>;
+
+	fn set_to_evidence_period_link(key: Self::SumTreeName) -> DispatchResult {
+		Self::set_to_evidence_period(key)
+	}
+	fn set_to_staking_period_link(
+		key: Self::SumTreeName,
+		game_type: Self::SchellingGameType,
+		evidence_stake_block_number: Self::BlockNumber,
+		now: Self::BlockNumber,
+	) -> DispatchResult {
+		Self::set_to_staking_period(key, game_type, evidence_stake_block_number, now)
+	}
+	fn change_period_link(
+		key: Self::SumTreeName,
+		game_type: Self::SchellingGameType,
+		now: Self::BlockNumber,
+	) -> DispatchResult {
+		Self::change_period(key, game_type, now)
+	}
+	fn apply_jurors_helper_link(
+		key: Self::SumTreeName,
+		game_type: Self::SchellingGameType,
+		who: Self::AccountId,
+		stake: Self::Balance,
+	) -> DispatchResult {
+		Self::apply_jurors_helper(key, game_type, who, stake)
+	}
+	fn draw_jurors_helper_link(
+		key: Self::SumTreeName,
+		game_type: Self::SchellingGameType,
+		iterations: u64,
+	) -> DispatchResult{
+		Self::draw_jurors_helper(key, game_type, iterations)
+	}
+	fn unstaking_helper_link(key: Self::SumTreeName, who: Self::AccountId) -> DispatchResult{
+		Self::unstaking_helper(key, who)
+	}
+	fn commit_vote_helper_link(
+		key: Self::SumTreeName,
+		who: Self::AccountId,
+		vote_commit: [u8; 32],
+	) -> DispatchResult {
+		Self::commit_vote_helper(key, who, vote_commit)
+	}
+	fn reveal_vote_two_choice_helper_link(
+		key: Self::SumTreeName,
+		who: Self::AccountId,
+		choice: u128,
+		salt: Vec<u8>,
+	) -> DispatchResult {
+		Self::reveal_vote_two_choice_helper(key, who, choice, salt)
+	}
+	fn get_incentives_two_choice_helper_link(
+		key: Self::SumTreeName,
+		game_type: Self::SchellingGameType,
+		who: Self::AccountId,
+	) -> DispatchResult {
+         Self::get_incentives_two_choice_helper(key, game_type, who)
+	}
+	fn get_evidence_period_end_block_helper_link(
+		game_type: Self::SchellingGameType,
+		start_block_number: Self::BlockNumber,
+		now: Self::BlockNumber,
+	) -> Option<u32> {
+		Self::get_evidence_period_end_block_helper(game_type, start_block_number, now)
+	}
+	fn get_staking_period_end_block_helper_link(
+		key: Self::SumTreeName,
+		game_type: Self::SchellingGameType,
+		now: Self::BlockNumber,
+	) -> Option<u32> {
+		Self::get_staking_period_end_block_helper(key, game_type, now)
+	}
+	fn get_drawing_period_end_helper_link(
+		key: Self::SumTreeName,
+		game_type: Self::SchellingGameType,
+	) -> (u64, u64, bool) {
+		Self::get_drawing_period_end_helper(key, game_type)
+	}
+	fn get_commit_period_end_block_helper_link(
+		key: Self::SumTreeName,
+		game_type: Self::SchellingGameType,
+		now: Self::BlockNumber,
+	) -> Option<u32> {
+		Self::get_commit_period_end_block_helper(key, game_type, now)
+	}
+	fn get_vote_period_end_block_helper_link(
+		key: Self::SumTreeName,
+		game_type: Self::SchellingGameType,
+		now: Self::BlockNumber,
+	) -> Option<u32> {
+		Self::get_vote_period_end_block_helper(key, game_type, now)
+	}
+	fn selected_as_juror_helper_link(key: Self::SumTreeName, who: Self::AccountId) -> bool {
+		Self::selected_as_juror_helper(key, who)
+	}
+}
 
 impl<T: Config> Pallet<T> {
 	// Set to evidence period, when some one stakes for validation
@@ -24,10 +129,14 @@ impl<T: Config> Pallet<T> {
 		if let Some(Period::Evidence) = <PeriodName<T>>::get(&key) {
 			let time = now.checked_sub(&evidence_stake_block_number).expect("Overflow");
 			let block_time = <MinBlockTime<T>>::get(&game_type);
+			// println!("time {:?}", time);
+			// println!("blocktime {:?}",block_time.min_short_block_length );
 			if time >= block_time.min_short_block_length {
 				let new_period = Period::Staking;
 				<PeriodName<T>>::insert(&key, new_period);
 				<StakingStartTime<T>>::insert(&key, now);
+			} else {
+				Err(Error::<T>::EvidencePeriodNotOver)?
 			}
 		}
 
@@ -36,8 +145,8 @@ impl<T: Config> Pallet<T> {
 
 	pub(super) fn change_period(
 		key: SumTreeName,
-		now: BlockNumberOf<T>,
 		game_type: SchellingGameType,
+		now: BlockNumberOf<T>		
 	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
 			Some(period) => {
@@ -139,7 +248,7 @@ impl<T: Config> Pallet<T> {
 	pub(super) fn draw_jurors_helper(
 		key: SumTreeName,
 		game_type: SchellingGameType,
-		interations: u64,
+		iterations: u64,
 	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
 			Some(period) => {
@@ -150,8 +259,8 @@ impl<T: Config> Pallet<T> {
 		let draw_limit = <DrawJurorsLimitNum<T>>::get(&game_type);
 		let draws_in_round = <DrawsInRound<T>>::get(&key);
 		ensure!(draws_in_round < draw_limit.max_draws.into(), Error::<T>::MaxDrawExceeded);
-		let mut end_index = draws_in_round + interations;
-		if draws_in_round + interations >= draw_limit.max_draws {
+		let mut end_index = draws_in_round + iterations;
+		if draws_in_round + iterations >= draw_limit.max_draws {
 			end_index = draw_limit.max_draws;
 		}
 		let mut draw_increment = draws_in_round.clone();
@@ -183,7 +292,6 @@ impl<T: Config> Pallet<T> {
 	// When DrawnJurors contains stake, use drawn_juror.binary_search_by(|(c, _)| c.cmp(&who));
 	pub(super) fn unstaking_helper(
 		key: SumTreeName,
-		game_type: SchellingGameType,
 		who: AccountIdOf<T>,
 	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {

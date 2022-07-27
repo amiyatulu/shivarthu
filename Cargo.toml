@@ -4,6 +4,7 @@ members = [
     "pallets/template",
     "pallets/sortition-sum-game",
     "traits/sortition-sum-game-link",
+    "traits/schelling-game-shared-link",
     "pallets/election",
     "pallets/score-game",
     "pallets/schelling-game-shared",
