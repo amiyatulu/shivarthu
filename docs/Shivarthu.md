@@ -45,7 +45,7 @@ Then jurors will vote for their decision using the commit and reveal scheme. In 
 If a juror's vote is coherent (more than 51% of other jurors agree) then they receive incentives, otherwise, incentives are deducted from the stake of the juror. 
 
 Sortition Sum Game pallets:
-https://github.com/amiyatulu/shivarthu/tree/main/pallets/schelling-game
+https://github.com/amiyatulu/shivarthu/tree/main/pallets/sortition-sum-game
 
 
 #### Voting for selection of department representatives:
@@ -80,27 +80,32 @@ After that persons wanting to take the lead to implement the solution will apply
 
 
 
-### Money for projects:   
+## Money for department:   
 
-People can either directly donate to the projects or to the department funding pool. Transaction fees of governance token are also collected and kept in the tax funding pool.   
+Form a department with a location with some min members, say 3000, and get it approved by the main governance.    
 
-The amount you can contribute to the department funding pool is calculated using the following formula.  
+### Department price discovery:   
 
-Total Transaction Fees collected for 15 days = X  
-Total Stake fees for all users for 15 days = Y  
-Your stake = small y  
+Say we have 1,000,000 departments with 3000 population each.    
 
-You can contribute to the Funding pool = X/Y * y   
+Mega department with 1,000,000 population, will get 300x more weightage funding.   
 
-Total transaction fees collected: 50000  
-Total stake = 10000  
-Your stake = 100  
+With score schelling game, we will get score between 0-10  
+Score schelling game: 0-10 scores  
+10 means 100% funding  
+1 means 10% funding  
+0 means no funding  
 
-You can contribute to the funding pool = 50000/10000 * 100
+ax+ 0.1bx + 0.2cx + 0.3dx + ..... + 0.9jx = Total fund   
 
-Then, funding to the projects is distributed through the score schelling game. 
+100% funding = x    
+0.1 when you get 1 score, 0.3 when you get 3 score etc.   
+a, b, c, etc. are a number of departments with particular scores.     
 
-### Price discovery through Score Schelling Game:
+
+
+
+## Price discovery of projects through Score Schelling Game:
 You can rate the project from 1-5, without knowing what others are assigning. If the “mean” of all the product rating is near to your rating then the juror will get incentives, otherwise, juror incentives will be deducted. So, the juror will try to match the score with what others will assign based on information available rather than defecting by any arbitrary rating.
 We can discover the prices of projects that need to be funded from a common funding pool.
 Here is an algorithm:
