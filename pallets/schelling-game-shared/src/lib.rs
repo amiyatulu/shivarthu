@@ -15,7 +15,7 @@ mod tests;
 mod benchmarking;
 
 mod extras;
-mod types;
+pub mod types;
 
 use crate::types::{CommitVote, DrawJurorsLimit, Period, SchellingGameType, StakingTime, VoteStatus};
 use frame_support::pallet_prelude::*;

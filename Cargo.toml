@@ -8,6 +8,7 @@ members = [
     "pallets/election",
     "pallets/score-game",
     "pallets/schelling-game-shared",
+    "pallets/profile-validation",
     "runtime",
 ]
 [profile.release]
