@@ -10,6 +10,9 @@ pub trait SchellingGameSharedLink {
 	type Balance;
 
 	fn set_to_evidence_period_link(key: Self::SumTreeName) -> DispatchResult;
+
+	fn create_tree_helper_link(key: Self::SumTreeName, k: u64) -> DispatchResult;
+
 	fn set_to_staking_period_link(
 		key: Self::SumTreeName,
 		game_type: Self::SchellingGameType,

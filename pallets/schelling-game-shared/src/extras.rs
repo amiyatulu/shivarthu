@@ -11,6 +11,10 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	fn set_to_evidence_period_link(key: Self::SumTreeName) -> DispatchResult {
 		Self::set_to_evidence_period(key)
 	}
+
+	fn create_tree_helper_link(key: Self::SumTreeName, k: u64) -> DispatchResult {
+		Self::create_tree_link_helper(key, k)
+	}
 	fn set_to_staking_period_link(
 		key: Self::SumTreeName,
 		game_type: Self::SchellingGameType,
@@ -38,10 +42,10 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 		key: Self::SumTreeName,
 		game_type: Self::SchellingGameType,
 		iterations: u64,
-	) -> DispatchResult{
+	) -> DispatchResult {
 		Self::draw_jurors_helper(key, game_type, iterations)
 	}
-	fn unstaking_helper_link(key: Self::SumTreeName, who: Self::AccountId) -> DispatchResult{
+	fn unstaking_helper_link(key: Self::SumTreeName, who: Self::AccountId) -> DispatchResult {
 		Self::unstaking_helper(key, who)
 	}
 	fn commit_vote_helper_link(
@@ -64,7 +68,7 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 		game_type: Self::SchellingGameType,
 		who: Self::AccountId,
 	) -> DispatchResult {
-         Self::get_incentives_two_choice_helper(key, game_type, who)
+		Self::get_incentives_two_choice_helper(key, game_type, who)
 	}
 	fn get_evidence_period_end_block_helper_link(
 		game_type: Self::SchellingGameType,
@@ -143,10 +147,15 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	pub(super) fn create_tree_link_helper(key: SumTreeName, k: u64) -> DispatchResult {
+		let result = T::SortitionSumGameSource::create_tree_link(key.clone(), 3);
+		result
+	}
+
 	pub(super) fn change_period(
 		key: SumTreeName,
 		game_type: SchellingGameType,
-		now: BlockNumberOf<T>		
+		now: BlockNumberOf<T>,
 	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
 			Some(period) => {
@@ -290,10 +299,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	// When DrawnJurors contains stake, use drawn_juror.binary_search_by(|(c, _)| c.cmp(&who));
-	pub(super) fn unstaking_helper(
-		key: SumTreeName,
-		who: AccountIdOf<T>,
-	) -> DispatchResult {
+	pub(super) fn unstaking_helper(key: SumTreeName, who: AccountIdOf<T>) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
 			Some(period) => {
 				ensure!(
