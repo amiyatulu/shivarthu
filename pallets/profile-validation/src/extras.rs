@@ -12,15 +12,17 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_evidence_period_end_block(profile_citizenid: u128) -> Option<u32> {
 		let now = <frame_system::Pallet<T>>::block_number();
+		let key = SumTreeName::UniqueIdenfier1 {
+			citizen_id: profile_citizenid,
+			name: "challengeprofile".as_bytes().to_vec(),
+		};
 		let game_type = SchellingGameType::ProfileApproval;
 		match <ProfileFundDetails<T>>::get(&profile_citizenid) {
-			Some(profilefundinfo) => {
-				let start_block_number = profilefundinfo.start;
+			Some(_profilefundinfo) => {
+				// let start_block_number = profilefundinfo.start;
 				let result =
 					T::SchellingGameSharedSource::get_evidence_period_end_block_helper_link(
-						game_type,
-						start_block_number,
-						now,
+						key, game_type, now,
 					);
 				result
 			},

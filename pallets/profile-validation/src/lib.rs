@@ -223,7 +223,7 @@ pub mod pallet {
 					let profile_fund_info = ProfileFundInfo {
 						funder_account_id: who,
 						deposit,
-						start: now,
+						start: now.clone(),
 						validated: false,
 						reapply: false,
 						deposit_returned: false,
@@ -237,7 +237,7 @@ pub mod pallet {
 				name: "challengeprofile".as_bytes().to_vec(),
 			};
 
-			let result = T::SchellingGameSharedSource::set_to_evidence_period_link(key);
+			let result = T::SchellingGameSharedSource::set_to_evidence_period_link(key, now);
 
 			result
 		}
@@ -340,12 +340,11 @@ pub mod pallet {
 					if profilefundinfo.validated == true {
 						Err(Error::<T>::ProfileIsAlreadyValidated)?;
 					} else {
-						let evidence_stake_block_number = profilefundinfo.start; // recheck it
+						let _evidence_stake_block_number = profilefundinfo.start; // remove the profile fund info start
 
 						let _result = T::SchellingGameSharedSource::set_to_staking_period_link(
 							key.clone(),
 							game_type,
-							evidence_stake_block_number,
 							now,
 						);
 

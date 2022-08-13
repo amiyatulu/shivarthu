@@ -16,7 +16,7 @@ fn run_to_block(n: u64) {
 	}
 }
 
-fn return_key(citizen_id: u128) -> SumTreeName {
+fn return_key_profile(citizen_id: u128) -> SumTreeName {
 	let key = SumTreeName::UniqueIdenfier1 {
 		citizen_id: citizen_id,
 		name: "challengeprofile".as_bytes().to_vec(),
@@ -24,34 +24,51 @@ fn return_key(citizen_id: u128) -> SumTreeName {
 	key
 }
 
-fn return_game_type() -> SchellingGameType {
+fn return_game_type_profile_approval() -> SchellingGameType {
 	SchellingGameType::ProfileApproval
 }
 
+fn return_min_short_block_length() -> u64 {
+	let schelling_game_type = return_game_type_profile_approval();
+	let min_block_time = TemplateModule::min_block_time(schelling_game_type);
+	min_block_time.min_short_block_length
+}
+
+fn return_min_long_block_length() -> u64 {
+	let schelling_game_type = return_game_type_profile_approval();
+	let min_block_time = TemplateModule::min_block_time(schelling_game_type);
+	min_block_time.min_long_block_length
+}
 
 
 
 #[test]
 fn evidence_period_not_over_test(){
 	new_test_ext().execute_with(|| {
-       let key = return_key(0);
-	   assert_ok!(TemplateModule::set_to_evidence_period(key.clone()));
+       let key = return_key_profile(0);
+	   let now = 10;
+	   assert_ok!(TemplateModule::set_to_evidence_period(key.clone(), now));
 	   assert_eq!(TemplateModule::get_period(&key).unwrap(), Period::Evidence);
-	   let game_type = return_game_type();
-	   assert_noop!(TemplateModule::set_to_staking_period(key.clone(), game_type, 10, 20),  Error::<Test>::EvidencePeriodNotOver);
+	   let game_type = return_game_type_profile_approval();
+	   let min_short_block_length = return_min_short_block_length();
+	   let now2 = now + min_short_block_length - 1;
+	   assert_noop!(TemplateModule::set_to_staking_period(key.clone(), game_type, now2),  Error::<Test>::EvidencePeriodNotOver);
 	});
 }
 
 
 
 #[test]
-fn evidence_period__test(){
+fn evidence_period_test(){
 	new_test_ext().execute_with(|| {
-       let key = return_key(0);
-	   assert_ok!(TemplateModule::set_to_evidence_period(key.clone()));
+       let key = return_key_profile(0);
+	   let now = 10;
+	   assert_ok!(TemplateModule::set_to_evidence_period(key.clone(), now));
 	   assert_eq!(TemplateModule::get_period(&key).unwrap(), Period::Evidence);
-	   let game_type = return_game_type();
-	   assert_ok!(TemplateModule::set_to_staking_period(key.clone(), game_type, 10, 60));
+	   let game_type = return_game_type_profile_approval();
+	   let min_short_block_length = return_min_short_block_length();
+	   let now2 = now + min_short_block_length;
+	   assert_ok!(TemplateModule::set_to_staking_period(key.clone(), game_type, now2));
 	});
 }
 

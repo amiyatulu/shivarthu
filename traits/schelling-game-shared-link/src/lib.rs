@@ -9,14 +9,12 @@ pub trait SchellingGameSharedLink {
 	type AccountId;
 	type Balance;
 
-	fn set_to_evidence_period_link(key: Self::SumTreeName) -> DispatchResult;
-
+	fn set_to_evidence_period_link(key: Self::SumTreeName, now: Self::BlockNumber) -> DispatchResult;
 	fn create_tree_helper_link(key: Self::SumTreeName, k: u64) -> DispatchResult;
 
 	fn set_to_staking_period_link(
 		key: Self::SumTreeName,
 		game_type: Self::SchellingGameType,
-		evidence_stake_block_number: Self::BlockNumber,
 		now: Self::BlockNumber,
 	) -> DispatchResult;
 	fn change_period_link(
@@ -53,8 +51,8 @@ pub trait SchellingGameSharedLink {
 		who: Self::AccountId,
 	) -> DispatchResult;
 	fn get_evidence_period_end_block_helper_link(
+		key: Self::SumTreeName,
 		game_type: Self::SchellingGameType,
-		start_block_number: Self::BlockNumber,
 		now: Self::BlockNumber,
 	) -> Option<u32>;
 	fn get_staking_period_end_block_helper_link(

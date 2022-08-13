@@ -17,11 +17,14 @@ mod benchmarking;
 mod extras;
 pub mod types;
 
-use crate::types::{CommitVote, DrawJurorsLimit, Period, SchellingGameType, StakingTime, VoteStatus};
+use crate::types::{
+	CommitVote, DrawJurorsLimit, Period, SchellingGameType, StakingTime, VoteStatus,
+};
 use frame_support::pallet_prelude::*;
 use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
 use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::prelude::*;
+use frame_support::traits::Randomness;
 use frame_support::{
 	traits::{
 		Currency, ExistenceRequirement, Get, Imbalance, OnUnbalanced, ReservableCurrency,
@@ -33,7 +36,6 @@ use frame_system::pallet_prelude::*;
 use num_integer::Roots;
 use sortition_sum_game::types::SumTreeName;
 use sortition_sum_game_link::SortitionSumGameLink;
-use frame_support::{traits::Randomness};
 
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -55,9 +57,11 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-		type SortitionSumGameSource: SortitionSumGameLink<SumTreeName = SumTreeName, AccountId=Self::AccountId>;
+		type SortitionSumGameSource: SortitionSumGameLink<
+			SumTreeName = SumTreeName,
+			AccountId = Self::AccountId,
+		>;
 
-	
 		type Currency: ReservableCurrency<Self::AccountId>;
 
 		type RandomnessSource: Randomness<Self::Hash, Self::BlockNumber>;
@@ -95,6 +99,8 @@ pub mod pallet {
 		// 5 mins (50)
 	}
 
+	///`StakingTime` `min_short_block_length` for changing `Period::Evidence` to `Period::Staking`   
+	///`StakingTime` `min_long_block_length` for changing other periods in `change_period`   
 	#[pallet::storage]
 	#[pallet::getter(fn min_block_time)]
 	pub type MinBlockTime<T> = StorageMap<
@@ -125,6 +131,13 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn draws_in_round)]
 	pub type DrawsInRound<T> = StorageMap<_, Blake2_128Concat, SumTreeName, u64, ValueQuery>; // A counter of draws made in the current round.
+
+
+	#[pallet::storage]
+	#[pallet::getter(fn evidence_start_time)]
+	pub type EvidenceStartTime<T> =
+		StorageMap<_, Blake2_128Concat, SumTreeName, BlockNumberOf<T>, ValueQuery>;
+
 
 	#[pallet::storage]
 	#[pallet::getter(fn staking_start_time)]
@@ -230,7 +243,7 @@ pub mod pallet {
 		PeriodDontMatch,
 		StakeLessThanMin,
 		AlreadyStaked,
-		MaxDrawExceeded, 
+		MaxDrawExceeded,
 		SelectedAsJuror,
 		AlreadyUnstaked,
 		StakeDoesNotExists,
@@ -247,6 +260,5 @@ pub mod pallet {
 	// These functions materialize as "extrinsics", which are often compared to transactions.
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {
-	}
+	impl<T: Config> Pallet<T> {}
 }

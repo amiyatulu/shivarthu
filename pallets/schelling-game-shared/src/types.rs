@@ -6,6 +6,7 @@ use scale_info::TypeInfo;
 #[cfg_attr(feature = "std", derive(Debug))]
 pub enum Period {
 	Evidence,  // Evidence can be submitted. This is also when drawing has to take place.
+	Challenge, // Challenge stake is sumitted for evidence.
 	Staking, // Stake sum trees can be updated. Pass after `minStakingTime` passes and there is at least one dispute without jurors.
 	Commit,  // Jurors commit a hashed vote. This is skipped for courts without hidden votes.
 	Vote,    // Jurors reveal/cast their vote depending on whether the court has hidden votes or not.

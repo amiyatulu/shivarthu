@@ -7,21 +7,25 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	type BlockNumber = BlockNumberOf<T>;
 	type AccountId = AccountIdOf<T>;
 	type Balance = BalanceOf<T>;
-    
-	/// Set `PeriodName` to `Period::Evidence`  
-	fn set_to_evidence_period_link(key: Self::SumTreeName) -> DispatchResult {
-		Self::set_to_evidence_period(key)
+
+	/// Set `PeriodName` to `Period::Evidence`
+	/// Called with submission of `Evidence` stake e.g. Profile stake
+	/// Also set `EvidenceStartTime`    
+	fn set_to_evidence_period_link(key: Self::SumTreeName, now: Self::BlockNumber) -> DispatchResult {
+		Self::set_to_evidence_period(key, now)
 	}
+    
 
 	/// Create a sortition sum tree   
 	fn create_tree_helper_link(key: Self::SumTreeName, k: u64) -> DispatchResult {
 		Self::create_tree_link_helper(key, k)
 	}
 
-	/// Check `Period` is `Evidence`, and change it to `Staking`  
-	/// Check evidence period is over (from the time when stake for evidence (`evidence_stake_block_number`) was sumitted )
+	/// Check `Period` is `Evidence`, and change it to `Staking` 
+	/// It called with function that submits challenge stake after `end_block` of evidence period  
+	/// Check evidence period is over 
 	#[doc=include_str!("docimage/set_to_staking_period_1.svg")]
-	/// ```rust
+	/// ```ignore
 	/// if time >= block_time.min_short_block_length {
 	///        // change `Period` to `Staking`
 	///  }
@@ -29,34 +33,33 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	fn set_to_staking_period_link(
 		key: Self::SumTreeName,
 		game_type: Self::SchellingGameType,
-		evidence_stake_block_number: Self::BlockNumber,
 		now: Self::BlockNumber,
 	) -> DispatchResult {
-		Self::set_to_staking_period(key, game_type, evidence_stake_block_number, now)
+		Self::set_to_staking_period(key, game_type, now)
 	}
 
 	/// Change the `Period`
 	///    
-	/// `Period::Staking` to `Period::Drawing` 
+	/// `Period::Staking` to `Period::Drawing`
 	#[doc=include_str!("docimage/change_period_link_1.svg")]
-	/// ```rust
+	/// ```ignore
 	/// if now >= min_long_block_length + staking_start_time {
 	///   // Change `Period::Staking` to `Period::Drawing`   
 	/// }
 	/// ```
-	/// 
+	///
 	///  `Period::Drawing` to `Period::Commit`   
 	/// When maximum juror are drawn   
 	///  
 	/// `Period::Commit` to `Period::Vote`       
-	/// ```rust
+	/// ```ignore
 	/// if now >= min_long_block_length + commit_start_time {
 	///   // Change `Period::Commit` to `Period::Vote`  
 	/// }
-	/// ``` 
-	/// 
+	/// ```
+	///
 	/// `Period::Vote` to `Period::Execution`   
-	/// ```rust
+	/// ```ignore
 	/// if now >= min_long_block_length + vote_start_time {
 	///   // Change `Period::Vote` to `Period::Execution`   
 	/// }
@@ -85,7 +88,7 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	/// Draw Jurors  
 	/// Ensure `Period` is `Drawing`  
 	/// `iterations` is number of jurors drawn per call  
-	/// Ensure total draws `draws_in_round` is less than `max_draws` 
+	/// Ensure total draws `draws_in_round` is less than `max_draws`
 	fn draw_jurors_helper_link(
 		key: Self::SumTreeName,
 		game_type: Self::SchellingGameType,
@@ -132,15 +135,15 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 		Self::get_incentives_two_choice_helper(key, game_type, who)
 	}
 
-	/// Blocks left for ending evidence period   
-	/// `start_block_number` evidence start time   
-	/// Improvement: Store evidence start time in storage   
+	/// Blocks left for ending evidence period 
+	/// When evidence time ends, you can submit the challenge stake    
+	/// `start_block_number` evidence start time which you will get from `EvidenceStartTime`    
 	fn get_evidence_period_end_block_helper_link(
+		key: Self::SumTreeName,
 		game_type: Self::SchellingGameType,
-		start_block_number: Self::BlockNumber,
 		now: Self::BlockNumber,
 	) -> Option<u32> {
-		Self::get_evidence_period_end_block_helper(game_type, start_block_number, now)
+		Self::get_evidence_period_end_block_helper(key, game_type, now)
 	}
 
 	/// Blocks left for ending staking period  
@@ -159,7 +162,7 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	) -> (u64, u64, bool) {
 		Self::get_drawing_period_end_helper(key, game_type)
 	}
-	
+
 	/// Blocks left for ending drawing period
 	fn get_commit_period_end_block_helper_link(
 		key: Self::SumTreeName,
@@ -186,12 +189,13 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 
 impl<T: Config> Pallet<T> {
 	/// Set to evidence period, when some one stakes for validation
-	pub(super) fn set_to_evidence_period(key: SumTreeName) -> DispatchResult {
+	pub(super) fn set_to_evidence_period(key: SumTreeName, now: BlockNumberOf<T>) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
 			Some(_period) => Err(Error::<T>::PeriodExists)?,
 			None => {
 				let period = Period::Evidence;
 				<PeriodName<T>>::insert(&key, period);
+				<EvidenceStartTime<T>>::insert(&key, now);
 			},
 		}
 		Ok(())
@@ -201,10 +205,10 @@ impl<T: Config> Pallet<T> {
 	pub(super) fn set_to_staking_period(
 		key: SumTreeName,
 		game_type: SchellingGameType,
-		evidence_stake_block_number: BlockNumberOf<T>,
 		now: BlockNumberOf<T>,
 	) -> DispatchResult {
 		if let Some(Period::Evidence) = <PeriodName<T>>::get(&key) {
+			let evidence_stake_block_number = <EvidenceStartTime<T>>::get(&key);
 			let time = now.checked_sub(&evidence_stake_block_number).expect("Overflow");
 			let block_time = <MinBlockTime<T>>::get(&game_type);
 			if time >= block_time.min_short_block_length {
@@ -661,10 +665,11 @@ impl<T: Config> Pallet<T> {
 		// nonce.encode()
 	}
 	pub(super) fn get_evidence_period_end_block_helper(
+		key: SumTreeName,
 		game_type: SchellingGameType,
-		start_block_number: BlockNumberOf<T>,
 		now: BlockNumberOf<T>,
 	) -> Option<u32> {
+		let start_block_number = <EvidenceStartTime<T>>::get(&key);
 		let block_time = <MinBlockTime<T>>::get(&game_type);
 		let end_block = start_block_number
 			.checked_add(&block_time.min_short_block_length)
