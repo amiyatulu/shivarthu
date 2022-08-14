@@ -6,7 +6,6 @@ use scale_info::TypeInfo;
 #[cfg_attr(feature = "std", derive(Debug))]
 pub enum Period {
 	Evidence,  // Evidence can be submitted. This is also when drawing has to take place.
-	Challenge, // Challenge stake is sumitted for evidence.
 	Staking, // Stake sum trees can be updated. Pass after `minStakingTime` passes and there is at least one dispute without jurors.
 	Commit,  // Jurors commit a hashed vote. This is skipped for courts without hidden votes.
 	Vote,    // Jurors reveal/cast their vote depending on whether the court has hidden votes or not.
@@ -50,5 +49,20 @@ pub enum VoteStatus {
 pub struct CommitVote {
 	pub commit: [u8; 32],
 	pub votestatus: VoteStatus,
-	pub vote_revealed: Option<u8>,
+	pub revealed_vote: Option<RevealedVote>,
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub enum RevealedVote {
+	Yes,
+	No,
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub enum WinningDecision {
+	WinnerYes,
+	WinnerNo,
+	Draw
 }

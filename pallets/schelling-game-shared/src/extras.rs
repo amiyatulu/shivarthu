@@ -11,19 +11,21 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	/// Set `PeriodName` to `Period::Evidence`
 	/// Called with submission of `Evidence` stake e.g. Profile stake
 	/// Also set `EvidenceStartTime`    
-	fn set_to_evidence_period_link(key: Self::SumTreeName, now: Self::BlockNumber) -> DispatchResult {
+	fn set_to_evidence_period_link(
+		key: Self::SumTreeName,
+		now: Self::BlockNumber,
+	) -> DispatchResult {
 		Self::set_to_evidence_period(key, now)
 	}
-    
 
 	/// Create a sortition sum tree   
 	fn create_tree_helper_link(key: Self::SumTreeName, k: u64) -> DispatchResult {
 		Self::create_tree_link_helper(key, k)
 	}
 
-	/// Check `Period` is `Evidence`, and change it to `Staking` 
-	/// It called with function that submits challenge stake after `end_block` of evidence period  
-	/// Check evidence period is over 
+	/// Check `Period` is `Evidence`, and change it to `Staking`   
+	/// It is called with function that submits challenge stake after `end_block` of evidence period  
+	/// Checks evidence period is over
 	#[doc=include_str!("docimage/set_to_staking_period_1.svg")]
 	/// ```ignore
 	/// if time >= block_time.min_short_block_length {
@@ -135,7 +137,7 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 		Self::get_incentives_two_choice_helper(key, game_type, who)
 	}
 
-	/// Blocks left for ending evidence period 
+	/// Blocks left for ending evidence period
 	/// When evidence time ends, you can submit the challenge stake    
 	/// `start_block_number` evidence start time which you will get from `EvidenceStartTime`    
 	fn get_evidence_period_end_block_helper_link(
@@ -189,7 +191,10 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 
 impl<T: Config> Pallet<T> {
 	/// Set to evidence period, when some one stakes for validation
-	pub(super) fn set_to_evidence_period(key: SumTreeName, now: BlockNumberOf<T>) -> DispatchResult {
+	pub(super) fn set_to_evidence_period(
+		key: SumTreeName,
+		now: BlockNumberOf<T>,
+	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
 			Some(_period) => Err(Error::<T>::PeriodExists)?,
 			None => {
@@ -200,7 +205,6 @@ impl<T: Config> Pallet<T> {
 		}
 		Ok(())
 	}
-
 
 	pub(super) fn set_to_staking_period(
 		key: SumTreeName,
@@ -358,15 +362,18 @@ impl<T: Config> Pallet<T> {
 			// let mut rng = rand::thread_rng();
 			// let random_number: u64 = rng.gen();
 			log::info!("Random number: {:?}", random_number);
-			let data = T::SortitionSumGameSource::draw_link(key.clone(), random_number)?;
+			let accountid = T::SortitionSumGameSource::draw_link(key.clone(), random_number)?;
+			let stake = T::SortitionSumGameSource::stake_of_link(key.clone(), accountid.clone())?;
+
 			let mut drawn_juror = <DrawnJurors<T>>::get(&key);
-			match drawn_juror.binary_search(&data) {
+			match drawn_juror.binary_search_by(|(c, _)| c.cmp(&accountid)) {
 				Ok(_) => {},
 				Err(index) => {
-					drawn_juror.insert(index, data);
+					drawn_juror.insert(index, (accountid.clone(), stake.unwrap()));
 					<DrawnJurors<T>>::insert(&key, drawn_juror);
 					draw_increment = draw_increment + 1;
 					// println!("draw_increment, {:?}", draw_increment);
+					let _set = T::SortitionSumGameSource::set_link(key.clone(), 0, accountid)?;
 				},
 			}
 			<DrawsInRound<T>>::insert(&key, draw_increment);
@@ -389,7 +396,7 @@ impl<T: Config> Pallet<T> {
 		}
 
 		let drawn_juror = <DrawnJurors<T>>::get(&key);
-		match drawn_juror.binary_search(&who.clone()) {
+		match drawn_juror.binary_search_by(|(c, _)| c.cmp(&who.clone())) {
 			Ok(_) => Err(Error::<T>::SelectedAsJuror)?,
 			Err(_) => {},
 		}
@@ -439,12 +446,12 @@ impl<T: Config> Pallet<T> {
 			None => Err(Error::<T>::PeriodDoesNotExists)?,
 		}
 		let drawn_jurors = <DrawnJurors<T>>::get(&key);
-		match drawn_jurors.binary_search(&who) {
+		match drawn_jurors.binary_search_by(|(c, _)| c.cmp(&who.clone())) {
 			Ok(_) => {
 				let vote_commit_struct = CommitVote {
 					commit: vote_commit,
 					votestatus: VoteStatus::Commited,
-					vote_revealed: None,
+					revealed_vote: None,
 				};
 				<VoteCommits<T>>::insert(&key, &who, vote_commit_struct);
 			},
@@ -484,11 +491,11 @@ impl<T: Config> Pallet<T> {
 					if choice == 1 {
 						decision_tuple.1 = decision_tuple.1 + 1;
 						<DecisionCount<T>>::insert(&key, decision_tuple);
-						commit_struct.vote_revealed = Some(1);
+						commit_struct.revealed_vote = Some(RevealedVote::Yes);
 					} else if choice == 0 {
 						decision_tuple.0 = decision_tuple.0 + 1;
 						<DecisionCount<T>>::insert(&key, decision_tuple);
-						commit_struct.vote_revealed = Some(0);
+						commit_struct.revealed_vote = Some(RevealedVote::No);
 					} else {
 						Err(Error::<T>::NotValidChoice)?
 					}
@@ -516,97 +523,70 @@ impl<T: Config> Pallet<T> {
 			None => Err(Error::<T>::PeriodDoesNotExists)?,
 		}
 
+		let drawn_juror = <DrawnJurors<T>>::get(&key);
+
 		let who_commit_vote = <VoteCommits<T>>::get(&key, &who);
 		match who_commit_vote {
 			Some(commit_struct) => {
-				let vote_option = commit_struct.vote_revealed;
+				let vote_option = commit_struct.revealed_vote;
 				match vote_option {
 					Some(vote) => {
 						let decision_count = <DecisionCount<T>>::get(&key);
 						let incentives = <JurorIncentives<T>>::get(&game_type);
 						let (winning_decision, winning_incentives) =
 							Self::get_winning_incentives(decision_count, incentives);
-						let stake_of =
-							T::SortitionSumGameSource::stake_of_link(key.clone(), who.clone())?;
-						if vote == winning_decision {
-							match stake_of {
-								Some(stake) => {
-									let mut juror_got_incentives =
-										<JurorsIncentiveDistributedAccounts<T>>::get(&key);
-									match juror_got_incentives.binary_search(&who) {
-										Ok(_) => Err(Error::<T>::AlreadyGotIncentives)?,
-										Err(index) => {
-											juror_got_incentives.insert(index, who.clone());
-											<JurorsIncentiveDistributedAccounts<T>>::insert(
-												&key,
-												juror_got_incentives,
-											);
-											let total_incentives = stake
-												.checked_add(winning_incentives)
-												.expect("overflow");
-											let incentives =
-												Self::u64_to_balance_saturated(total_incentives);
-											let r = T::Currency::deposit_into_existing(
-												&who, incentives,
-											)
-											.ok()
-											.unwrap();
-											T::Reward::on_unbalanced(r);
-										},
-									}
+						if let Ok(i) = drawn_juror.binary_search_by(|(c, _)| c.cmp(&who.clone())) {
+							let stake = drawn_juror[i].1;
+							match winning_decision {
+								WinningDecision::WinnerYes => match vote {
+									RevealedVote::Yes => {
+										let result = Self::winner_getting_incentives(
+											key.clone(),
+											who.clone(),
+											winning_incentives,
+											stake,
+										)?;
+										result
+									},
+									RevealedVote::No => {
+										let result = Self::looser_getting_incentives(
+											key.clone(),
+											who.clone(),
+											stake,
+										)?;
+										result
+									},
 								},
-								None => Err(Error::<T>::StakeDoesNotExists)?,
-							}
-						} else if winning_decision == 2 {
-							// winning decision 2 means draw, so return the money
-							match stake_of {
-								Some(stake) => {
-									let balance = Self::u64_to_balance_saturated(stake);
-									let mut juror_got_incentives =
-										<JurorsIncentiveDistributedAccounts<T>>::get(&key);
-									match juror_got_incentives.binary_search(&who) {
-										Ok(_) => Err(Error::<T>::AlreadyGotIncentives)?,
-										Err(index) => {
-											juror_got_incentives.insert(index, who.clone());
-											<JurorsIncentiveDistributedAccounts<T>>::insert(
-												&key,
-												juror_got_incentives,
-											);
-											let r =
-												T::Currency::deposit_into_existing(&who, balance)
-													.ok()
-													.unwrap();
-											T::Reward::on_unbalanced(r);
-										},
-									}
+								WinningDecision::WinnerNo => match vote {
+									RevealedVote::Yes => {
+										let result = Self::looser_getting_incentives(
+											key.clone(),
+											who.clone(),
+											stake,
+										)?;
+										result
+									},
+									RevealedVote::No => {
+										let result = Self::winner_getting_incentives(
+											key.clone(),
+											who.clone(),
+											winning_incentives,
+											stake,
+										)?;
+										result
+									},
 								},
-								None => Err(Error::<T>::StakeDoesNotExists)?,
+								WinningDecision::Draw => {
+									let result = Self::getting_incentives_draw(
+										key.clone(),
+										who.clone(),
+										stake.clone(),
+									)?;
+									result
+								},
 							}
 						} else {
-							// Lost jurors
-							match stake_of {
-								Some(stake) => {
-									let balance = Self::u64_to_balance_saturated(stake * 3 / 4);
-									let mut juror_got_incentives =
-										<JurorsIncentiveDistributedAccounts<T>>::get(&key);
-									match juror_got_incentives.binary_search(&who) {
-										Ok(_) => Err(Error::<T>::AlreadyGotIncentives)?,
-										Err(index) => {
-											juror_got_incentives.insert(index, who.clone());
-											<JurorsIncentiveDistributedAccounts<T>>::insert(
-												&key,
-												juror_got_incentives,
-											);
-											let r =
-												T::Currency::deposit_into_existing(&who, balance)
-													.ok()
-													.unwrap();
-											T::Reward::on_unbalanced(r);
-										},
-									}
-								},
-								None => Err(Error::<T>::StakeDoesNotExists)?,
-							}
+							Err(Error::<T>::StakeDoesNotExists)?
 						}
 					},
 					None => Err(Error::<T>::VoteNotRevealed)?,
@@ -617,31 +597,94 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	pub(super) fn get_winning_decision(decision_tuple: (u64, u64)) -> u8 {
+	pub(super) fn getting_incentives_draw(
+		key: SumTreeName,
+		who: AccountIdOf<T>,
+		stake: u64,
+	) -> DispatchResult {
+		let balance = Self::u64_to_balance_saturated(stake);
+		let mut juror_got_incentives = <JurorsIncentiveDistributedAccounts<T>>::get(&key);
+		match juror_got_incentives.binary_search(&who) {
+			Ok(_) => Err(Error::<T>::AlreadyGotIncentives)?,
+			Err(index) => {
+				juror_got_incentives.insert(index, who.clone());
+				<JurorsIncentiveDistributedAccounts<T>>::insert(&key, juror_got_incentives);
+				let r = T::Currency::deposit_into_existing(&who, balance).ok().unwrap();
+				T::Reward::on_unbalanced(r);
+			},
+		}
+
+		Ok(())
+	}
+
+	pub(super) fn looser_getting_incentives(
+		key: SumTreeName,
+		who: AccountIdOf<T>,
+		stake: u64,
+	) -> DispatchResult {
+		let balance = Self::u64_to_balance_saturated(stake * 3 / 4);
+		let mut juror_got_incentives = <JurorsIncentiveDistributedAccounts<T>>::get(&key);
+		match juror_got_incentives.binary_search(&who) {
+			Ok(_) => Err(Error::<T>::AlreadyGotIncentives)?,
+			Err(index) => {
+				juror_got_incentives.insert(index, who.clone());
+				<JurorsIncentiveDistributedAccounts<T>>::insert(&key, juror_got_incentives);
+				let r = T::Currency::deposit_into_existing(&who, balance).ok().unwrap();
+				T::Reward::on_unbalanced(r);
+			},
+		}
+		Ok(())
+	}
+
+	pub(super) fn winner_getting_incentives(
+		key: SumTreeName,
+		who: AccountIdOf<T>,
+		winning_incentives: u64,
+		stake: u64,
+	) -> DispatchResult {
+		let mut juror_got_incentives = <JurorsIncentiveDistributedAccounts<T>>::get(&key);
+		match juror_got_incentives.binary_search(&who) {
+			Ok(_) => Err(Error::<T>::AlreadyGotIncentives)?,
+			Err(index) => {
+				juror_got_incentives.insert(index, who.clone());
+				<JurorsIncentiveDistributedAccounts<T>>::insert(&key, juror_got_incentives);
+				let total_incentives = stake.checked_add(winning_incentives).expect("overflow");
+				let incentives = Self::u64_to_balance_saturated(total_incentives);
+				let r = T::Currency::deposit_into_existing(&who, incentives).ok().unwrap();
+				T::Reward::on_unbalanced(r);
+			},
+		};
+
+		Ok(())
+	}
+
+	pub(super) fn get_winning_decision(decision_tuple: (u64, u64)) -> WinningDecision {
 		if decision_tuple.1 > decision_tuple.0 {
-			1 // Decision 1 won
+			WinningDecision::WinnerYes // Decision 1 won
 		} else if decision_tuple.0 > decision_tuple.1 {
-			0 // Decision 0 won
+			WinningDecision::WinnerNo // Decision 0 won
 		} else {
-			2 // draw
+			WinningDecision::Draw // draw
 		}
 	}
 
 	pub(super) fn get_winning_incentives(
 		decision_tuple: (u64, u64),
 		incentive_tuple: (u64, u64),
-	) -> (u8, u64) {
+	) -> (WinningDecision, u64) {
 		let winning_decision = Self::get_winning_decision(decision_tuple);
-		if winning_decision == 0 {
-			let winning_incentives =
-				(incentive_tuple.1).checked_div(decision_tuple.0).expect("Overflow");
-			(winning_decision, winning_incentives)
-		} else if winning_decision == 1 {
-			let winning_incentives =
-				(incentive_tuple.1).checked_div(decision_tuple.1).expect("Overflow");
-			(winning_decision, winning_incentives)
-		} else {
-			(winning_decision, 0)
+		match winning_decision {
+			WinningDecision::WinnerYes => {
+				let winning_incentives =
+					(incentive_tuple.1).checked_div(decision_tuple.1).expect("Overflow");
+				(WinningDecision::WinnerYes, winning_incentives)
+			},
+			WinningDecision::WinnerNo => {
+				let winning_incentives =
+					(incentive_tuple.1).checked_div(decision_tuple.0).expect("Overflow");
+				(WinningDecision::WinnerNo, winning_incentives)
+			},
+			WinningDecision::Draw => (WinningDecision::Draw, 0),
 		}
 	}
 
@@ -759,7 +802,7 @@ impl<T: Config> Pallet<T> {
 
 	pub(super) fn selected_as_juror_helper(key: SumTreeName, who: T::AccountId) -> bool {
 		let drawn_juror = <DrawnJurors<T>>::get(&key);
-		match drawn_juror.binary_search(&who) {
+		match drawn_juror.binary_search_by(|(c, _)| c.cmp(&who.clone())) {
 			Ok(_) => true,
 			Err(_) => false,
 		}

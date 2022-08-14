@@ -18,7 +18,7 @@ mod extras;
 pub mod types;
 
 use crate::types::{
-	CommitVote, DrawJurorsLimit, Period, SchellingGameType, StakingTime, VoteStatus,
+	CommitVote, DrawJurorsLimit, Period, SchellingGameType, StakingTime, VoteStatus, RevealedVote, WinningDecision
 };
 use frame_support::pallet_prelude::*;
 use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
@@ -157,7 +157,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn  drawn_jurors)]
 	pub type DrawnJurors<T: Config> =
-		StorageMap<_, Blake2_128Concat, SumTreeName, Vec<T::AccountId>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, SumTreeName, Vec<(T::AccountId, u64)>, ValueQuery>;
 	#[pallet::storage]
 	#[pallet::getter(fn unstaked_jurors)]
 	pub type UnstakedJurors<T: Config> =
