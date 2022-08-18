@@ -86,8 +86,27 @@ RUST_BACKTRACE=1 ./target/release/node-template -ldebug --dev
 
 ### Connect with Polkadot-JS Apps Front-end
 
-Once the node template is running locally, you can connect it with **Polkadot-JS Apps** front-end
-to interact with your chain. [Click here](https://polkadot.js.org/apps/#/explorer?rpc=ws://localhost:9944) connecting the Apps to your local node template.
+The front end repository: https://github.com/amiyatulu/shivarthu_frontend
+
+```bash
+cd shivarthu_frontend
+yarn install
+```
+
+You can start the template in development mode to connect to a locally running node
+
+```bash
+yarn start
+```
+
+You can also build the app in production mode,
+
+```bash
+yarn build
+```
+
+and open `build/index.html` in your favorite browser.
+
 
 ### Multi-Node Local Testnet
 
@@ -192,21 +211,22 @@ First, install [Docker](https://docs.docker.com/get-docker/) and
 
 Then run the following command to start a single node development chain.
 
+Create a folder .local inside `shivarthu` folder
+
+And run `docker compose up` inside the `shivarthu` folder
+
 ```bash
-./scripts/docker_run.sh
+cd shivarthu
+docker compose up
 ```
 
 This command will firstly compile your code, and then start a local development network. You can
 also replace the default command (`cargo build --release && ./target/release/node-template --dev --ws-external`)
 by appending your own. A few useful ones are as follow.
 
-```bash
-# Run Substrate node without re-compiling
-./scripts/docker_run.sh ./target/release/node-template --dev --ws-external
-
 # Purge the local dev chain
-./scripts/docker_run.sh ./target/release/node-template purge-chain --dev
+`cargo build --release && ./target/release/node-template purge-chain --dev`
 
 # Check whether the code is compilable
-./scripts/docker_run.sh cargo check
-```
+`cargo check`
+

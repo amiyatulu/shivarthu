@@ -228,7 +228,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn create_tree_link_helper(key: SumTreeName, k: u64) -> DispatchResult {
-		let result = T::SortitionSumGameSource::create_tree_link(key.clone(), 3);
+		let result = T::SortitionSumGameSource::create_tree_link(key.clone(), k);
 		result
 	}
 

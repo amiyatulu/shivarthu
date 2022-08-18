@@ -58,6 +58,9 @@ fn evidence_period_not_over_test(){
 
 
 
+/// 1) Set evidence period  
+/// 2) Set staking period
+/// 3) Create tree
 #[test]
 fn evidence_period_test(){
 	new_test_ext().execute_with(|| {
@@ -69,6 +72,9 @@ fn evidence_period_test(){
 	   let min_short_block_length = return_min_short_block_length();
 	   let now2 = now + min_short_block_length;
 	   assert_ok!(TemplateModule::set_to_staking_period(key.clone(), game_type, now2));
+	   // Create tree
+	   assert_ok!(TemplateModule::create_tree_link_helper(key.clone(), 3));
+	   
 	});
 }
 

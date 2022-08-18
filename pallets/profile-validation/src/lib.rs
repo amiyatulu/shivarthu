@@ -199,7 +199,8 @@ pub mod pallet {
 				},
 			}
 		}
-
+        
+		#[doc=include_str!("docimages/change_period.svg")]
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn add_profile_fund(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
 			let who = ensure_signed(origin)?;

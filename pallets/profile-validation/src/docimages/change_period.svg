@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="225.2605mm"
+   height="101.97312mm"
+   viewBox="0 0 225.2605 101.97312"
+   version="1.1"
+   id="svg8"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+   sodipodi:docname="change_period.svg">
+  <defs
+     id="defs2">
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="Arrow2Mend"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow2Mend">
+      <path
+         transform="scale(-0.6)"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.625;stroke-linejoin:round;stroke-opacity:1"
+         id="path945" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker880"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         id="path878" />
+    </marker>
+    <marker
+       inkscape:collect="always"
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker1155"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path1153"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(-0.8,0,0,-0.8,-10,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow1Lend"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path854"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(-0.8,0,0,-0.8,-10,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lstart"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow1Lstart"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path851"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(0.8,0,0,0.8,10,0)" />
+    </marker>
+  </defs>
+  <sodipodi:namedview
+     inkscape:pagecheckerboard="false"
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="1"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.46111111"
+     inkscape:cx="594.73298"
+     inkscape:cy="418.0645"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     inkscape:document-rotation="0"
+     showgrid="false"
+     fit-margin-top="10"
+     fit-margin-left="10"
+     fit-margin-right="10"
+     fit-margin-bottom="10"
+     inkscape:window-width="1514"
+     inkscape:window-height="752"
+     inkscape:window-x="477"
+     inkscape:window-y="315"
+     inkscape:window-maximized="0" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(5.4259714,-9.5996916)">
+    <path
+       style="fill:#ffff00;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none"
+       d="M 12.897401,63.318873 H 194.99746"
+       id="path833" />
+    <path
+       style="fill:#000000;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 8.1726417,56.079524 H 195.4307"
+       id="path835" />
+    <path
+       style="fill:#000000;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 29.864068,44.591573 V 70.510666"
+       id="path837" />
+    <path
+       id="path839"
+       d="M 153.68945,44.591573 V 70.510666"
+       style="fill:#000000;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <text
+       xml:space="preserve"
+       style="font-size:7.05556px;line-height:1.25;font-family:Adelaide;-inkscape-font-specification:Adelaide;letter-spacing:0px;stroke-width:0.264583"
+       x="10.549484"
+       y="39.020523"
+       id="text847"><tspan
+         sodipodi:role="line"
+         id="tspan845"
+         x="10.549484"
+         y="39.020523"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Ubuntu;-inkscape-font-specification:Ubuntu;stroke-width:0.264583">add profile fund</tspan></text>
+    <path
+       style="fill:#000000;stroke:#000000;stroke-width:0.677416;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#Arrow1Lstart);marker-end:url(#marker1155)"
+       d="M 34.710168,98.132732 H 144.23359"
+       id="path849" />
+    <text
+       id="text874"
+       y="79.044121"
+       x="4.2918062"
+       style="font-size:7.05556px;line-height:1.25;font-family:Adelaide;-inkscape-font-specification:Adelaide;letter-spacing:0px;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Ubuntu;-inkscape-font-specification:Ubuntu;stroke-width:0.264583"
+         y="79.044121"
+         x="4.2918062"
+         id="tspan872"
+         sodipodi:role="line">set evidence period</tspan></text>
+    <path
+       style="fill:#000000;stroke:#000000;stroke-width:0.801212;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Mend)"
+       d="M 88.842065,30.377522 V 47.016021"
+       id="path1236" />
+    <text
+       id="text1240"
+       y="41.214741"
+       x="124.0885"
+       style="font-size:7.05556px;line-height:1.25;font-family:Adelaide;-inkscape-font-specification:Adelaide;letter-spacing:0px;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Ubuntu;-inkscape-font-specification:Ubuntu;stroke-width:0.264583"
+         y="41.214741"
+         x="124.0885"
+         id="tspan1238"
+         sodipodi:role="line">challenge profile with fund</tspan></text>
+    <text
+       id="text1268"
+       y="77.231537"
+       x="166.60289"
+       style="font-size:7.05556px;line-height:1.25;font-family:Adelaide;-inkscape-font-specification:Adelaide;letter-spacing:0px;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Ubuntu;-inkscape-font-specification:Ubuntu;text-align:center;text-anchor:middle;stroke-width:0.264583"
+         y="77.231537"
+         x="166.60289"
+         id="tspan1266"
+         sodipodi:role="line">set to staking period</tspan><tspan
+         id="tspan1300"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Ubuntu;-inkscape-font-specification:Ubuntu;text-align:center;text-anchor:middle;stroke-width:0.264583"
+         y="86.44162"
+         x="166.60289"
+         sodipodi:role="line">create tree</tspan><tspan
+         id="tspan1298"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Ubuntu;-inkscape-font-specification:Ubuntu;stroke-width:0.264583"
+         y="95.26107"
+         x="166.60289"
+         sodipodi:role="line" /></text>
+    <text
+       id="text1296"
+       y="25.074806"
+       x="62.78199"
+       style="font-size:7.05556px;line-height:1.25;font-family:Adelaide;-inkscape-font-specification:Adelaide;letter-spacing:0px;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Ubuntu;-inkscape-font-specification:Ubuntu;stroke-width:0.264583"
+         y="25.074806"
+         x="62.78199"
+         id="tspan1294"
+         sodipodi:role="line">challenge evidence</tspan></text>
+    <text
+       id="text1402"
+       y="94.419746"
+       x="50.167404"
+       style="font-size:7.05556px;line-height:1.25;font-family:Adelaide;-inkscape-font-specification:Adelaide;letter-spacing:0px;stroke-width:0.264583"
+       xml:space="preserve"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Ubuntu;-inkscape-font-specification:Ubuntu;stroke-width:0.264583"
+         y="94.419746"
+         x="50.167404"
+         id="tspan1400"
+         sodipodi:role="line">min_short_block_length</tspan></text>
+  </g>
+</svg>
