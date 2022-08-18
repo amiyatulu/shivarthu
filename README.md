@@ -217,6 +217,7 @@ And run `docker compose up` inside the `shivarthu` folder
 
 ```bash
 cd shivarthu
+mkdir .local
 docker compose up
 ```
 
