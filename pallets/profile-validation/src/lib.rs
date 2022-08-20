@@ -19,13 +19,12 @@ mod types;
 
 use crate::types::{ChallengeEvidencePost, ChallengerFundInfo, CitizenDetails, ProfileFundInfo};
 use frame_support::sp_runtime::traits::AccountIdConversion;
-use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
 use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::prelude::*;
 use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 use frame_support::{
 	traits::{
-		Currency, ExistenceRequirement, Get, Imbalance, OnUnbalanced, ReservableCurrency,
+		Currency, ExistenceRequirement, Get, ReservableCurrency,
 		WithdrawReasons,
 	},
 	PalletId,
@@ -33,8 +32,6 @@ use frame_support::{
 use schelling_game_shared::types::SchellingGameType;
 use schelling_game_shared_link::SchellingGameSharedLink;
 use sortition_sum_game::types::SumTreeName;
-use sp_io;
-
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
 type ProfileFundInfoOf<T> =
@@ -43,12 +40,6 @@ type CitizenDetailsOf<T> = CitizenDetails<AccountIdOf<T>>;
 type ChallengerFundInfoOf<T> =
 	ChallengerFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber, AccountIdOf<T>>;
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
-type PositiveImbalanceOf<T> = <<T as Config>::Currency as Currency<
-	<T as frame_system::Config>::AccountId,
->>::PositiveImbalance;
-type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
-	<T as frame_system::Config>::AccountId,
->>::NegativeImbalance;
 type ChallengeEvidencePostOf<T> = ChallengeEvidencePost<AccountIdOf<T>>;
 
 const PALLET_ID: PalletId = PalletId(*b"ex/cfund");
@@ -56,7 +47,6 @@ const PALLET_ID: PalletId = PalletId(*b"ex/cfund");
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.

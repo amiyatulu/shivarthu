@@ -32,6 +32,7 @@ use frame_support::{
 	},
 	PalletId,
 };
+use scale_info::prelude::format;
 use frame_system::pallet_prelude::*;
 use num_integer::Roots;
 use sortition_sum_game::types::SumTreeName;

@@ -10,6 +10,16 @@ impl<T: Config> Pallet<T> {
 		PALLET_ID.into_sub_account(1)
 	}
 
+	pub fn get_challengers_evidence(profile_citizenid: u128, offset: u64, limit: u16) -> Vec<u128> {
+		let mut data = <ChallengerEvidenceId<T>>::iter_prefix_values(&profile_citizenid)
+			.skip(offset as usize)
+			.take(limit as usize)
+			.collect::<Vec<_>>();
+		data.sort();
+		data.reverse();
+		data
+	}
+
 	pub fn get_evidence_period_end_block(profile_citizenid: u128) -> Option<u32> {
 		let now = <frame_system::Pallet<T>>::block_number();
 		let key = SumTreeName::UniqueIdenfier1 {

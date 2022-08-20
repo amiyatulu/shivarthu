@@ -40,11 +40,13 @@ use pallet_transaction_payment::CurrencyAdapter;
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
+pub use election;
 /// Import the template pallet.
 pub use pallet_template;
-pub use sortition_sum_game;
-pub use election;
+pub use profile_validation;
+pub use schelling_game_shared;
 pub use score_game;
+pub use sortition_sum_game;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -238,7 +240,6 @@ impl pallet_timestamp::Config for Runtime {
 	type WeightInfo = ();
 }
 
-
 impl pallet_balances::Config for Runtime {
 	type MaxLocks = ConstU32<50>;
 	type MaxReserves = ();
@@ -285,7 +286,6 @@ impl sortition_sum_game::Config for Runtime {
 	type Event = Event;
 }
 
-
 parameter_types! {
 	pub const CandidacyBond: u64 = 3;
 }
@@ -305,7 +305,20 @@ impl score_game::Config for Runtime {
 	type Event = Event;
 }
 
+impl schelling_game_shared::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type RandomnessSource = RandomnessCollectiveFlip;
+	type Slash = ();
+	type Reward = ();
+	type SortitionSumGameSource = SortitionSumGame;
+}
 
+impl profile_validation::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type SchellingGameSharedSource = SchellingGameShared;
+}
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -327,6 +340,8 @@ construct_runtime!(
 		SortitionSumGame: sortition_sum_game,
 		Election: election,
 		ScoreGame: score_game,
+		SchellingGameShared: schelling_game_shared,
+		ProfileValidation: profile_validation,
 
 	}
 );
@@ -597,10 +612,36 @@ impl_runtime_apis! {
 		fn selected_as_juror(profile_citizenid: u128, who: AccountId) -> bool {
 			TemplateModule::selected_as_juror(profile_citizenid, who)
 		}
-
-
-
 	}
+
+	impl profile_validation_runtime_api::ProfileValidationApi<Block, AccountId> for Runtime {
+		fn hello_world() -> u128 {
+			TemplateModule::hello_world()
+		}
+		fn get_challengers_evidence(profile_citizenid: u128, offset: u64, limit: u16) -> Vec<u128> {
+			TemplateModule::get_challengers_evidence(profile_citizenid, offset, limit)
+		}
+		fn get_evidence_period_end_block(profile_citizenid: u128) -> Option<u32> {
+			TemplateModule::get_evidence_period_end_block(profile_citizenid)
+		}
+		fn get_staking_period_end_block(profile_citizenid: u128) -> Option<u32> {
+			TemplateModule::get_staking_period_end_block(profile_citizenid)
+		}
+		fn get_drawing_period_end(profile_citizenid: u128) -> (u64, u64, bool) {
+			TemplateModule::get_drawing_period_end(profile_citizenid)
+		}
+		fn get_commit_period_end_block(profile_citizenid: u128) -> Option<u32> {
+			TemplateModule::get_commit_period_end_block(profile_citizenid)
+		}
+
+		fn get_vote_period_end_block(profile_citizenid: u128) -> Option<u32> {
+			TemplateModule::get_vote_period_end_block(profile_citizenid)
+		}
+		fn selected_as_juror(profile_citizenid: u128, who: AccountId) -> bool {
+			TemplateModule::selected_as_juror(profile_citizenid, who)
+		}
+	}
+
 
 	impl election_runtime_api::ElectionApi<Block, AccountId> for Runtime {
 		fn candidate_ids(departmentid: u128) -> Vec<AccountId> {

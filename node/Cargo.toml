@@ -61,6 +61,8 @@ shivarthu-runtime-api ={ path="../pallets/template/runtime-api", default-feature
 shivarthu-rpc = { path="../pallets/template/rpc"}
 election-runtime-api = {path="../pallets/election/election-runtime-api", default-features = false}
 election-rpc = {path="../pallets/election/election-rpc", default-features = false}
+profile-validation-runtime-api = {path="../pallets/profile-validation/profile-validation-runtime-api", default-features = false}
+profile-validation-rpc = { path="../pallets/profile-validation/profile-validation-rpc", default-features = false}
 
 
 [build-dependencies]

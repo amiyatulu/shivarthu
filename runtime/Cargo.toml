@@ -55,6 +55,9 @@ sortition-sum-game = {default-features = false, path ="../pallets/sortition-sum-
 election={ default-features = false, path="../pallets/election"}
 election-runtime-api={default-features=false, path="../pallets/election/election-runtime-api"}
 score-game = {default-features=false, path="../pallets/score-game"}
+schelling-game-shared = {default-features=false, path="../pallets/schelling-game-shared"}
+profile-validation = {default-features=false, path="../pallets/profile-validation"}
+profile-validation-runtime-api = {default-features=false, path="../pallets/profile-validation/profile-validation-runtime-api"}
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
@@ -92,6 +95,10 @@ std = [
 	"shivarthu-runtime-api/std",
 	"sortition-sum-game/std",
 	"score-game/std",
+	"schelling-game-shared/std",
+	"profile-validation/std",
+	"profile-validation-runtime-api/std"
+
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
