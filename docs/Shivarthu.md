@@ -7,8 +7,7 @@
 
 ### Overview
 
-Shivarthu: The blockchain-based decentralized governance system. Democracy is about fair and equal treatment of everyone in a country. But it becomes unrealistic to achieve when political parties have their conflict of interest, and leaders don’t have the expertise to make evidence-based policies and neither have the skill and manpower for solving problems that surround our society and ecosystem. The new fair democracy provides an elegant way of governance that separates the representative responsibility according to their specialization and can grow into any complexity. The governance is divided into various departments, and each department is supervised by representatives with expertise in the field. Voters are rational and need to have enough knowledge about the departments and the department problems, in order to vote for the selecting representatives of a department. The selection process of representatives is “difficult in and easy out”,
-which allows only utilitarian actors to hold the responsibility, weeding out frivolous ones.  
+Shivarthu: The blockchain-based decentralized governance system. Democracy is about fair and equal treatment of everyone in a country. But it becomes unrealistic to achieve when political parties have their conflict of interest, and leaders don’t have the expertise to make evidence-based policies and neither have the skill and manpower for solving problems that surround our society and ecosystem. The new fair democracy provides an elegant way of governance that separates the representative responsibility according to their specialization and can grow into any complexity. The governance is divided into various departments, and each department is supervised by representatives with expertise in the field. Rational voters who have a sufficient understanding of the departments and their issues will be given more weight in the voting process than other voters. It results in a self-reinforcing feedback loop that eliminates frivolous actors and leaves utilitarian ones in charge.
 
 https://shivarthu.reaudito.com/paper/Shivarthu_whitepaper.pdf 
 
@@ -198,7 +197,21 @@ for x in predicted_price_percentage:
 print(money_distribution)
 ```
 
-The algorithm tries to meet the values of teal organization through reduced compensation inequality
+The algorithm tries to meet the values of teal organization through reduced compensation inequality.
+
+### Randomized Tax collection
+
+Initial project funding comes from inflation, however as the inflation rate declines over time, the funds are collected by subtracting some amount of balance from different accounts so that there is no longer any inflation.
+
+To avoid creating disincentives to invest in the coin, tax collection or deduction of balance is randomized.
+
+An account number is assigned to each account starting from 100  in ascending order. A random number `n` between 100-1000 is drawn.
+
+All account numbers with `account_number % n == 0` are taxed
+
+If the drawn number is 1,000, one out of every 1,000 accounts will be taxed.
+
+The primary governance determines the tax rate. The block number is stored during the draw. One draw is conducted each month at random time. Tax is deducted when the account interacts with the blockchain. 
 
 
 
