@@ -205,9 +205,9 @@ Initial project funding comes from inflation, however as the inflation rate decl
 
 To avoid creating disincentives to invest in the coin, tax collection or deduction of balance is randomized.
 
-An account number is assigned to each account starting from 100  in ascending order. A random number `n` between 100-1000 is drawn.
+An account number is assigned to each account starting from 1  in ascending order. A random number `n` between 1-1000 is drawn.
 
-All account numbers with `account_number % n == 0` are taxed
+All account numbers with `account_number % 1000 == drawn random number` are taxed
 
 If the drawn number is 1,000, one out of every 1,000 accounts will be taxed.
 

@@ -16,9 +16,11 @@ mod benchmarking;
 
 mod extras;
 pub mod types;
+mod score_game;
+mod share_link;
 
 use crate::types::{
-	CommitVote, DrawJurorsLimit, Period, SchellingGameType, StakingTime, VoteStatus, RevealedVote, WinningDecision
+	CommitVote, DrawJurorsLimit, Period, SchellingGameType, StakingTime, VoteStatus, RevealedVote, WinningDecision, ScoreCommitVote
 };
 use frame_support::pallet_prelude::*;
 use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
@@ -181,6 +183,8 @@ pub mod pallet {
 		ValueQuery,
 		DefaultDrawJurorsLimitNum<T>,
 	>;
+
+	/// VoteCommits for Yes or No voting
 	#[pallet::storage]
 	#[pallet::getter(fn vote_commits)]
 	pub type VoteCommits<T: Config> = StorageDoubleMap<
@@ -191,6 +195,45 @@ pub mod pallet {
 		T::AccountId,
 		CommitVote,
 	>;
+
+	/// Vote Commits for Score Schelling  
+	#[pallet::storage]
+	#[pallet::getter(fn vote_commits_score)]
+	pub type ScoreVoteCommits<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		SumTreeName,
+		Blake2_128Concat,
+		T::AccountId,
+		ScoreCommitVote,
+	>;
+
+	/// Reveal values of score schelling game as Vec<i64>
+	#[pallet::storage]
+	#[pallet::getter(fn reveal_score_values)]
+	pub type RevealScoreValues<T: Config> = StorageMap<
+	_,
+	Blake2_128Concat,
+	SumTreeName,
+	Vec<i64>,
+	ValueQuery,
+	>;
+
+	/// New mean from teh reveal values in score schelling game
+	/// Improvement: This step will not be required if all jurors incentives are distributed at one time	
+	#[pallet::storage]
+	#[pallet::getter(fn new_mean_reveal_score)]
+	pub type NewMeanRevealScore<T: Config> = StorageMap<
+	_,
+	Blake2_128Concat,
+	SumTreeName,
+	i64
+	>;
+
+
+
+
+
 
 	#[pallet::storage]
 	#[pallet::getter(fn decision_count)]

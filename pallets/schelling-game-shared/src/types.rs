@@ -66,3 +66,13 @@ pub enum WinningDecision {
 	WinnerNo,
 	Draw
 }
+
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub struct ScoreCommitVote {
+	pub commit: [u8; 32],
+	pub votestatus: VoteStatus,
+	pub revealed_vote: Option<i64>,
+}
+
