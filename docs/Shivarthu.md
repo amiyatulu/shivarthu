@@ -225,7 +225,9 @@ Other projects similar to it is gitcoin, but its not in Substrate / Polkadot / K
 
 ### References 
 Schelling game whitepaper of Kleros:    
-https://kleros.io/whitepaper.pdf   
+https://kleros.io/whitepaper.pdf  
+Approval Voting:  
+https://electionscience.org/   
 
 ## Team:
 
