@@ -132,6 +132,9 @@ yarn build
 
 and open `build/index.html` in your favorite browser.
 
+### Tutorial
+https://github.com/amiyatulu/shivarthu_frontend/blob/main/docs/Tutorial.md
+
 
 ### Multi-Node Local Testnet
 
