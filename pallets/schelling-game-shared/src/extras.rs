@@ -17,7 +17,16 @@ impl<T: Config> Pallet<T> {
 		}
 		Ok(())
 	}
-
+    
+	/// Check `Period` is `Evidence`, and change it to `Staking`   
+	/// It is called with function that submits challenge stake after `end_block` of evidence period  
+	/// Checks evidence period is over
+	#[doc=include_str!("docimage/set_to_staking_period_1.svg")]
+	/// ```ignore
+	/// if time >= block_time.min_short_block_length {
+	///        // change `Period` to `Staking`
+	///  }
+	/// ```
 	pub(super) fn set_to_staking_period(
 		key: SumTreeName,
 		game_type: SchellingGameType,
@@ -43,7 +52,33 @@ impl<T: Config> Pallet<T> {
 		let result = T::SortitionSumGameSource::create_tree_link(key.clone(), k);
 		result
 	}
-
+    
+	/// Change the `Period`
+	///    
+	/// `Period::Staking` to `Period::Drawing`
+	#[doc=include_str!("docimage/change_period_link_1.svg")]
+	/// ```ignore
+	/// if now >= min_long_block_length + staking_start_time {
+	///   // Change `Period::Staking` to `Period::Drawing`   
+	/// }
+	/// ```
+	///
+	///  `Period::Drawing` to `Period::Commit`   
+	/// When maximum juror are drawn   
+	///  
+	/// `Period::Commit` to `Period::Vote`       
+	/// ```ignore
+	/// if now >= min_long_block_length + commit_start_time {
+	///   // Change `Period::Commit` to `Period::Vote`  
+	/// }
+	/// ```
+	///
+	/// `Period::Vote` to `Period::Execution`   
+	/// ```ignore
+	/// if now >= min_long_block_length + vote_start_time {
+	///   // Change `Period::Vote` to `Period::Execution`   
+	/// }
+	/// ```
 	pub(super) fn change_period(
 		key: SumTreeName,
 		game_type: SchellingGameType,

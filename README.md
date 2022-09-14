@@ -49,6 +49,28 @@ without launching it:
 cargo build --release
 ```
 
+### Test 
+
+Use the following command to test the contract
+```sh
+cargo test
+```
+
+### Generate docs
+
+To generate docs use command  
+```sh
+cargo doc --no-deps --open
+```
+
+To view in the python server, go to target folder  
+```sh
+cd target/doc
+python3 -m http.server
+```
+View the docs at:  
+http://localhost:8000/election/  
+
 ### Embedded Docs
 
 Once the project has been built, the following command can be used to explore all parameters and
