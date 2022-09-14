@@ -22,20 +22,19 @@ pub const MAXIMUM_VOTE: usize = 16;
 
 use crate::types::{DepartmentDetails, Renouncing, SeatHolder, Voter};
 
-use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
+
 use frame_support::{
 	traits::{
-		defensive_prelude::*, Currency, CurrencyToVote, ExistenceRequirement, Get, Imbalance,
-		OnUnbalanced, ReservableCurrency, WithdrawReasons,
+		defensive_prelude::*, Currency, CurrencyToVote, Get,
+		OnUnbalanced, ReservableCurrency,
 	},
-	PalletId,
 };
 use sp_npos_elections::{ElectionResult, ExtendedBalance};
 use sp_runtime::{
-	traits::{Saturating, StaticLookup, Zero},
-	DispatchError, Perbill, RuntimeDebug,
+	traits::Zero,
+	DispatchError, Perbill,
 };
-use sp_std::{cmp::Ordering, prelude::*};
+use sp_std::prelude::*;
 
 
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
@@ -350,7 +349,7 @@ pub mod pallet {
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(2))]
 		pub fn do_phragmen(origin: OriginFor<T>, departmentid: u128) -> DispatchResult {
-			let who = ensure_signed(origin)?;
+			let _who = ensure_signed(origin)?;
 			let desired_seats = <DesiredMembers<T>>::get(&departmentid) as usize;
 			let desired_runners_up = <DesiredRunnersup<T>>::get(&departmentid) as usize;
 			let num_to_elect = desired_runners_up + desired_seats;
@@ -370,7 +369,7 @@ pub mod pallet {
 
 			// helper closures to deal with balance/stake.
 			let total_issuance = T::Currency::total_issuance();
-			let to_votes = |b: BalanceOf<T>| T::CurrencyToVote::to_vote(b, total_issuance);
+			let _to_votes = |b: BalanceOf<T>| T::CurrencyToVote::to_vote(b, total_issuance);
 			let to_balance = |e: ExtendedBalance| T::CurrencyToVote::to_currency(e, total_issuance);
 			let voters_and_score = <Voting<T>>::iter_prefix(&departmentid)
 				.map(|(voter, Voter { score, votes, .. })| (voter, score, votes))
@@ -384,7 +383,7 @@ pub mod pallet {
 			)
 			.map(|ElectionResult::<T::AccountId, Perbill> { winners, assignments: _ }| {
 				// this is already sorted by id.
-				let old_members_ids_sorted = <Members<T>>::take(departmentid)
+				let _old_members_ids_sorted = <Members<T>>::take(departmentid)
 					.into_iter()
 					.map(|m| m.who)
 					.collect::<Vec<T::AccountId>>();

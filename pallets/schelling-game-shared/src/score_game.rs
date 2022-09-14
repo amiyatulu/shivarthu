@@ -1,7 +1,7 @@
 use crate::*;
 
 impl<T: Config> Pallet<T> {
-	pub(super) fn commit_vote_for_score_helper(
+	pub(super) fn _commit_vote_for_score_helper(
 		key: SumTreeName,
 		who: AccountIdOf<T>,
 		vote_commit: [u8; 32],
@@ -28,7 +28,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// choice is i64. Validate the range of the choice while using the function
-	pub(super) fn reveal_vote_score_helper(
+	pub(super) fn _reveal_vote_score_helper(
 		key: SumTreeName,
 		who: AccountIdOf<T>,
 		choice: i64,
@@ -73,10 +73,10 @@ impl<T: Config> Pallet<T> {
 
 	/// Distribute incentives to juror in execution period in score schelling game
 	/// Improvements: Will it be better to distribute all jurors incentives in single call
-	pub(super) fn get_incentives_score_schelling_helper(
+	pub(super) fn _get_incentives_score_schelling_helper(
 		key: SumTreeName,
-		game_type: SchellingGameType,
-		who: AccountIdOf<T>,
+		_game_type: SchellingGameType,
+		_who: AccountIdOf<T>,
 	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
 			Some(period) => {
@@ -85,7 +85,7 @@ impl<T: Config> Pallet<T> {
 			None => Err(Error::<T>::PeriodDoesNotExists)?,
 		}
 
-		let drawn_jurors = <DrawnJurors<T>>::get(&key);
+		let _drawn_jurors = <DrawnJurors<T>>::get(&key);
 
 		Ok(())
 	}

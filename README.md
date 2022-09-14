@@ -71,6 +71,9 @@ python3 -m http.server
 View the docs at:  
 http://localhost:8000/election/  
 
+Schelling game shared docs:
+http://localhost:8000/schelling_game_shared/pallet/struct.Pallet.html
+
 ### Embedded Docs
 
 Once the project has been built, the following command can be used to explore all parameters and

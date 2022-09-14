@@ -22,7 +22,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Check if `who` is a voter. It may or may not be a _current_ one.
-	pub(super) fn is_voter(who: &T::AccountId, departmentid: u128) -> bool {
+	pub(super) fn _is_voter(who: &T::AccountId, departmentid: u128) -> bool {
 		Voting::<T>::contains_key(departmentid, who)
 	}
 

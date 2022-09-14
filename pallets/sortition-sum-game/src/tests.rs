@@ -2,7 +2,7 @@ use crate::{
 	mock::*,
 	types::{SumTreeName},
 };
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_ok};
 
 
 

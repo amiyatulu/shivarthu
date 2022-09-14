@@ -18,22 +18,21 @@ mod extras;
 mod types;
 
 use crate::types::{
-	ChallengeEvidencePost, ChallengerFundInfo, CitizenDetails, CommitVote, DepartmentDetails,
-	DrawJurorsForProfileLimit, Period, ProfileFundInfo, SchellingType,
-	StakeDetails, StakingTime, VoteStatus,
+	ChallengeEvidencePost, ChallengerFundInfo, CitizenDetails, CommitVote, 
+	DrawJurorsForProfileLimit, Period, ProfileFundInfo,
+	StakingTime, VoteStatus,
 };
 use scale_info::prelude::format;
 use sortition_sum_game::types::{SumTreeName};
 use frame_support::sp_runtime::traits::AccountIdConversion;
-use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
+use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
 use frame_support::sp_runtime::SaturatedConversion;
-use frame_support::sp_std::{collections::btree_map::BTreeMap, vec::Vec};
-use frame_support::storage::{bounded_btree_map::BoundedBTreeMap, bounded_vec::BoundedVec};
+use frame_support::sp_std::{vec::Vec};
 use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
-use frame_support::{sp_runtime::app_crypto::sp_core::H256, traits::Randomness};
+use frame_support::{traits::Randomness};
 use frame_support::{
 	traits::{
-		Currency, ExistenceRequirement, Get, Imbalance, OnUnbalanced, ReservableCurrency,
+		Currency, ExistenceRequirement, Get, OnUnbalanced, ReservableCurrency,
 		WithdrawReasons,
 	},
 	PalletId,
@@ -56,7 +55,7 @@ type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
 >>::NegativeImbalance;
 type ChallengeEvidencePostOf<T> = ChallengeEvidencePost<AccountIdOf<T>>;
 
-type FundIndex = u32;
+// type FundIndex = u32;
 
 const PALLET_ID: PalletId = PalletId(*b"ex/cfund");
 

@@ -124,23 +124,23 @@ impl<T: Config> Pallet<T> {
 			Err(_) => false,
 		}
 	}
-	pub(super) fn super_hello_world() -> u128 {
-		20
-	}
+	// pub(super) fn super_hello_world() -> u128 {
+	// 	20
+	// }
 
 	pub(super) fn get_citizen_accountid(citizenid: u128) -> Result<T::AccountId, DispatchError> {
 		let profile = Self::citizen_profile(citizenid).ok_or(Error::<T>::CitizenDoNotExists)?;
 		Ok(profile.accountid)
 	}
 
-	pub(super) fn get_citizen_id(accountid: T::AccountId) -> Result<u128, DispatchError> {
+	pub(super) fn _get_citizen_id(accountid: T::AccountId) -> Result<u128, DispatchError> {
 		match Self::citizen_id(accountid) {
 			Some(citizen_id) => Ok(citizen_id),
 			None => Err(Error::<T>::ProfileNotFunded)?,
 		}
 	}
 
-	pub(super) fn profile_fund_added(citizenid: u128) -> DispatchResult {
+	pub(super) fn _profile_fund_added(citizenid: u128) -> DispatchResult {
 		match <ProfileFundDetails<T>>::get(&citizenid) {
 			Some(profilefundinfo) => {
 				let validated = profilefundinfo.validated;
@@ -155,7 +155,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	fn get_profile_fund_info(citizenid: u128) -> Result<ProfileFundInfoOf<T>, DispatchError> {
+	fn _get_profile_fund_info(citizenid: u128) -> Result<ProfileFundInfoOf<T>, DispatchError> {
 		match <ProfileFundDetails<T>>::get(&citizenid) {
 			Some(profilefundinfo) => {
 				let validated = profilefundinfo.validated;
@@ -190,14 +190,14 @@ impl<T: Config> Pallet<T> {
 	//     PALLET_ID.into_sub_account(2)
 	// }
 
-	fn draw_juror_for_citizen_profile_function(citizen_id: u128, length: usize) -> DispatchResult {
-		let nonce = Self::get_and_increment_nonce();
+	// fn draw_juror_for_citizen_profile_function(citizen_id: u128, length: usize) -> DispatchResult {
+	// 	let nonce = Self::get_and_increment_nonce();
 
-		let random_seed = T::RandomnessSource::random(&nonce).encode();
-		let random_number = u64::decode(&mut random_seed.as_ref())
-			.expect("secure hashes should always be bigger than u64; qed");
-		Ok(())
-	}
+	// 	let random_seed = T::RandomnessSource::random(&nonce).encode();
+	// 	let random_number = u64::decode(&mut random_seed.as_ref())
+	// 		.expect("secure hashes should always be bigger than u64; qed");
+	// 	Ok(())
+	// }
 
 	pub(super) fn get_and_increment_nonce() -> Vec<u8> {
 		let nonce = <Nonce<T>>::get();

@@ -18,22 +18,14 @@ mod extras;
 pub mod types;
 
 use crate::types::{SortitionSumTree, SumTreeName};
-use frame_support::sp_runtime::traits::AccountIdConversion;
-use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
-use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::{collections::btree_map::BTreeMap, vec::Vec};
-use frame_support::traits::Randomness;
-use frame_support::traits::{Currency, ReservableCurrency};
 use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
-use frame_system::pallet_prelude::*;
 use sortition_sum_game_link::SortitionSumGameLink;
-
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_system::pallet_prelude::*;
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -62,7 +54,7 @@ pub mod pallet {
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	// #[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]

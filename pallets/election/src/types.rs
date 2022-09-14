@@ -1,5 +1,4 @@
 use frame_support::pallet_prelude::*;
-use frame_support::traits::ConstU32;
 use scale_info::TypeInfo;
 use sp_std::{prelude::*};
 

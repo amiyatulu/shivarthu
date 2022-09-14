@@ -16,10 +16,9 @@ mod benchmarking;
 
 mod extras;
 
-use sp_arithmetic::{traits::Saturating};
 use num_integer::Roots;
 use frame_support::sp_std::{prelude::*};
-use scale_info::prelude::format;
+// use scale_info::prelude::format;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -80,7 +79,7 @@ pub mod pallet {
 			// This function will return an error if the extrinsic is not signed.
 			// https://docs.substrate.io/v3/runtime/origins
 			let who = ensure_signed(origin)?;
-            let s = format!("The number is {}", 1);
+            // let s = format!("The number is {}", 1);
 			// Update storage.
 			<Something<T>>::put(something);
 

@@ -23,19 +23,16 @@ use crate::types::{
 	CommitVote, DrawJurorsLimit, Period, SchellingGameType, StakingTime, VoteStatus, RevealedVote, WinningDecision, ScoreCommitVote
 };
 use frame_support::pallet_prelude::*;
-use frame_support::sp_runtime::traits::{CheckedAdd, CheckedMul, CheckedSub};
+use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
 use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::prelude::*;
 use frame_support::traits::Randomness;
 use frame_support::{
 	traits::{
-		Currency, ExistenceRequirement, Get, Imbalance, OnUnbalanced, ReservableCurrency,
-		WithdrawReasons,
+		Currency, OnUnbalanced, ReservableCurrency,
 	},
-	PalletId,
 };
 use scale_info::prelude::format;
-use frame_system::pallet_prelude::*;
 use num_integer::Roots;
 use sortition_sum_game::types::SumTreeName;
 use sortition_sum_game_link::SortitionSumGameLink;
@@ -263,7 +260,7 @@ pub mod pallet {
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	// #[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
