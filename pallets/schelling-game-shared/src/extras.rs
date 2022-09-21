@@ -1,6 +1,5 @@
 use crate::*;
 
-
 impl<T: Config> Pallet<T> {
 	/// Set to evidence period, when some one stakes for validation
 	pub(super) fn set_to_evidence_period(
@@ -17,7 +16,7 @@ impl<T: Config> Pallet<T> {
 		}
 		Ok(())
 	}
-    
+
 	/// Check `Period` is `Evidence`, and change it to `Staking`   
 	/// It is called with function that submits challenge stake after `end_block` of evidence period  
 	/// Checks evidence period is over
@@ -52,7 +51,7 @@ impl<T: Config> Pallet<T> {
 		let result = T::SortitionSumGameSource::create_tree_link(key.clone(), k);
 		result
 	}
-    
+
 	/// Change the `Period`
 	///    
 	/// `Period::Staking` to `Period::Drawing`
@@ -86,50 +85,54 @@ impl<T: Config> Pallet<T> {
 	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
 			Some(period) => {
-				// Also check has min number of jurors has staked
-				if period == Period::Staking {
-					let staking_start_time = <StakingStartTime<T>>::get(&key);
-					let block_time = <MinBlockTime<T>>::get(&game_type);
-					if now >= block_time.min_long_block_length + staking_start_time {
-						let new_period = Period::Drawing;
-						<PeriodName<T>>::insert(&key, new_period);
-					} else {
-						Err(Error::<T>::StakingPeriodNotOver)?
-					}
-				}
-				if period == Period::Drawing {
-					let draw_limit = <DrawJurorsLimitNum<T>>::get(&game_type);
-					let draws_in_round = <DrawsInRound<T>>::get(&key);
-					if draws_in_round >= draw_limit.max_draws {
-						<CommitStartTime<T>>::insert(&key, now);
-						let new_period = Period::Commit;
-						<PeriodName<T>>::insert(&key, new_period);
-					} else {
-						Err(Error::<T>::MaxJurorNotDrawn)?
-					}
-				}
-
-				if period == Period::Commit {
-					let commit_start_time = <CommitStartTime<T>>::get(&key);
-					let block_time = <MinBlockTime<T>>::get(&game_type);
-					if now >= block_time.min_long_block_length + commit_start_time {
-						<VoteStartTime<T>>::insert(&key, now);
-						let new_period = Period::Vote;
-						<PeriodName<T>>::insert(&key, new_period);
-					} else {
-						Err(Error::<T>::CommitPeriodNotOver)?
-					}
-				}
-
-				if period == Period::Vote {
-					let vote_start_time = <VoteStartTime<T>>::get(&key);
-					let block_time = <MinBlockTime<T>>::get(&game_type);
-					if now >= block_time.min_long_block_length + vote_start_time {
-						let new_period = Period::Execution;
-						<PeriodName<T>>::insert(&key, new_period);
-					} else {
-						Err(Error::<T>::VotePeriodNotOver)?
-					}
+				match period {
+					Period::Evidence => todo!(),
+					Period::Staking => {
+						// Also check has min number of jurors has staked
+						let staking_start_time = <StakingStartTime<T>>::get(&key);
+						let block_time = <MinBlockTime<T>>::get(&game_type);
+						if now >= block_time.min_long_block_length + staking_start_time {
+							let new_period = Period::Drawing;
+							<PeriodName<T>>::insert(&key, new_period);
+						} else {
+							Err(Error::<T>::StakingPeriodNotOver)?
+						}
+					},
+					Period::Drawing => {
+						// Also give time
+						let draw_limit = <DrawJurorsLimitNum<T>>::get(&game_type);
+						let draws_in_round = <DrawsInRound<T>>::get(&key);
+						if draws_in_round >= draw_limit.max_draws {
+							<CommitStartTime<T>>::insert(&key, now);
+							let new_period = Period::Commit;
+							<PeriodName<T>>::insert(&key, new_period);
+						} else {
+							Err(Error::<T>::MaxJurorNotDrawn)?
+						}
+					},
+					Period::Commit => {
+						let commit_start_time = <CommitStartTime<T>>::get(&key);
+						let block_time = <MinBlockTime<T>>::get(&game_type);
+						if now >= block_time.min_long_block_length + commit_start_time {
+							<VoteStartTime<T>>::insert(&key, now);
+							let new_period = Period::Vote;
+							<PeriodName<T>>::insert(&key, new_period);
+						} else {
+							Err(Error::<T>::CommitPeriodNotOver)?
+						}
+					},
+					Period::Vote => {
+						let vote_start_time = <VoteStartTime<T>>::get(&key);
+						let block_time = <MinBlockTime<T>>::get(&game_type);
+						if now >= block_time.min_long_block_length + vote_start_time {
+							let new_period = Period::Execution;
+							<PeriodName<T>>::insert(&key, new_period);
+						} else {
+							Err(Error::<T>::VotePeriodNotOver)?
+						}
+					},
+					Period::Appeal => todo!(),
+					Period::Execution => todo!(),
 				}
 			},
 			None => Err(Error::<T>::PeriodDoesNotExists)?,
@@ -208,7 +211,7 @@ impl<T: Config> Pallet<T> {
 				.expect("secure hashes should always be bigger than u64; qed");
 			// let mut rng = rand::thread_rng();
 			// let random_number: u64 = rng.gen();
-			log::info!("Random number: {:?}", random_number);
+			// log::info!("Random number: {:?}", random_number);
 			let accountid = T::SortitionSumGameSource::draw_link(key.clone(), random_number)?;
 			let stake = T::SortitionSumGameSource::stake_of_link(key.clone(), accountid.clone())?;
 
@@ -233,9 +236,9 @@ impl<T: Config> Pallet<T> {
 		match <PeriodName<T>>::get(&key) {
 			Some(period) => {
 				ensure!(
-					period != Period::Evidence
-						&& period != Period::Staking
-						&& period != Period::Drawing,
+					period == Period::Commit
+						|| period == Period::Vote
+						|| period == Period::Execution,
 					Error::<T>::PeriodDontMatch
 				);
 			},
@@ -357,7 +360,7 @@ impl<T: Config> Pallet<T> {
 
 		Ok(())
 	}
-    
+
 	// Improvements: Will it be better to distribute all jurors incentives in single call
 	pub(super) fn get_incentives_two_choice_helper(
 		key: SumTreeName,
@@ -550,10 +553,10 @@ impl<T: Config> Pallet<T> {
 	pub(super) fn get_and_increment_nonce() -> Vec<u8> {
 		let nonce = <Nonce<T>>::get();
 		<Nonce<T>>::put(nonce.wrapping_add(1));
-		let n = nonce * 1000 + 1000; // remove and uncomment in production
-		n.encode()
+		// let n = nonce * 1000 + 1000; // remove and uncomment in production
+		// n.encode()
 
-		// nonce.encode()
+		nonce.encode()
 	}
 	pub(super) fn get_evidence_period_end_block_helper(
 		key: SumTreeName,

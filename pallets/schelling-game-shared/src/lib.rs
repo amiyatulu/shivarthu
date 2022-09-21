@@ -91,12 +91,14 @@ pub mod pallet {
 	pub fn DefaultMinBlockTime<T: Config>() -> StakingTime<BlockNumberOf<T>> {
 		let staking_time = StakingTime {
 			min_short_block_length: 50u128.saturated_into::<BlockNumberOf<T>>(),
-			min_long_block_length: 50u128.saturated_into::<BlockNumberOf<T>>(),
+			min_long_block_length: 80u128.saturated_into::<BlockNumberOf<T>>(),
 		};
 		staking_time
+		// 6 sec (1 block)
 		// 3 days (43200), 10 days (144000)
 		// 15 mins (150)
 		// 5 mins (50)
+		// 8 mins (80)
 	}
 
 	///`StakingTime` `min_short_block_length` for changing `Period::Evidence` to `Period::Staking`   
@@ -154,6 +156,8 @@ pub mod pallet {
 	pub type VoteStartTime<T> =
 		StorageMap<_, Blake2_128Concat, SumTreeName, BlockNumberOf<T>, ValueQuery>;
 
+	
+	/// Drawn jurors containing account id and stake Vec<(AccountId, Stake)>
 	#[pallet::storage]
 	#[pallet::getter(fn  drawn_jurors)]
 	pub type DrawnJurors<T: Config> =
@@ -227,11 +231,7 @@ pub mod pallet {
 	i64
 	>;
 
-
-
-
-
-
+    /// Decision count for two choices after reveal vote:  (count for 0, count for 1)
 	#[pallet::storage]
 	#[pallet::getter(fn decision_count)]
 	pub type DecisionCount<T> =

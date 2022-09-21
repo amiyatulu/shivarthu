@@ -35,7 +35,7 @@ fn return_min_short_block_length() -> u64 {
 	min_block_time.min_short_block_length
 }
 
-fn _return_min_long_block_length() -> u64 {
+fn return_min_long_block_length() -> u64 {
 	let schelling_game_type = return_game_type_profile_approval();
 	let min_block_time = TemplateModule::min_block_time(schelling_game_type);
 	min_block_time.min_long_block_length
@@ -91,8 +91,9 @@ fn apply_juror() {
 		// Create tree
 		assert_ok!(TemplateModule::create_tree_link_helper(key.clone(), 3));
 		// Check the period is staking
-		let _period = TemplateModule::get_period(key.clone());
-		// assert_eq!(Option<Period::Staking>, period);
+		let period = TemplateModule::get_period(key.clone());
+		// println!("{:?}", period);
+		assert_eq!(Some(Period::Staking), period);
 		// Applyjuror
 		for j in 4..30 {
 			assert_ok!(TemplateModule::apply_jurors_helper(
@@ -102,5 +103,261 @@ fn apply_juror() {
 				j * 100
 			));
 		}
+	});
+}
+
+#[test]
+fn challenger_win_test() {
+	new_test_ext().execute_with(|| {
+		let key = return_key_profile(0);
+		let now = 10;
+		assert_ok!(TemplateModule::set_to_evidence_period(key.clone(), now));
+		assert_eq!(TemplateModule::get_period(&key).unwrap(), Period::Evidence);
+		let game_type = return_game_type_profile_approval();
+		let min_short_block_length = return_min_short_block_length();
+		let min_long_block_length = return_min_long_block_length();
+		let staking_start_time = now + min_short_block_length;
+		assert_ok!(TemplateModule::set_to_staking_period(
+			key.clone(),
+			game_type.clone(),
+			staking_start_time
+		));
+		// Create tree
+		assert_ok!(TemplateModule::create_tree_link_helper(key.clone(), 3));
+		// Check the period is staking
+		let period = TemplateModule::get_period(key.clone());
+		// println!("{:?}", period);
+		assert_eq!(Some(Period::Staking), period);
+		// Applyjuror
+		for j in 4..30 {
+			assert_ok!(TemplateModule::apply_jurors_helper(
+				key.clone(),
+				game_type.clone(),
+				j,
+				j * 100
+			));
+		}
+		let new_now = staking_start_time + min_long_block_length;
+		assert_ok!(TemplateModule::change_period(key.clone(), game_type.clone(), new_now.clone()));
+		let period = TemplateModule::get_period(key.clone());
+		assert_eq!(Some(Period::Drawing), period);
+		assert_ok!(TemplateModule::draw_jurors_helper(key.clone(), game_type.clone(), 5));
+		let draws_in_round = TemplateModule::draws_in_round(key.clone());
+		assert_eq!(5, draws_in_round);
+		let drawn_jurors = TemplateModule::drawn_jurors(key.clone());
+		assert_eq!(vec![(4, 400), (7, 700), (13, 1300), (14, 1400), (15, 1500)], drawn_jurors);
+		assert_ok!(TemplateModule::change_period(key.clone(), game_type.clone(), new_now.clone()));
+		let balance = Balances::free_balance(5);
+		assert_eq!(299500, balance);
+		assert_ok!(TemplateModule::unstaking_helper(key.clone(), 5));
+		let balance = Balances::free_balance(5);
+		assert_eq!(300000, balance);
+		let hash = sp_io::hashing::keccak_256("1salt".as_bytes());
+		assert_ok!(TemplateModule::commit_vote_helper(key.clone(), 4, hash));
+		let hash = sp_io::hashing::keccak_256("1salt2".as_bytes());
+		assert_ok!(TemplateModule::commit_vote_helper(key.clone(), 7, hash));
+		let hash = sp_io::hashing::keccak_256("1salt3".as_bytes());
+		assert_ok!(TemplateModule::commit_vote_helper(key.clone(), 13, hash));
+		let hash = sp_io::hashing::keccak_256("1salt4".as_bytes());
+		assert_ok!(TemplateModule::commit_vote_helper(key.clone(), 14, hash));
+		let hash = sp_io::hashing::keccak_256("0salt5".as_bytes());
+		assert_ok!(TemplateModule::commit_vote_helper(key.clone(), 15, hash));
+		let commit_start_time = TemplateModule::commit_start_time(key.clone());
+		let new_now = commit_start_time + min_long_block_length;
+		assert_ok!(TemplateModule::change_period(key.clone(), game_type.clone(), new_now.clone()));
+		let period = TemplateModule::get_period(key.clone());
+		assert_eq!(Some(Period::Vote), period);
+		assert_ok!(TemplateModule::reveal_vote_two_choice_helper(
+			key.clone(),
+			4,
+			1,
+			"salt".as_bytes().to_vec()
+		));
+		assert_ok!(TemplateModule::reveal_vote_two_choice_helper(
+			key.clone(),
+			7,
+			1,
+			"salt2".as_bytes().to_vec()
+		));
+		assert_ok!(TemplateModule::reveal_vote_two_choice_helper(
+			key.clone(),
+			13,
+			1,
+			"salt3".as_bytes().to_vec()
+		));
+		assert_ok!(TemplateModule::reveal_vote_two_choice_helper(
+			key.clone(),
+			14,
+			1,
+			"salt4".as_bytes().to_vec()
+		));
+		assert_ok!(TemplateModule::reveal_vote_two_choice_helper(
+			key.clone(),
+			15,
+			0,
+			"salt5".as_bytes().to_vec()
+		));
+		let decision = TemplateModule::decision_count(key.clone());
+		assert_eq!((1, 4), decision);
+		let vote_start_time = TemplateModule::vote_start_time(key.clone());
+		let new_now = vote_start_time + min_long_block_length;
+		assert_ok!(TemplateModule::change_period(key.clone(), game_type.clone(), new_now.clone()));
+		let period = TemplateModule::get_period(key.clone());
+	    assert_eq!(Some(Period::Execution), period);
+
+		let balance = Balances::free_balance(4);
+		assert_eq!(299600, balance);
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), game_type.clone(), 4));
+		let balance = Balances::free_balance(4);
+		assert_eq!(300025, balance);
+		let balance = Balances::free_balance(7);
+		// println!("{:?}", balance);
+		assert_eq!(299300, balance);
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), game_type.clone(), 7));
+		let balance = Balances::free_balance(7);
+		assert_eq!(300025, balance);
+		let balance = Balances::free_balance(13);
+		assert_eq!(298700, balance);
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), game_type.clone(), 13));
+		let balance = Balances::free_balance(13);
+		assert_eq!(300025, balance);
+		let balance = Balances::free_balance(14);
+		assert_eq!(298600, balance);
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), game_type.clone(), 14));
+		let balance = Balances::free_balance(14);
+		assert_eq!(300025, balance);
+		let balance = Balances::free_balance(15);
+		assert_eq!(298500, balance);
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), game_type.clone(), 15));
+		let balance = Balances::free_balance(15);
+		assert_eq!(299625, balance);
+	});
+}
+
+#[test]
+fn challenger_lost_test() {
+	new_test_ext().execute_with(|| {
+		let key = return_key_profile(0);
+		let now = 10;
+		assert_ok!(TemplateModule::set_to_evidence_period(key.clone(), now));
+		assert_eq!(TemplateModule::get_period(&key).unwrap(), Period::Evidence);
+		let game_type = return_game_type_profile_approval();
+		let min_short_block_length = return_min_short_block_length();
+		let min_long_block_length = return_min_long_block_length();
+		let staking_start_time = now + min_short_block_length;
+		assert_ok!(TemplateModule::set_to_staking_period(
+			key.clone(),
+			game_type.clone(),
+			staking_start_time
+		));
+		// Create tree
+		assert_ok!(TemplateModule::create_tree_link_helper(key.clone(), 3));
+		// Check the period is staking
+		let period = TemplateModule::get_period(key.clone());
+		// println!("{:?}", period);
+		assert_eq!(Some(Period::Staking), period);
+		// Applyjuror
+		for j in 4..30 {
+			assert_ok!(TemplateModule::apply_jurors_helper(
+				key.clone(),
+				game_type.clone(),
+				j,
+				j * 100
+			));
+		}
+		let new_now = staking_start_time + min_long_block_length;
+		assert_ok!(TemplateModule::change_period(key.clone(), game_type.clone(), new_now.clone()));
+		let period = TemplateModule::get_period(key.clone());
+		assert_eq!(Some(Period::Drawing), period);
+		assert_ok!(TemplateModule::draw_jurors_helper(key.clone(), game_type.clone(), 5));
+		let draws_in_round = TemplateModule::draws_in_round(key.clone());
+		assert_eq!(5, draws_in_round);
+		let drawn_jurors = TemplateModule::drawn_jurors(key.clone());
+		assert_eq!(vec![(4, 400), (7, 700), (13, 1300), (14, 1400), (15, 1500)], drawn_jurors);
+		assert_ok!(TemplateModule::change_period(key.clone(), game_type.clone(), new_now.clone()));
+		let balance = Balances::free_balance(5);
+		assert_eq!(299500, balance);
+		assert_ok!(TemplateModule::unstaking_helper(key.clone(), 5));
+		let balance = Balances::free_balance(5);
+		assert_eq!(300000, balance);
+		let hash = sp_io::hashing::keccak_256("0salt".as_bytes());
+		assert_ok!(TemplateModule::commit_vote_helper(key.clone(), 4, hash));
+		let hash = sp_io::hashing::keccak_256("0salt2".as_bytes());
+		assert_ok!(TemplateModule::commit_vote_helper(key.clone(), 7, hash));
+		let hash = sp_io::hashing::keccak_256("0salt3".as_bytes());
+		assert_ok!(TemplateModule::commit_vote_helper(key.clone(), 13, hash));
+		let hash = sp_io::hashing::keccak_256("0salt4".as_bytes());
+		assert_ok!(TemplateModule::commit_vote_helper(key.clone(), 14, hash));
+		let hash = sp_io::hashing::keccak_256("1salt5".as_bytes());
+		assert_ok!(TemplateModule::commit_vote_helper(key.clone(), 15, hash));
+		let commit_start_time = TemplateModule::commit_start_time(key.clone());
+		let new_now = commit_start_time + min_long_block_length;
+		assert_ok!(TemplateModule::change_period(key.clone(), game_type.clone(), new_now.clone()));
+		let period = TemplateModule::get_period(key.clone());
+		assert_eq!(Some(Period::Vote), period);
+		assert_ok!(TemplateModule::reveal_vote_two_choice_helper(
+			key.clone(),
+			4,
+			0,
+			"salt".as_bytes().to_vec()
+		));
+		assert_ok!(TemplateModule::reveal_vote_two_choice_helper(
+			key.clone(),
+			7,
+			0,
+			"salt2".as_bytes().to_vec()
+		));
+		assert_ok!(TemplateModule::reveal_vote_two_choice_helper(
+			key.clone(),
+			13,
+			0,
+			"salt3".as_bytes().to_vec()
+		));
+		assert_ok!(TemplateModule::reveal_vote_two_choice_helper(
+			key.clone(),
+			14,
+			0,
+			"salt4".as_bytes().to_vec()
+		));
+		assert_ok!(TemplateModule::reveal_vote_two_choice_helper(
+			key.clone(),
+			15,
+			1,
+			"salt5".as_bytes().to_vec()
+		));
+		let decision = TemplateModule::decision_count(key.clone());
+		assert_eq!((4, 1), decision);
+		let vote_start_time = TemplateModule::vote_start_time(key.clone());
+		let new_now = vote_start_time + min_long_block_length;
+		assert_ok!(TemplateModule::change_period(key.clone(), game_type.clone(), new_now.clone()));
+		let period = TemplateModule::get_period(key.clone());
+	    assert_eq!(Some(Period::Execution), period);
+
+		let balance = Balances::free_balance(4);
+		assert_eq!(299600, balance);
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), game_type.clone(), 4));
+		let balance = Balances::free_balance(4);
+		assert_eq!(300025, balance);
+		let balance = Balances::free_balance(7);
+		// println!("{:?}", balance);
+		assert_eq!(299300, balance);
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), game_type.clone(), 7));
+		let balance = Balances::free_balance(7);
+		assert_eq!(300025, balance);
+		let balance = Balances::free_balance(13);
+		assert_eq!(298700, balance);
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), game_type.clone(), 13));
+		let balance = Balances::free_balance(13);
+		assert_eq!(300025, balance);
+		let balance = Balances::free_balance(14);
+		assert_eq!(298600, balance);
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), game_type.clone(), 14));
+		let balance = Balances::free_balance(14);
+		assert_eq!(300025, balance);
+		let balance = Balances::free_balance(15);
+		assert_eq!(298500, balance);
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), game_type.clone(), 15));
+		let balance = Balances::free_balance(15);
+		assert_eq!(299625, balance);
 	});
 }
