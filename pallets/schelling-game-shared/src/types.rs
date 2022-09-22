@@ -76,3 +76,16 @@ pub struct ScoreCommitVote {
 	pub revealed_vote: Option<i64>,
 }
 
+
+
+/// RangePoint enum to determine whether score values are from
+/// 1) ZeroToTen: 0 to 10 
+/// 2) MinusTenToPlusTen: -10 to +10
+/// 3) ZeroToFive: 0 to 5
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub enum RangePoint {
+	ZeroToTen,
+	MinusTenToPlusTen,
+	ZeroToFive,
+}

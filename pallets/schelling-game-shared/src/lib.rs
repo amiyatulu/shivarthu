@@ -20,7 +20,7 @@ mod score_game;
 mod share_link;
 
 use crate::types::{
-	CommitVote, DrawJurorsLimit, Period, SchellingGameType, StakingTime, VoteStatus, RevealedVote, WinningDecision, ScoreCommitVote
+	CommitVote, DrawJurorsLimit, Period, SchellingGameType, StakingTime, VoteStatus, RevealedVote, WinningDecision, ScoreCommitVote, RangePoint
 };
 use frame_support::pallet_prelude::*;
 use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};

@@ -1,7 +1,8 @@
 use crate::*;
 
 impl<T: Config> Pallet<T> {
-	pub(super) fn _commit_vote_for_score_helper(
+	/// Commit your score vote
+	pub(super) fn commit_vote_for_score_helper(
 		key: SumTreeName,
 		who: AccountIdOf<T>,
 		vote_commit: [u8; 32],
@@ -28,7 +29,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// choice is i64. Validate the range of the choice while using the function
-	pub(super) fn _reveal_vote_score_helper(
+	pub(super) fn reveal_vote_score_helper(
 		key: SumTreeName,
 		who: AccountIdOf<T>,
 		choice: i64,
@@ -73,10 +74,10 @@ impl<T: Config> Pallet<T> {
 
 	/// Distribute incentives to juror in execution period in score schelling game
 	/// Improvements: Will it be better to distribute all jurors incentives in single call
-	pub(super) fn _get_incentives_score_schelling_helper(
+	pub(super) fn get_incentives_score_schelling_helper(
 		key: SumTreeName,
-		_game_type: SchellingGameType,
-		_who: AccountIdOf<T>,
+		game_type: SchellingGameType,
+		who: AccountIdOf<T>,
 	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
 			Some(period) => {
@@ -85,7 +86,7 @@ impl<T: Config> Pallet<T> {
 			None => Err(Error::<T>::PeriodDoesNotExists)?,
 		}
 
-		let _drawn_jurors = <DrawnJurors<T>>::get(&key);
+		let drawn_jurors = <DrawnJurors<T>>::get(&key);
 
 		Ok(())
 	}
@@ -133,5 +134,13 @@ impl<T: Config> Pallet<T> {
 		}
 		let new_mean = Self::mean_integer(&new_items);
 		new_mean
+	}
+
+	pub(super) fn get_incentives_range(range_point: RangePoint) -> i64 {
+		match range_point {
+			RangePoint::ZeroToTen => 1500, //3 points,  1.5 ± mean, multiply by 1000 to make it integer
+			RangePoint::MinusTenToPlusTen => 3000, //6 points, 3 ± mean
+			RangePoint::ZeroToFive => 750, // 1.5 points, 0.75 ± mean
+		}
 	}
 }
