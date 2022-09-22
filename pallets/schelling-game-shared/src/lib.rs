@@ -220,11 +220,11 @@ pub mod pallet {
 	ValueQuery,
 	>;
 
-	/// New mean from teh reveal values in score schelling game
+	/// New mean from the reveal values in score schelling game
 	/// Improvement: This step will not be required if all jurors incentives are distributed at one time	
 	#[pallet::storage]
 	#[pallet::getter(fn new_mean_reveal_score)]
-	pub type NewMeanRevealScore<T: Config> = StorageMap<
+	pub type IncentiveMeanRevealScore<T: Config> = StorageMap<
 	_,
 	Blake2_128Concat,
 	SumTreeName,

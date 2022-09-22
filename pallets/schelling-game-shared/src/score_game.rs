@@ -76,8 +76,7 @@ impl<T: Config> Pallet<T> {
 	/// Improvements: Will it be better to distribute all jurors incentives in single call
 	pub(super) fn get_incentives_score_schelling_helper(
 		key: SumTreeName,
-		game_type: SchellingGameType,
-		who: AccountIdOf<T>,
+		range_point: RangePoint,
 	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
 			Some(period) => {
@@ -87,6 +86,30 @@ impl<T: Config> Pallet<T> {
 		}
 
 		let drawn_jurors = <DrawnJurors<T>>::get(&key);
+		let reveal_votes_iterator = <ScoreVoteCommits<T>>::iter_prefix(&key);
+		let reveal_values = <RevealScoreValues<T>>::get(&key);
+		let sd_and_mean = Self::std_deviation_interger(&reveal_values);
+		let new_mean = Self::calculate_new_mean(&reveal_values, sd_and_mean).unwrap();
+		<IncentiveMeanRevealScore<T>>::insert(key.clone(), new_mean);
+		let incentives_range = Self::get_incentives_range(range_point);
+		let reveal_votes = reveal_votes_iterator
+			.map(|(account_id, score_commit_vote)| (account_id, score_commit_vote.revealed_vote))
+			.collect::<Vec<(_, _)>>();
+		for juror in drawn_jurors {
+			match reveal_votes.binary_search_by(|(c,_)| c.cmp(&juror.0)) {
+				Ok(index) => {
+					let account_n_vote = &reveal_votes[index];
+					if let Some(i) = account_n_vote.1 {
+						if i >= new_mean.checked_sub(incentives_range).unwrap() && i <= new_mean.checked_add(incentives_range).unwrap() {
+							// get incentives
+						} else {
+							// deduct incentives
+						}
+					}
+				},
+				Err(_) => todo!(),
+			}
+		}
 
 		Ok(())
 	}
@@ -102,8 +125,9 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	pub(super) fn std_deviation_interger(data: &Vec<i64>) -> Option<i64> {
-		match (Self::mean_integer(data), data.len()) {
+	pub(super) fn std_deviation_interger(data: &Vec<i64>) -> Option<(i64, i64)> {
+		let mean = Self::mean_integer(data);
+		match (mean, data.len()) {
 			(Some(data_mean), count) if count > 0 => {
 				let variance = data
 					.iter()
@@ -113,7 +137,7 @@ impl<T: Config> Pallet<T> {
 					})
 					.sum::<i64>() / count as i64;
 
-				Some(variance.sqrt())
+				Some((variance.sqrt(), mean.unwrap()))
 			},
 			_ => None,
 		}
@@ -121,14 +145,13 @@ impl<T: Config> Pallet<T> {
 
 	pub(super) fn calculate_new_mean(
 		data: &Vec<i64>,
-		mean: Option<i64>,
-		sd: Option<i64>,
+		sd_and_mean: Option<(i64, i64)>,
 	) -> Option<i64> {
 		let mut new_items = vec![];
+		let mean = sd_and_mean.unwrap().1;
+		let sd = sd_and_mean.unwrap().0;
 		for x in data {
-			if *x >= mean.unwrap().checked_sub(sd.unwrap()).unwrap()
-				&& *x <= mean.unwrap().checked_add(sd.unwrap()).unwrap()
-			{
+			if *x >= mean.checked_sub(sd).unwrap() && *x <= mean.checked_add(sd).unwrap() {
 				new_items.push(*x);
 			}
 		}
@@ -140,7 +163,7 @@ impl<T: Config> Pallet<T> {
 		match range_point {
 			RangePoint::ZeroToTen => 1500, //3 points,  1.5 ± mean, multiply by 1000 to make it integer
 			RangePoint::MinusTenToPlusTen => 3000, //6 points, 3 ± mean
-			RangePoint::ZeroToFive => 750, // 1.5 points, 0.75 ± mean
+			RangePoint::ZeroToFive => 750, //1.5 points, 0.75 ± mean
 		}
 	}
 }
