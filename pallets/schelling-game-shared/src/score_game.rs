@@ -72,10 +72,10 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	/// Distribute incentives to juror in execution period in score schelling game
-	/// Improvements: Will it be better to distribute all jurors incentives in single call
+	/// Distribute incentives to all jurors in execution period in score schelling game
 	pub(super) fn get_incentives_score_schelling_helper(
 		key: SumTreeName,
+		game_type: SchellingGameType,
 		range_point: RangePoint,
 	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
@@ -95,21 +95,42 @@ impl<T: Config> Pallet<T> {
 		let reveal_votes = reveal_votes_iterator
 			.map(|(account_id, score_commit_vote)| (account_id, score_commit_vote.revealed_vote))
 			.collect::<Vec<(_, _)>>();
+		let mut winners = vec![];
 		for juror in drawn_jurors {
-			match reveal_votes.binary_search_by(|(c,_)| c.cmp(&juror.0)) {
+			match reveal_votes.binary_search_by(|(c, _)| c.cmp(&juror.0)) {
 				Ok(index) => {
 					let account_n_vote = &reveal_votes[index];
 					if let Some(i) = account_n_vote.1 {
-						if i >= new_mean.checked_sub(incentives_range).unwrap() && i <= new_mean.checked_add(incentives_range).unwrap() {
+						if i >= new_mean.checked_sub(incentives_range).unwrap()
+							&& i <= new_mean.checked_add(incentives_range).unwrap()
+						{
 							// get incentives
+							winners.push((juror.0.clone(), juror.1.clone()));
 						} else {
 							// deduct incentives
+							let stake = juror.1;
+							let balance = Self::u64_to_balance_saturated(stake * 3 / 4);
+							let r =
+								T::Currency::deposit_into_existing(&juror.0, balance).ok().unwrap();
+							T::Reward::on_unbalanced(r);
 						}
 					}
 				},
 				Err(_) => todo!(),
 			}
 		}
+
+		let winners_len = winners.len() as u64;
+		let incentives_tuple = <JurorIncentives<T>>::get(&game_type);
+		let winning_incentives = incentives_tuple.1.checked_div(winners_len).expect("oveflow");
+		for winner in winners {
+			let total_incentives = winner.1.checked_add(winning_incentives).expect("overflow");
+			let incentives = Self::u64_to_balance_saturated(total_incentives);
+			let r = T::Currency::deposit_into_existing(&winner.0, incentives).ok().unwrap();
+			T::Reward::on_unbalanced(r);
+		}
+
+		// Remove all data
 
 		Ok(())
 	}

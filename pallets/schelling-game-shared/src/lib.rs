@@ -240,7 +240,9 @@ pub mod pallet {
 	pub fn DefaultJurorIncentives<T: Config>() -> (u64, u64) {
 		(100, 100)
 	}
-
+    
+	/// Total amount of incentives distributed to jurors. 
+	/// Improvements: Increase incentives on appeal.
 	#[pallet::storage]
 	#[pallet::getter(fn juror_incentives)]
 	pub type JurorIncentives<T> = StorageMap<
