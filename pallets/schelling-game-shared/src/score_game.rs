@@ -132,6 +132,25 @@ impl<T: Config> Pallet<T> {
 
 		// Remove all data
 
+		// Remove SorititionSumTrees in `sortition-sum-game` pallet
+		let _result = T::SortitionSumGameSource::remove_tree_link(key.clone());
+
+		// Remove DrawnJurors
+		<DrawnJurors<T>>::remove(&key);
+
+		// Remove UnstakedJurors (all jurors can be returned their incentives at a time)
+		// Remove VoteCommits (not here)
+
+		// Remove ScoreVoteCommits
+		<ScoreVoteCommits<T>>::remove_prefix(key.clone(), None); // Deprecated: Use clear_prefix instead
+		// let reveal_votes_iterator2 = <ScoreVoteCommits<T>>::iter_prefix(&key);
+		// reveal_votes_iterator2.for_each(|(account_id, _)|{
+		// 	<ScoreVoteCommits<T>>::remove(key.clone(), account_id);
+		// });
+
+		// Remove RevealScoreValues
+		<RevealScoreValues<T>>::remove(&key);
+
 		Ok(())
 	}
 

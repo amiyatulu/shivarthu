@@ -361,6 +361,101 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	pub(super) fn get_all_incentives_two_choice_helper(
+		key: SumTreeName,
+		game_type: SchellingGameType,
+	) -> DispatchResult {
+		match <PeriodName<T>>::get(&key) {
+			Some(period) => {
+				ensure!(period == Period::Execution, Error::<T>::PeriodDontMatch);
+			},
+			None => Err(Error::<T>::PeriodDoesNotExists)?,
+		}
+
+		let drawn_jurors = <DrawnJurors<T>>::get(&key);
+		let reveal_votes_iterator = <VoteCommits<T>>::iter_prefix(&key);
+
+		let reveal_votes = reveal_votes_iterator
+			.map(|(account_id, commit_vote)| (account_id, commit_vote.revealed_vote))
+			.collect::<Vec<(_, _)>>();
+		let decision_count = <DecisionCount<T>>::get(&key);
+		let incentives = <JurorIncentives<T>>::get(&game_type);
+		let (winning_decision, winning_incentives) =
+			Self::get_winning_incentives(decision_count, incentives);
+		for juror in drawn_jurors {
+			match reveal_votes.binary_search_by(|(c, _)| c.cmp(&juror.0)) {
+				Ok(index) => {
+					let account_n_vote = reveal_votes[index].clone();
+					if let Some(vote) = account_n_vote.1 {
+						match winning_decision {
+							WinningDecision::WinnerYes => match vote {
+								RevealedVote::Yes => {
+									let result = Self::winner_getting_incentives2(
+										key.clone(),
+										juror.0.clone(),
+										winning_incentives,
+										juror.1,
+									)?;
+									result
+								},
+								RevealedVote::No => {
+									let result = Self::looser_getting_incentives2(
+										key.clone(),
+										juror.0.clone(),
+										juror.1,
+									)?;
+									result
+								},
+							},
+							WinningDecision::WinnerNo => match vote {
+								RevealedVote::Yes => {
+									let result = Self::looser_getting_incentives2(
+										key.clone(),
+										juror.0.clone(),
+										juror.1,
+									)?;
+									result
+								},
+								RevealedVote::No => {
+									let result = Self::winner_getting_incentives2(
+										key.clone(),
+										juror.0.clone(),
+										winning_incentives,
+										juror.1,
+									)?;
+									result
+								},
+							},
+							WinningDecision::Draw => {
+								let result = Self::getting_incentives_draw2(
+									key.clone(),
+									juror.0.clone(),
+									juror.1,
+								)?;
+								result
+							},
+						}
+					}
+				},
+				Err(_) => todo!(),
+			}
+		}
+		// Remove SorititionSumTrees in `sortition-sum-game` pallet
+		let _result = T::SortitionSumGameSource::remove_tree_link(key.clone());
+
+		// Remove DrawnJurors
+		<DrawnJurors<T>>::remove(&key);
+
+		// Remove ScoreVoteCommits
+		<VoteCommits<T>>::remove_prefix(key.clone(), None); // Deprecated: Use clear_prefix instead
+		// let reveal_votes_iterator2 = <VoteCommits<T>>::iter_prefix(&key);
+		// reveal_votes_iterator2.for_each(|(account_id, _)|{
+		// 	<VoteCommits<T>>::remove(key.clone(), account_id);
+		// });
+
+		Ok(())
+	}
+
 	// Improvements: Will it be better to distribute all jurors incentives in single call
 	pub(super) fn get_incentives_two_choice_helper(
 		key: SumTreeName,
@@ -468,6 +563,19 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	pub(super) fn getting_incentives_draw2(
+		key: SumTreeName,
+		who: AccountIdOf<T>,
+		stake: u64,
+	) -> DispatchResult {
+		let balance = Self::u64_to_balance_saturated(stake);
+
+		let r = T::Currency::deposit_into_existing(&who, balance).ok().unwrap();
+		T::Reward::on_unbalanced(r);
+
+		Ok(())
+	}
+
 	pub(super) fn looser_getting_incentives(
 		key: SumTreeName,
 		who: AccountIdOf<T>,
@@ -484,6 +592,19 @@ impl<T: Config> Pallet<T> {
 				T::Reward::on_unbalanced(r);
 			},
 		}
+		Ok(())
+	}
+
+	pub(super) fn looser_getting_incentives2(
+		key: SumTreeName,
+		who: AccountIdOf<T>,
+		stake: u64,
+	) -> DispatchResult {
+		let balance = Self::u64_to_balance_saturated(stake * 3 / 4);
+
+		let r = T::Currency::deposit_into_existing(&who, balance).ok().unwrap();
+		T::Reward::on_unbalanced(r);
+
 		Ok(())
 	}
 
@@ -505,6 +626,20 @@ impl<T: Config> Pallet<T> {
 				T::Reward::on_unbalanced(r);
 			},
 		};
+
+		Ok(())
+	}
+
+	pub(super) fn winner_getting_incentives2(
+		key: SumTreeName,
+		who: AccountIdOf<T>,
+		winning_incentives: u64,
+		stake: u64,
+	) -> DispatchResult {
+		let total_incentives = stake.checked_add(winning_incentives).expect("overflow");
+		let incentives = Self::u64_to_balance_saturated(total_incentives);
+		let r = T::Currency::deposit_into_existing(&who, incentives).ok().unwrap();
+		T::Reward::on_unbalanced(r);
 
 		Ok(())
 	}

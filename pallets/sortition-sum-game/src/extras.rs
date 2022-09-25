@@ -19,6 +19,9 @@ impl<T: Config> SortitionSumGameLink for Pallet<T> {
     fn draw_link(key: Self::SumTreeName, draw_number: u64) -> Result<Self::AccountId, DispatchError> {
         Self::draw(key, draw_number)
     }
+	fn remove_tree_link(key: Self::SumTreeName) -> DispatchResult {
+		Self::remove_tree(key)
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -271,5 +274,10 @@ impl<T: Config> Pallet<T> {
 				Ok((start_index, values, has_more))
 			},
 		}
+	}
+
+	pub fn remove_tree(key: SumTreeName)-> DispatchResult {
+		<SortitionSumTrees<T>>::remove(&key);
+		Ok(())
 	}
 }
