@@ -360,7 +360,8 @@ impl<T: Config> Pallet<T> {
 
 		Ok(())
 	}
-
+    
+	/// Distribute incentives in a single go. 
 	pub(super) fn get_all_incentives_two_choice_helper(
 		key: SumTreeName,
 		game_type: SchellingGameType,
@@ -391,7 +392,6 @@ impl<T: Config> Pallet<T> {
 							WinningDecision::WinnerYes => match vote {
 								RevealedVote::Yes => {
 									let result = Self::winner_getting_incentives2(
-										key.clone(),
 										juror.0.clone(),
 										winning_incentives,
 										juror.1,
@@ -400,7 +400,6 @@ impl<T: Config> Pallet<T> {
 								},
 								RevealedVote::No => {
 									let result = Self::looser_getting_incentives2(
-										key.clone(),
 										juror.0.clone(),
 										juror.1,
 									)?;
@@ -410,7 +409,6 @@ impl<T: Config> Pallet<T> {
 							WinningDecision::WinnerNo => match vote {
 								RevealedVote::Yes => {
 									let result = Self::looser_getting_incentives2(
-										key.clone(),
 										juror.0.clone(),
 										juror.1,
 									)?;
@@ -418,7 +416,6 @@ impl<T: Config> Pallet<T> {
 								},
 								RevealedVote::No => {
 									let result = Self::winner_getting_incentives2(
-										key.clone(),
 										juror.0.clone(),
 										winning_incentives,
 										juror.1,
@@ -428,7 +425,6 @@ impl<T: Config> Pallet<T> {
 							},
 							WinningDecision::Draw => {
 								let result = Self::getting_incentives_draw2(
-									key.clone(),
 									juror.0.clone(),
 									juror.1,
 								)?;
@@ -446,7 +442,7 @@ impl<T: Config> Pallet<T> {
 		// Remove DrawnJurors
 		<DrawnJurors<T>>::remove(&key);
 
-		// Remove ScoreVoteCommits
+		// Remove VoteCommits
 		<VoteCommits<T>>::remove_prefix(key.clone(), None); // Deprecated: Use clear_prefix instead
 		// let reveal_votes_iterator2 = <VoteCommits<T>>::iter_prefix(&key);
 		// reveal_votes_iterator2.for_each(|(account_id, _)|{
@@ -564,7 +560,6 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn getting_incentives_draw2(
-		key: SumTreeName,
 		who: AccountIdOf<T>,
 		stake: u64,
 	) -> DispatchResult {
@@ -596,7 +591,6 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn looser_getting_incentives2(
-		key: SumTreeName,
 		who: AccountIdOf<T>,
 		stake: u64,
 	) -> DispatchResult {
@@ -631,7 +625,6 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn winner_getting_incentives2(
-		key: SumTreeName,
 		who: AccountIdOf<T>,
 		winning_incentives: u64,
 		stake: u64,

@@ -139,7 +139,7 @@ impl<T: Config> Pallet<T> {
 		<DrawnJurors<T>>::remove(&key);
 
 		// Remove UnstakedJurors (all jurors can be returned their incentives at a time)
-		// Remove VoteCommits (not here)
+	
 
 		// Remove ScoreVoteCommits
 		<ScoreVoteCommits<T>>::remove_prefix(key.clone(), None); // Deprecated: Use clear_prefix instead
