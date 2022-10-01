@@ -1,6 +1,6 @@
 use crate::{
 	mock::*,
-	types::{Period, SchellingGameType},
+	types::{Period, SchellingGameType, RangePoint},
 	Error,
 };
 use frame_support::traits::{OnFinalize, OnInitialize};
@@ -465,6 +465,35 @@ fn score_schelling_game_test() {
 		assert_ok!(TemplateModule::change_period(key.clone(), game_type.clone(), new_now.clone()));
 		let period = TemplateModule::get_period(key.clone());
 	    assert_eq!(Some(Period::Execution), period);
+		let reveal_score = TemplateModule::reveal_score_values(key.clone());
+		assert_eq!(vec![1000, 1000, 5000, 1000, 7000], reveal_score);
+		let balance = Balances::free_balance(4);
+		assert_eq!(299600, balance);
+		let balance = Balances::free_balance(7);
+		// println!("{:?}", balance);
+		assert_eq!(299300, balance);
+		let balance = Balances::free_balance(13);
+		assert_eq!(298700, balance);
+		let balance = Balances::free_balance(14);
+		assert_eq!(298600, balance);
+		let balance = Balances::free_balance(15);
+		assert_eq!(298500, balance);
+		assert_ok!(TemplateModule::get_incentives_score_schelling_helper(key.clone(), game_type.clone(), RangePoint::ZeroToTen));
+		let mean_values = TemplateModule::new_mean_reveal_score(key.clone());
+		assert_eq!(Some(2000), mean_values);
+		let balance = Balances::free_balance(4);
+		// println!("{:?}", balance);
+		assert_eq!(300033, balance);
+		let balance = Balances::free_balance(7);
+		assert_eq!(300033, balance);
+		let balance = Balances::free_balance(13); // Balance deducted as voted 5
+		assert_eq!(299675, balance);
+		let balance = Balances::free_balance(14);
+		assert_eq!(300033, balance);
+		let balance = Balances::free_balance(15); // Balance deducted as voted 7
+		assert_eq!(299625, balance);
+
+
 
 
 	});

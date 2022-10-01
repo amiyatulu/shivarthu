@@ -90,19 +90,26 @@ impl<T: Config> Pallet<T> {
 		let reveal_values = <RevealScoreValues<T>>::get(&key);
 		let sd_and_mean = Self::std_deviation_interger(&reveal_values);
 		let new_mean = Self::calculate_new_mean(&reveal_values, sd_and_mean).unwrap();
+		// println!("new mean: {:?}", new_mean);
 		<IncentiveMeanRevealScore<T>>::insert(key.clone(), new_mean);
 		let incentives_range = Self::get_incentives_range(range_point);
-		let reveal_votes = reveal_votes_iterator
+		let mut reveal_votes = reveal_votes_iterator
 			.map(|(account_id, score_commit_vote)| (account_id, score_commit_vote.revealed_vote))
 			.collect::<Vec<(_, _)>>();
+		reveal_votes.sort_by(|a, b| a.0.cmp(&b.0));
+
+		
+		// println!("reveal votes, {:?}",reveal_votes);
 		let mut winners = vec![];
 		for juror in drawn_jurors {
 			match reveal_votes.binary_search_by(|(c, _)| c.cmp(&juror.0)) {
 				Ok(index) => {
+					// println!("Ok index {:?}", index);
 					let account_n_vote = &reveal_votes[index];
 					if let Some(i) = account_n_vote.1 {
-						if i >= new_mean.checked_sub(incentives_range).unwrap()
-							&& i <= new_mean.checked_add(incentives_range).unwrap()
+						// println!("vote {:?}", i);
+						if i*1000 >= new_mean.checked_sub(incentives_range).unwrap()
+							&&  i*1000  <= new_mean.checked_add(incentives_range).unwrap()
 						{
 							// get incentives
 							winners.push((juror.0.clone(), juror.1.clone()));
@@ -116,11 +123,14 @@ impl<T: Config> Pallet<T> {
 						}
 					}
 				},
-				Err(_) => todo!(),
+				Err(_) => {
+					// println!("Err index {:?}", index);
+				},
 			}
 		}
 
 		let winners_len = winners.len() as u64;
+		// println!("winners_len {}", winners_len);
 		let incentives_tuple = <JurorIncentives<T>>::get(&game_type);
 		let winning_incentives = incentives_tuple.1.checked_div(winners_len).expect("oveflow");
 		for winner in winners {

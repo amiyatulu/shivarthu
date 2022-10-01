@@ -29,7 +29,7 @@ use frame_support::{
 	},
 	PalletId,
 };
-use schelling_game_shared::types::SchellingGameType;
+use schelling_game_shared::types::{SchellingGameType, RangePoint};
 use schelling_game_shared_link::SchellingGameSharedLink;
 use sortition_sum_game::types::SumTreeName;
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -60,6 +60,7 @@ pub mod pallet {
 			BlockNumber = Self::BlockNumber,
 			AccountId = AccountIdOf<Self>,
 			Balance = BalanceOf<Self>,
+			RangePoint = RangePoint,
 		>;
 		type Currency: ReservableCurrency<Self::AccountId>;
 	}

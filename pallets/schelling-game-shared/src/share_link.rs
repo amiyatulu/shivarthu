@@ -8,6 +8,7 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	type BlockNumber = BlockNumberOf<T>;
 	type AccountId = AccountIdOf<T>;
 	type Balance = BalanceOf<T>;
+	type RangePoint = RangePoint;
 
 	/// Set `PeriodName` to `Period::Evidence`
 	/// Called with submission of `Evidence` stake e.g. Profile stake
@@ -188,5 +189,37 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	fn selected_as_juror_helper_link(key: Self::SumTreeName, who: Self::AccountId) -> bool {
 		Self::selected_as_juror_helper(key, who)
 	}
+    
+	/// Commit vote for score schelling game
+	fn commit_vote_for_score_helper_link(
+		key: Self::SumTreeName,
+		who: Self::AccountId,
+		vote_commit: [u8; 32],
+	) -> DispatchResult {
+		Self::commit_vote_for_score_helper(key, who, vote_commit)
+	}
+    
+	/// Reveal vote for score schelling game
+	fn reveal_vote_score_helper_link(
+		key: Self::SumTreeName,
+		who: Self::AccountId,
+		choice: i64,
+		salt: Vec<u8>,
+	) -> DispatchResult {
+		Self::reveal_vote_score_helper(key, who, choice, salt)
+	}
 
+	fn get_incentives_score_schelling_helper(
+		key:Self::SumTreeName,
+		game_type: Self::SchellingGameType,
+		range_point: Self::RangePoint,
+	) -> DispatchResult {
+	   Self::get_incentives_score_schelling_helper(
+			key,
+			game_type,
+			range_point,
+		) 
+	}
+
+	
 }

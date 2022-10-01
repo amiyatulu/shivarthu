@@ -361,7 +361,8 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
     
-	/// Distribute incentives in a single go. 
+	/// Distribute incentives in a single go.
+	#[allow(dead_code)] 
 	pub(super) fn get_all_incentives_two_choice_helper(
 		key: SumTreeName,
 		game_type: SchellingGameType,
@@ -376,9 +377,10 @@ impl<T: Config> Pallet<T> {
 		let drawn_jurors = <DrawnJurors<T>>::get(&key);
 		let reveal_votes_iterator = <VoteCommits<T>>::iter_prefix(&key);
 
-		let reveal_votes = reveal_votes_iterator
+		let mut reveal_votes = reveal_votes_iterator
 			.map(|(account_id, commit_vote)| (account_id, commit_vote.revealed_vote))
 			.collect::<Vec<(_, _)>>();
+		reveal_votes.sort_by(|a, b| a.0.cmp(&b.0));
 		let decision_count = <DecisionCount<T>>::get(&key);
 		let incentives = <JurorIncentives<T>>::get(&game_type);
 		let (winning_decision, winning_incentives) =
@@ -623,7 +625,8 @@ impl<T: Config> Pallet<T> {
 
 		Ok(())
 	}
-
+    
+	
 	pub(super) fn winner_getting_incentives2(
 		who: AccountIdOf<T>,
 		winning_incentives: u64,

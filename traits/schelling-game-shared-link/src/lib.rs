@@ -8,8 +8,12 @@ pub trait SchellingGameSharedLink {
 	type BlockNumber;
 	type AccountId;
 	type Balance;
+	type RangePoint;
 
-	fn set_to_evidence_period_link(key: Self::SumTreeName, now: Self::BlockNumber) -> DispatchResult;
+	fn set_to_evidence_period_link(
+		key: Self::SumTreeName,
+		now: Self::BlockNumber,
+	) -> DispatchResult;
 	fn create_tree_helper_link(key: Self::SumTreeName, k: u64) -> DispatchResult;
 
 	fn set_to_staking_period_link(
@@ -75,4 +79,22 @@ pub trait SchellingGameSharedLink {
 		now: Self::BlockNumber,
 	) -> Option<u32>;
 	fn selected_as_juror_helper_link(key: Self::SumTreeName, who: Self::AccountId) -> bool;
+	fn commit_vote_for_score_helper_link(
+		key: Self::SumTreeName,
+		who: Self::AccountId,
+		vote_commit: [u8; 32],
+	) -> DispatchResult;
+	fn reveal_vote_score_helper_link(
+		key: Self::SumTreeName,
+		who: Self::AccountId,
+		choice: i64,
+		salt: Vec<u8>,
+	) -> DispatchResult;
+
+
+	fn get_incentives_score_schelling_helper(
+		key:Self::SumTreeName,
+		game_type: Self::SchellingGameType,
+		range_point: Self::RangePoint,
+	) -> DispatchResult;
 }

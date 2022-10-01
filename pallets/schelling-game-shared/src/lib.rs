@@ -165,6 +165,7 @@ pub mod pallet {
 
 	
 	/// Drawn jurors containing account id and stake Vec<(AccountId, Stake)>
+	/// Should be stored in sorted order by AccountId
 	#[pallet::storage]
 	#[pallet::getter(fn  drawn_jurors)]
 	pub type DrawnJurors<T: Config> =
