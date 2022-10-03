@@ -189,7 +189,7 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	fn selected_as_juror_helper_link(key: Self::SumTreeName, who: Self::AccountId) -> bool {
 		Self::selected_as_juror_helper(key, who)
 	}
-    
+
 	/// Commit vote for score schelling game
 	fn commit_vote_for_score_helper_link(
 		key: Self::SumTreeName,
@@ -198,7 +198,7 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	) -> DispatchResult {
 		Self::commit_vote_for_score_helper(key, who, vote_commit)
 	}
-    
+
 	/// Reveal vote for score schelling game
 	fn reveal_vote_score_helper_link(
 		key: Self::SumTreeName,
@@ -208,18 +208,21 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	) -> DispatchResult {
 		Self::reveal_vote_score_helper(key, who, choice, salt)
 	}
-
-	fn get_incentives_score_schelling_helper(
-		key:Self::SumTreeName,
+    
+	/// Distribute incentives to all score schelling game jurors
+	fn get_incentives_score_schelling_helper_link(
+		key: Self::SumTreeName,
 		game_type: Self::SchellingGameType,
 		range_point: Self::RangePoint,
 	) -> DispatchResult {
-	   Self::get_incentives_score_schelling_helper(
-			key,
-			game_type,
-			range_point,
-		) 
+		Self::get_incentives_score_schelling_helper(key, game_type, range_point)
 	}
 
-	
+	/// Distribute incentives to all two choice shelling game jurors
+	fn get_all_incentives_two_choice_helper(
+		key: Self::SumTreeName,
+		game_type: Self::SchellingGameType,
+	) -> DispatchResult {
+		Self::get_all_incentives_two_choice_helper(key, game_type)
+	}
 }

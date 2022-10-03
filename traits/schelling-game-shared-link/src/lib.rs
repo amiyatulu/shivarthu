@@ -91,10 +91,14 @@ pub trait SchellingGameSharedLink {
 		salt: Vec<u8>,
 	) -> DispatchResult;
 
-
-	fn get_incentives_score_schelling_helper(
-		key:Self::SumTreeName,
+	fn get_incentives_score_schelling_helper_link(
+		key: Self::SumTreeName,
 		game_type: Self::SchellingGameType,
 		range_point: Self::RangePoint,
+	) -> DispatchResult;
+
+	fn get_all_incentives_two_choice_helper(
+		key: Self::SumTreeName,
+		game_type: Self::SchellingGameType,
 	) -> DispatchResult;
 }

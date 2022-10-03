@@ -362,7 +362,6 @@ impl<T: Config> Pallet<T> {
 	}
     
 	/// Distribute incentives in a single go.
-	#[allow(dead_code)] 
 	pub(super) fn get_all_incentives_two_choice_helper(
 		key: SumTreeName,
 		game_type: SchellingGameType,
@@ -435,7 +434,7 @@ impl<T: Config> Pallet<T> {
 						}
 					}
 				},
-				Err(_) => todo!(),
+				Err(_) => {},
 			}
 		}
 		// Remove SorititionSumTrees in `sortition-sum-game` pallet
