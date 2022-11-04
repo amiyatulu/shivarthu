@@ -12,6 +12,8 @@ https://shivarthu.reaudito.com/paper/Shivarthu_whitepaper.pdf
 Technical Details
 https://github.com/amiyatulu/shivarthu/blob/main/docs/Shivarthu.md
 
+![Web3 Foundation Grants](https://github.com/amiyatulu/shivarthu/blob/main/docs/web3_foundation_grants.svg)
+
 # Substrate Node Template
 
 [![Try on playground](https://img.shields.io/badge/Playground-Node_Template-brightgreen?logo=Parity%20Substrate)](https://playground.substrate.dev/?deploy=node-template) [![Matrix](https://img.shields.io/matrix/substrate-technical:matrix.org)](https://matrix.to/#/#substrate-technical:matrix.org)
