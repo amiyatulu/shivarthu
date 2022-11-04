@@ -54,7 +54,7 @@ shivarthu-runtime-api={version = "4.0.0-dev", default-features = false, path = "
 sortition-sum-game = {default-features = false, path ="../pallets/sortition-sum-game"}
 election={ default-features = false, path="../pallets/election"}
 election-runtime-api={default-features=false, path="../pallets/election/election-runtime-api"}
-score-game = {default-features=false, path="../pallets/score-game"}
+project-submission = {default-features=false, path="../pallets/project-submission"}
 schelling-game-shared = {default-features=false, path="../pallets/schelling-game-shared"}
 profile-validation = {default-features=false, path="../pallets/profile-validation"}
 profile-validation-runtime-api = {default-features=false, path="../pallets/profile-validation/profile-validation-runtime-api"}
@@ -94,7 +94,7 @@ std = [
 	"pallet-template/std",
 	"shivarthu-runtime-api/std",
 	"sortition-sum-game/std",
-	"score-game/std",
+	"project-submission/std",
 	"schelling-game-shared/std",
 	"profile-validation/std",
 	"profile-validation-runtime-api/std"

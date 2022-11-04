@@ -3760,9 +3760,9 @@ dependencies = [
  "parity-scale-codec 3.1.2",
  "profile-validation",
  "profile-validation-runtime-api",
+ "project-submission",
  "scale-info",
  "schelling-game-shared",
- "score-game",
  "shivarthu-runtime-api",
  "sortition-sum-game",
  "sp-api",
@@ -4694,6 +4694,25 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "sp-api",
+ "sp-std",
+]
+
+[[package]]
+name = "project-submission"
+version = "4.0.0-dev"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-support-test",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "parity-scale-codec 3.1.2",
+ "scale-info",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
  "sp-std",
 ]
 
@@ -6095,26 +6114,6 @@ name = "scopeguard"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
-
-[[package]]
-name = "score-game"
-version = "4.0.0-dev"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-support-test",
- "frame-system",
- "log",
- "num-integer",
- "pallet-balances",
- "parity-scale-codec 3.1.2",
- "scale-info",
- "sp-arithmetic",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
 
 [[package]]
 name = "sct"

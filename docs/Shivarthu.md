@@ -25,7 +25,12 @@ Project Github link: https://github.com/amiyatulu/shivarthu
 The governance is divided into many departments like education, infrastructure, health, community service for every locality.
 #### Expertise evaluation of representatives :
 Voters and especially representatives need to have some experience or expertise in the department. Experience is required because education about the department leads to better decision making. 
-Their experience is evaluated by schelling game.
+Their kyc and experience is evaluated by schelling game.
+
+#### Vouching
+A family tree is constructed.
+If they know each other, friends and relatives will become guarantors for each other.
+Moderators chosen through approval voting have the ability to invalidate the fake vouching by down voting the guarantor.
 
 
 Experience evaluation pallet:  

@@ -45,7 +45,7 @@ pub use election;
 pub use pallet_template;
 pub use profile_validation;
 pub use schelling_game_shared;
-pub use score_game;
+pub use project_submission;
 pub use sortition_sum_game;
 
 /// An index to a block.
@@ -301,7 +301,7 @@ impl election::Config for Runtime {
 	type CandidacyBond = CandidacyBond;
 }
 
-impl score_game::Config for Runtime {
+impl project_submission::Config for Runtime {
 	type Event = Event;
 }
 
@@ -339,7 +339,7 @@ construct_runtime!(
 		TemplateModule: pallet_template,
 		SortitionSumGame: sortition_sum_game,
 		Election: election,
-		ScoreGame: score_game,
+		ProjectSubmission: project_submission,
 		SchellingGameShared: schelling_game_shared,
 		ProfileValidation: profile_validation,
 
@@ -615,30 +615,27 @@ impl_runtime_apis! {
 	}
 
 	impl profile_validation_runtime_api::ProfileValidationApi<Block, AccountId> for Runtime {
-		fn hello_world() -> u128 {
-			TemplateModule::hello_world()
-		}
 		fn get_challengers_evidence(profile_citizenid: u128, offset: u64, limit: u16) -> Vec<u128> {
-			TemplateModule::get_challengers_evidence(profile_citizenid, offset, limit)
+			ProfileValidation::get_challengers_evidence(profile_citizenid, offset, limit)
 		}
 		fn get_evidence_period_end_block(profile_citizenid: u128) -> Option<u32> {
-			TemplateModule::get_evidence_period_end_block(profile_citizenid)
+			ProfileValidation::get_evidence_period_end_block(profile_citizenid)
 		}
 		fn get_staking_period_end_block(profile_citizenid: u128) -> Option<u32> {
-			TemplateModule::get_staking_period_end_block(profile_citizenid)
+			ProfileValidation::get_staking_period_end_block(profile_citizenid)
 		}
 		fn get_drawing_period_end(profile_citizenid: u128) -> (u64, u64, bool) {
-			TemplateModule::get_drawing_period_end(profile_citizenid)
+			ProfileValidation::get_drawing_period_end(profile_citizenid)
 		}
 		fn get_commit_period_end_block(profile_citizenid: u128) -> Option<u32> {
-			TemplateModule::get_commit_period_end_block(profile_citizenid)
+			ProfileValidation::get_commit_period_end_block(profile_citizenid)
 		}
 
 		fn get_vote_period_end_block(profile_citizenid: u128) -> Option<u32> {
-			TemplateModule::get_vote_period_end_block(profile_citizenid)
+			ProfileValidation::get_vote_period_end_block(profile_citizenid)
 		}
 		fn selected_as_juror(profile_citizenid: u128, who: AccountId) -> bool {
-			TemplateModule::selected_as_juror(profile_citizenid, who)
+			ProfileValidation::selected_as_juror(profile_citizenid, who)
 		}
 	}
 

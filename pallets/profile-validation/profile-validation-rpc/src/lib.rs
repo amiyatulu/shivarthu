@@ -9,8 +9,6 @@ use std::sync::Arc;
 
 #[rpc]
 pub trait ProfileValidationApi<BlockHash, AccountId> {
-	#[rpc(name = "profilevalidation_helloWorld")]
-	fn hello_world(&self, at: Option<BlockHash>) -> Result<u128>;
 	#[rpc(name = "profilevalidation_challengerevidence")]
 	fn get_challengers_evidence(
 		&self,
@@ -82,19 +80,6 @@ where
 	C: HeaderBackend<Block>,
 	C::Api: ProfileValidationRuntimeApi<Block, AccountId>,
 {
-	fn hello_world(&self, at: Option<<Block as BlockT>::Hash>) -> Result<u128> {
-		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
-			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
-
-		let runtime_api_result = api.hello_world(&at);
-		runtime_api_result.map_err(|e| RpcError {
-			code: ErrorCode::ServerError(9876), // No real reason for this value
-			message: "Something wrong".into(),
-			data: Some(format!("{:?}", e).into()),
-		})
-	}
 	fn get_challengers_evidence(
 		&self,
 		profile_citizenid: u128,
