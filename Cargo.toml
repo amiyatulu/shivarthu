@@ -9,6 +9,7 @@ members = [
     "pallets/project-submission",
     "pallets/schelling-game-shared",
     "pallets/profile-validation",
+    "pallets/tags",
     "runtime",
 ]
 [profile.release]
