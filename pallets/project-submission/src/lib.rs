@@ -16,16 +16,13 @@ mod benchmarking;
 
 mod extras;
 
-use frame_support::sp_std::prelude::*;
+// use frame_support::sp_std::{prelude::*};
 // use scale_info::prelude::format;
-
-type DepartmentId = u128;
-type DownVoteNum = u8;
 
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::pallet_prelude::{DispatchResult, *};
+	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
@@ -37,7 +34,6 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
-	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	// The pallet's runtime storage items.
@@ -48,37 +44,8 @@ pub mod pallet {
 	// https://docs.substrate.io/v3/runtime/storage#declaring-storage-items
 	pub type Something<T> = StorageValue<_, u32>;
 
-	/// Department tags
-	#[pallet::storage]
-	#[pallet::getter(fn department_tags)]
-	pub(super) type Tags<T> =
-		StorageMap<_, Blake2_128Concat, DepartmentId, Vec<Vec<u8>>, ValueQuery>;
 
-	/// Down vote a tag
-	#[pallet::storage]
-	#[pallet::getter(fn downvote_tag)]
-	pub(super) type DownVoteTags<T> = StorageDoubleMap<
-		_,
-		Blake2_128Concat,
-		DepartmentId,
-		Blake2_128Concat,
-		Vec<u8>,
-		DownVoteNum,
-		ValueQuery,
-	>;
-
-	/// Default Threshold down vote for tag
-	#[pallet::type_value]
-	pub fn DefaultDownVoteThreshold() -> DownVoteNum {
-		5
-	}
-
-	/// Threshold for down vote
-	#[pallet::storage]
-	#[pallet::getter(fn downvote_threshold)]
-	pub type DownVoteThreshold<T> =
-		StorageValue<_, DownVoteNum, ValueQuery, DefaultDownVoteThreshold>;
-
+	
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
 	#[pallet::event]
@@ -87,7 +54,6 @@ pub mod pallet {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		SomethingStored(u32, T::AccountId),
-		TagInserted(DepartmentId, Vec<u8>), // Tag inserted
 	}
 
 	// Errors inform users that something went wrong.
@@ -97,7 +63,6 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
-		TagExists,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -105,55 +70,6 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Create tag
-		/// [] Check who belongs to department representative
-		/// [] Limit the length of tag
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn add_tag(
-			origin: OriginFor<T>,
-			departmentid: DepartmentId,
-			tag: Vec<u8>,
-		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-
-			let mut tags = Tags::<T>::get(&departmentid);
-
-			match tags.binary_search(&tag) {
-				Ok(_) => Err(Error::<T>::TagExists.into()),
-				Err(index) => {
-					tags.insert(index, tag.clone());
-					Tags::<T>::insert(&departmentid, tags);
-					Self::deposit_event(Event::TagInserted(departmentid, tag));
-					Ok(())
-				},
-			}
-		}
-		/// Downvote tag
-		/// [] Check who belongs to department representive
-		/// [] Check tags exsts in Tags
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn donwvote_tag(
-			origin: OriginFor<T>,
-			departmentid: DepartmentId,
-			tag: Vec<u8>,
-		) -> DispatchResult {
-			// let downvote = DownVoteTags::<T>::get(&departmentid, &tag);
-			let result = <DownVoteTags<T>>::try_mutate(&departmentid, &tag, |downvote| {
-				*downvote += 1;
-				Ok(())
-			});
-			result
-		}
-		/// Delete tag if it reaches maximum downvote
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn delete_tag(
-			origin: OriginFor<T>,
-			departmentid: DepartmentId,
-			tag: Vec<u8>,
-		) -> DispatchResult {
-			Ok(())
-		}
-
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
@@ -162,7 +78,7 @@ pub mod pallet {
 			// This function will return an error if the extrinsic is not signed.
 			// https://docs.substrate.io/v3/runtime/origins
 			let who = ensure_signed(origin)?;
-			// let s = format!("The number is {}", 1);
+            // let s = format!("The number is {}", 1);
 			// Update storage.
 			<Something<T>>::put(something);
 
