@@ -21,13 +21,13 @@ use frame_support::sp_std::prelude::*;
 
 type DepartmentId = u128;
 type DownVoteNum = u8;
+use frame_support::pallet_prelude::{DispatchResult, *};
+use frame_system::pallet_prelude::*;
 
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::pallet_prelude::{DispatchResult, *};
-	use frame_system::pallet_prelude::*;
-
+	
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -88,6 +88,7 @@ pub mod pallet {
 		/// parameters. [something, who]
 		SomethingStored(u32, T::AccountId),
 		TagInserted(DepartmentId, Vec<u8>), // Tag inserted
+		TagRemoved(DepartmentId, Vec<u8>),  // Tag removed
 	}
 
 	// Errors inform users that something went wrong.
@@ -98,6 +99,7 @@ pub mod pallet {
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
 		TagExists,
+		TagDoesnotExists,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -131,27 +133,27 @@ pub mod pallet {
 		/// Downvote tag
 		/// [] Check who belongs to department representive
 		/// [] Check tags exsts in Tags
+		/// [] Delete tag if it reaches maximum downvote
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn donwvote_tag(
 			origin: OriginFor<T>,
 			departmentid: DepartmentId,
 			tag: Vec<u8>,
 		) -> DispatchResult {
-			// let downvote = DownVoteTags::<T>::get(&departmentid, &tag);
+			let who = ensure_signed(origin)?;
 			let result = <DownVoteTags<T>>::try_mutate(&departmentid, &tag, |downvote| {
 				*downvote += 1;
 				Ok(())
 			});
+
+			let threshold = DownVoteThreshold::<T>::get();
+
+			let dv = DownVoteTags::<T>::get(&departmentid, &tag);
+			if threshold >= dv {
+				let _ = Self::remove_tags(departmentid, tag);
+			}
+
 			result
-		}
-		/// Delete tag if it reaches maximum downvote
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn delete_tag(
-			origin: OriginFor<T>,
-			departmentid: DepartmentId,
-			tag: Vec<u8>,
-		) -> DispatchResult {
-			Ok(())
 		}
 
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
