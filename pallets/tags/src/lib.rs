@@ -27,7 +27,7 @@ use frame_system::pallet_prelude::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	
+
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -66,6 +66,11 @@ pub mod pallet {
 		DownVoteNum,
 		ValueQuery,
 	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn user_downvote)]
+	pub(super) type UserDownVote<T: Config> =
+		StorageMap<_, Blake2_128Concat, (DepartmentId, T::AccountId), Vec<Vec<u8>>, ValueQuery>;
 
 	/// Default Threshold down vote for tag
 	#[pallet::type_value]
@@ -132,8 +137,9 @@ pub mod pallet {
 		}
 		/// Downvote tag
 		/// [] Check who belongs to department representive
-		/// [] Check tags exsts in Tags
-		/// [] Delete tag if it reaches maximum downvote
+		/// [✓] Check tags exsts in Tags
+		/// [✓] Delete tag if it reaches maximum downvote
+		/// [✓] Check user has not downvoted again
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn donwvote_tag(
 			origin: OriginFor<T>,
@@ -141,6 +147,9 @@ pub mod pallet {
 			tag: Vec<u8>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+
+			Self::ensure_user_not_downvoted_tag(departmentid, who, tag.clone())?;
+
 			let result = <DownVoteTags<T>>::try_mutate(&departmentid, &tag, |downvote| {
 				*downvote += 1;
 				Ok(())
@@ -150,7 +159,7 @@ pub mod pallet {
 
 			let dv = DownVoteTags::<T>::get(&departmentid, &tag);
 			if threshold >= dv {
-				let _ = Self::remove_tags(departmentid, tag);
+				Self::remove_tags(departmentid, tag)?;
 			}
 
 			result
