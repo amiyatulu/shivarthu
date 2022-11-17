@@ -15,6 +15,7 @@ mod tests;
 mod benchmarking;
 
 mod extras;
+mod types;
 
 use frame_support::sp_std::prelude::*;
 // use scale_info::prelude::format;
@@ -23,6 +24,7 @@ type DepartmentId = u128;
 type DownVoteNum = u8;
 use frame_support::pallet_prelude::{DispatchResult, *};
 use frame_system::pallet_prelude::*;
+use types::{DownVoteDetails};
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -56,21 +58,16 @@ pub mod pallet {
 
 	/// Down vote a tag
 	#[pallet::storage]
-	#[pallet::getter(fn downvote_tag)]
-	pub(super) type DownVoteTags<T> = StorageDoubleMap<
+	#[pallet::getter(fn downvote_details_of_tag)]
+	pub(super) type DownVoteDetailsTags<T:Config> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
 		DepartmentId,
 		Blake2_128Concat,
 		Vec<u8>,
-		DownVoteNum,
+		DownVoteDetails<T::AccountId>,
 		ValueQuery,
 	>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn user_downvote)]
-	pub(super) type UserDownVote<T: Config> =
-		StorageMap<_, Blake2_128Concat, (DepartmentId, T::AccountId), Vec<Vec<u8>>, ValueQuery>;
 
 	/// Default Threshold down vote for tag
 	#[pallet::type_value]
@@ -105,6 +102,7 @@ pub mod pallet {
 		StorageOverflow,
 		TagExists,
 		TagDoesnotExists,
+		UserAlreadyDownVoted,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -137,9 +135,10 @@ pub mod pallet {
 		}
 		/// Downvote tag
 		/// [] Check who belongs to department representive
-		/// [✓] Check tags exsts in Tags
-		/// [✓] Delete tag if it reaches maximum downvote
+		/// [] Check tags exsts in Tags
 		/// [✓] Check user has not downvoted again
+		/// [✓] Delete tag if it reaches maximum downvote
+		
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn donwvote_tag(
 			origin: OriginFor<T>,
@@ -147,24 +146,19 @@ pub mod pallet {
 			tag: Vec<u8>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-
-			Self::ensure_user_not_downvoted_tag(departmentid, who, tag.clone())?;
-
-			let result = <DownVoteTags<T>>::try_mutate(&departmentid, &tag, |downvote| {
-				*downvote += 1;
-				Ok(())
-			});
-
+			Self::ensure_tag_exists(departmentid,tag.clone())?;
+			let dv = Self::ensure_user_not_downvoted_then_downvote(departmentid, who, tag.clone())?;
 			let threshold = DownVoteThreshold::<T>::get();
 
-			let dv = DownVoteTags::<T>::get(&departmentid, &tag);
-			if threshold >= dv {
+			if dv >= threshold {
 				Self::remove_tags(departmentid, tag)?;
 			}
 
-			result
+			Ok(())
 		}
+        // Remove down vote
 
+		
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
