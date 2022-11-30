@@ -25,6 +25,7 @@ scale-info = {version = "2.0.1", default-features = false, features = ["derive"]
 sp-io = {default-features = false, version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18"}
 sp-runtime = {default-features = false, version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18"}
 sortition-sum-game-link = {default-features = false, path="../../traits/sortition-sum-game-link"}
+serde = { features = ['derive'], optional = true, version = '1.0.137' }
 
 
 [dev-dependencies]
@@ -36,6 +37,7 @@ sp-runtime = {default-features = false, version = "6.0.0", git = "https://github
 [features]
 default = ["std"]
 std = [
+	"serde",
 	"codec/std",
 	"scale-info/std",
 	"frame-support/std",

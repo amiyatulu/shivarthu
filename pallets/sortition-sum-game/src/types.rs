@@ -2,7 +2,6 @@ use frame_support::{pallet_prelude::*};
 use frame_support::sp_std::{vec::Vec, collections::btree_map::BTreeMap};
 use scale_info::TypeInfo;
 
-
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub enum SumTreeName {

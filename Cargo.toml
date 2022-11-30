@@ -11,6 +11,7 @@ members = [
     "pallets/profile-validation",
     "pallets/tags",
     "pallets/spaces",
+    "pallets/support",
     "runtime",
 ]
 [profile.release]

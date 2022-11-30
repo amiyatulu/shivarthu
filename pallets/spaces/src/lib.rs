@@ -57,6 +57,11 @@ pub mod pallet {
         RESERVED_SPACE_COUNT + 1
     }
 
+	/// The next space id.
+    #[pallet::storage]
+    #[pallet::getter(fn next_space_id)]
+    pub type NextSpaceId<T: Config> = StorageValue<_, SpaceId, ValueQuery, DefaultForNextSpaceId>;
+
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
