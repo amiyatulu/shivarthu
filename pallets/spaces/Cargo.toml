@@ -25,6 +25,9 @@ sp-arithmetic = { default-features = false, version = "5.0.0", git = "https://gi
 pallet-timestamp = {git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18", default-features = false }
 strum = { version = "0.24", default-features = false, features = ["derive"] }
 
+# Substrate dependencies
+support = { default-features = false, path = '../support' }
+
 
 [dev-dependencies]
 sp-core = { default-features = false, version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
