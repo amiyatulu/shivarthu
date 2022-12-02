@@ -62,6 +62,11 @@ pub mod pallet {
     #[pallet::getter(fn next_space_id)]
     pub type NextSpaceId<T: Config> = StorageValue<_, SpaceId, ValueQuery, DefaultForNextSpaceId>;
 
+	/// Get the details of a space by its' id.
+    #[pallet::storage]
+    #[pallet::getter(fn space_by_id)]
+    pub type SpaceById<T: Config> = StorageMap<_, Twox64Concat, SpaceId, Space<T>>;
+
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
@@ -89,6 +94,10 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+
+		/// [] Create space or department
+		/// [] How space/department are created, through proposal??
+
 	
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
