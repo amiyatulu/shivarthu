@@ -27,6 +27,7 @@ use crate::types::RESERVED_SPACE_COUNT;
 use frame_support::pallet_prelude::{DispatchResult, *};
 use frame_system::pallet_prelude::*;
 use support::{Content, SpaceId};
+use types::Space;
 
 #[frame_support::pallet]
 pub mod pallet {
