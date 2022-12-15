@@ -6,11 +6,11 @@ members = [
     "traits/sortition-sum-game-link",
     "traits/schelling-game-shared-link",
     "pallets/election",
-    "pallets/project-submission",
     "pallets/schelling-game-shared",
     "pallets/profile-validation",
     "pallets/tags",
     "pallets/spaces",
+    "pallets/posts",
     "pallets/support",
     "runtime",
 ]

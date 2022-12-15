@@ -3758,9 +3758,9 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "parity-scale-codec 3.1.2",
+ "posts",
  "profile-validation",
  "profile-validation-runtime-api",
- "project-submission",
  "scale-info",
  "schelling-game-shared",
  "shivarthu-runtime-api",
@@ -4572,6 +4572,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "posts"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-support-test",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-timestamp",
+ "parity-scale-codec 3.1.2",
+ "scale-info",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "support",
+]
+
+[[package]]
 name = "ppv-lite86"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4694,25 +4716,6 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "sp-api",
- "sp-std",
-]
-
-[[package]]
-name = "project-submission"
-version = "4.0.0-dev"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-support-test",
- "frame-system",
- "log",
- "pallet-balances",
- "parity-scale-codec 3.1.2",
- "scale-info",
- "sp-arithmetic",
- "sp-core",
- "sp-io",
- "sp-runtime",
  "sp-std",
 ]
 

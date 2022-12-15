@@ -1,5 +1,6 @@
 use crate as pallet_template;
-use frame_support::traits::{ConstU16, ConstU64};
+use frame_support::traits::{ConstU16, ConstU64, OnTimestampSet};
+use sp_std::cell::RefCell;
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{
@@ -51,6 +52,25 @@ impl system::Config for Test {
 
 impl pallet_template::Config for Test {
 	type Event = Event;
+}
+
+type Moment = u64;
+
+thread_local! {
+	pub static CAPTURED_MOMENT: RefCell<Option<Moment>> = RefCell::new(None);
+}
+pub struct MockOnTimestampSet;
+impl OnTimestampSet<Moment> for MockOnTimestampSet {
+	fn on_timestamp_set(moment: Moment) {
+		CAPTURED_MOMENT.with(|x| *x.borrow_mut() = Some(moment));
+	}
+}
+impl pallet_timestamp::Config for Test {
+	type Moment = Moment;
+
+	type OnTimestampSet = MockOnTimestampSet;
+	type MinimumPeriod = ConstU64<5>;
+	type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.

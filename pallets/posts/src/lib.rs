@@ -15,19 +15,30 @@ mod tests;
 mod benchmarking;
 
 mod extras;
+pub mod types;
+
+pub use types::{FIRST_POST_ID, Post};
 
 // use frame_support::sp_std::{prelude::*};
 // use scale_info::prelude::format;
+use codec::{Decode, Encode};
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
+
+use frame_support::pallet_prelude::*;
+use frame_system::pallet_prelude::*;
+use support::{
+    Content, PostId, SpaceId, WhoAndWhen, WhoAndWhenOf,
+};
 
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::pallet_prelude::*;
-	use frame_system::pallet_prelude::*;
+	
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config  + pallet_timestamp::Config{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 	}
@@ -36,6 +47,21 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
+
+	#[pallet::type_value]
+    pub fn DefaultForNextPostId() -> PostId {
+        FIRST_POST_ID
+    }
+
+    /// The next post id.
+    #[pallet::storage]
+    #[pallet::getter(fn next_post_id)]
+    pub type NextPostId<T: Config> = StorageValue<_, PostId, ValueQuery, DefaultForNextPostId>;
+
+    /// Get the details of a post by its' id.
+    #[pallet::storage]
+    #[pallet::getter(fn post_by_id)]
+    pub type PostById<T: Config> = StorageMap<_, Twox64Concat, PostId, Post<T>>;
 
 	// The pallet's runtime storage items.
 	// https://docs.substrate.io/v3/runtime/storage
