@@ -55,6 +55,7 @@ sortition-sum-game = {default-features = false, path ="../pallets/sortition-sum-
 election={ default-features = false, path="../pallets/election"}
 election-runtime-api={default-features=false, path="../pallets/election/election-runtime-api"}
 posts = {default-features=false, path="../pallets/posts"}
+spaces = {default-features=false, path="../pallets/spaces"}
 schelling-game-shared = {default-features=false, path="../pallets/schelling-game-shared"}
 profile-validation = {default-features=false, path="../pallets/profile-validation"}
 profile-validation-runtime-api = {default-features=false, path="../pallets/profile-validation/profile-validation-runtime-api"}

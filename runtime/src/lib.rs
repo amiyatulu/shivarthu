@@ -46,6 +46,7 @@ pub use pallet_template;
 pub use profile_validation;
 pub use schelling_game_shared;
 pub use posts;
+pub use spaces;
 pub use sortition_sum_game;
 
 /// An index to a block.
@@ -305,6 +306,10 @@ impl posts::Config for Runtime {
 	type Event = Event;
 }
 
+impl spaces::Config for Runtime {
+	type Event = Event;
+}
+
 impl schelling_game_shared::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
@@ -340,6 +345,7 @@ construct_runtime!(
 		SortitionSumGame: sortition_sum_game,
 		Election: election,
 		Posts: posts,
+		Spaces: spaces,
 		SchellingGameShared: schelling_game_shared,
 		ProfileValidation: profile_validation,
 

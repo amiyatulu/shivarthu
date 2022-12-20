@@ -27,6 +27,7 @@ serde = { features = ['derive'], optional = true, version = '1.0.137' }
 # Substrate dependencies
 support = { default-features = false, path = '../support' }
 pallet-timestamp = {git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18", default-features = false }
+spaces = {default-features = false, path = '../spaces' }
 
 
 [dev-dependencies]

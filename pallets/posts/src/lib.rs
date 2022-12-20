@@ -15,9 +15,10 @@ mod tests;
 mod benchmarking;
 
 mod extras;
+pub mod functions;
 pub mod types;
 
-pub use types::{FIRST_POST_ID, Post};
+pub use types::{Comment, Post, PostExtension, FIRST_POST_ID};
 
 // use frame_support::sp_std::{prelude::*};
 // use scale_info::prelude::format;
@@ -28,17 +29,20 @@ use serde::{Deserialize, Serialize};
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
 use support::{
-    Content, PostId, SpaceId, WhoAndWhen, WhoAndWhenOf,
+	ensure_content_is_valid, new_who_and_when, remove_from_vec, Content, PostId, SpaceId,
+	WhoAndWhen, WhoAndWhenOf,
 };
+use spaces::{types::Space, Pallet as Spaces};
 
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config  + pallet_timestamp::Config{
+	pub trait Config:
+		frame_system::Config + pallet_timestamp::Config + spaces::Config
+	{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 	}
@@ -49,19 +53,19 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	#[pallet::type_value]
-    pub fn DefaultForNextPostId() -> PostId {
-        FIRST_POST_ID
-    }
+	pub fn DefaultForNextPostId() -> PostId {
+		FIRST_POST_ID
+	}
 
-    /// The next post id.
-    #[pallet::storage]
-    #[pallet::getter(fn next_post_id)]
-    pub type NextPostId<T: Config> = StorageValue<_, PostId, ValueQuery, DefaultForNextPostId>;
+	/// The next post id.
+	#[pallet::storage]
+	#[pallet::getter(fn next_post_id)]
+	pub type NextPostId<T: Config> = StorageValue<_, PostId, ValueQuery, DefaultForNextPostId>;
 
-    /// Get the details of a post by its' id.
-    #[pallet::storage]
-    #[pallet::getter(fn post_by_id)]
-    pub type PostById<T: Config> = StorageMap<_, Twox64Concat, PostId, Post<T>>;
+	/// Get the details of a post by its' id.
+	#[pallet::storage]
+	#[pallet::getter(fn post_by_id)]
+	pub type PostById<T: Config> = StorageMap<_, Twox64Concat, PostId, Post<T>>;
 
 	// The pallet's runtime storage items.
 	// https://docs.substrate.io/v3/runtime/storage
@@ -71,8 +75,6 @@ pub mod pallet {
 	// https://docs.substrate.io/v3/runtime/storage#declaring-storage-items
 	pub type Something<T> = StorageValue<_, u32>;
 
-
-	
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
 	#[pallet::event]
@@ -90,6 +92,61 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
+		// Post related errors:
+		/// Post was not found by id.
+		PostNotFound,
+		/// An account is not a post owner.
+		NotAPostOwner,
+		/// Nothing to update in this post.
+		NoUpdatesForPost,
+		/// Root post should have a space id.
+		PostHasNoSpaceId,
+		/// Not allowed to create a post/comment when a scope (space or root post) is hidden.
+		CannotCreateInHiddenScope,
+		/// Post has no replies.
+		NoRepliesOnPost,
+		/// Cannot move a post to the same space.
+		CannotMoveToSameSpace,
+
+		// Share related errors:
+		/// Cannot share, because the original post was not found.
+		OriginalPostNotFound,
+		/// Cannot share a post that is sharing another post.
+		CannotShareSharedPost,
+		/// This post's extension is not a `SharedPost`.
+		NotASharedPost,
+
+		// Comment related errors:
+		/// Unknown parent comment id.
+		UnknownParentComment,
+		/// Post by `parent_id` is not of a `Comment` extension.
+		NotACommentByParentId,
+		/// Cannot update space id of a comment.
+		CannotUpdateSpaceIdOnComment,
+		/// Max comment depth reached.
+		MaxCommentDepthReached,
+		/// Only comment owner can update this comment.
+		NotACommentAuthor,
+		/// This post's extension is not a `Comment`.
+		NotComment,
+
+		// Permissions related errors:
+		/// User has no permission to create root posts in this space.
+		NoPermissionToCreatePosts,
+		/// User has no permission to create comments (aka replies) in this space.
+		NoPermissionToCreateComments,
+		/// User has no permission to share posts/comments from this space to another space.
+		NoPermissionToShare,
+		/// User has no permission to update any posts in this space.
+		NoPermissionToUpdateAnyPost,
+		/// A post owner is not allowed to update their own posts in this space.
+		NoPermissionToUpdateOwnPosts,
+		/// A comment owner is not allowed to update their own comments in this space.
+		NoPermissionToUpdateOwnComments,
+
+		/// `force_create_post` failed, because this post already exists.
+		/// Consider removing the post with `force_remove_post` first.
+		PostAlreadyExists,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -97,6 +154,26 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Create post
+		///  Who can post, does kyc validation required??
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn create_post(
+			origin: OriginFor<T>,
+			space_id_opt: Option<SpaceId>,
+			extension: PostExtension,
+			content: Content,
+		) -> DispatchResult {
+			let creator = ensure_signed(origin)?;
+
+			ensure_content_is_valid(content.clone())?;
+
+			let new_post_id = Self::next_post_id();
+
+			let new_post: Post<T> =
+				Post::new(new_post_id, creator.clone(), space_id_opt, extension, content.clone());
+
+			Ok(())
+		}
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
@@ -105,7 +182,7 @@ pub mod pallet {
 			// This function will return an error if the extrinsic is not signed.
 			// https://docs.substrate.io/v3/runtime/origins
 			let who = ensure_signed(origin)?;
-            // let s = format!("The number is {}", 1);
+			// let s = format!("The number is {}", 1);
 			// Update storage.
 			<Something<T>>::put(something);
 

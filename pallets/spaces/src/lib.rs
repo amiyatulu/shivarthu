@@ -16,8 +16,8 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
-mod extras;
-mod types;
+pub mod extras;
+pub mod types;
 
 use frame_support::sp_std::prelude::*;
 // use scale_info::prelude::format;
@@ -88,6 +88,7 @@ pub mod pallet {
 		StorageOverflow,
 		InvalidIpfsCid,
 		OtherContentTypeNotSupported,
+		SpaceNotFound,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.

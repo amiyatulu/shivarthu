@@ -20,6 +20,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>},
+		Spaces: spaces::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -52,6 +53,10 @@ impl system::Config for Test {
 
 impl pallet_template::Config for Test {
 	type Event = Event;
+}
+
+impl spaces::Config for Test {
+    type Event = Event;
 }
 
 type Moment = u64;

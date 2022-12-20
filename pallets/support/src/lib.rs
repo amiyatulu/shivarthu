@@ -4,7 +4,8 @@ use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 
 use frame_support::pallet_prelude::*;
-// use sp_std::{collections::btree_set::BTreeSet, vec, vec::Vec};
+// use frame_support::sp_std::{vec::Vec};
+use sp_std::{collections::btree_set::BTreeSet, vec, vec::Vec};
 
 
 pub type SpaceId = u64;
@@ -46,6 +47,36 @@ pub enum Content {
     IPFS(Vec<u8>),
 }
 
+impl From<Content> for Vec<u8> {
+    fn from(content: Content) -> Vec<u8> {
+        match content {
+            Content::None => vec![],
+            Content::Other(vec_u8) => vec_u8,
+            Content::IPFS(vec_u8) => vec_u8,
+        }
+    }
+}
+
+impl Default for Content {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl Content {
+    pub fn is_none(&self) -> bool {
+        self == &Self::None
+    }
+
+    pub fn is_some(&self) -> bool {
+        !self.is_none()
+    }
+
+    pub fn is_ipfs(&self) -> bool {
+        matches!(self, Self::IPFS(_))
+    }
+}
+
 
 #[derive(Encode, Decode, RuntimeDebug, strum::IntoStaticStr)]
 pub enum ContentError {
@@ -76,5 +107,31 @@ pub fn ensure_content_is_valid(content: Content) -> DispatchResult {
             ensure!(len == 46 || len == 59, ContentError::InvalidIpfsCid);
             Ok(())
         },
+    }
+}
+
+/// Ensure that a given content is not `None`.
+pub fn ensure_content_is_some(content: &Content) -> DispatchResult {
+    ensure!(content.is_some(), ContentError::ContentIsEmpty);
+    Ok(())
+}
+
+pub fn remove_from_vec<F: PartialEq>(vector: &mut Vec<F>, element: F) {
+    if let Some(index) = vector.iter().position(|x| *x == element) {
+        vector.swap_remove(index);
+    }
+}
+
+pub fn remove_from_bounded_vec<F: PartialEq, S>(vector: &mut BoundedVec<F, S>, element: F) {
+    if let Some(index) = vector.iter().position(|x| *x == element) {
+        vector.swap_remove(index);
+    }
+}
+
+pub fn bool_to_option(value: bool) -> Option<bool> {
+    if value {
+        Some(value)
+    } else {
+        None
     }
 }

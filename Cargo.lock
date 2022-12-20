@@ -3776,6 +3776,7 @@ dependencies = [
  "sp-std",
  "sp-transaction-pool",
  "sp-version",
+ "spaces",
  "substrate-wasm-builder",
 ]
 
@@ -4590,6 +4591,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "spaces",
  "support",
 ]
 
