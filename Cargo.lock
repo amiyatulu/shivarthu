@@ -3719,8 +3719,6 @@ dependencies = [
  "sc-telemetry",
  "sc-transaction-pool",
  "sc-transaction-pool-api",
- "shivarthu-rpc",
- "shivarthu-runtime-api",
  "sp-api",
  "sp-block-builder",
  "sp-blockchain",
@@ -3753,7 +3751,6 @@ dependencies = [
  "pallet-grandpa",
  "pallet-randomness-collective-flip",
  "pallet-sudo",
- "pallet-template",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
@@ -3763,7 +3760,6 @@ dependencies = [
  "profile-validation-runtime-api",
  "scale-info",
  "schelling-game-shared",
- "shivarthu-runtime-api",
  "sortition-sum-game",
  "sp-api",
  "sp-block-builder",
@@ -4095,25 +4091,6 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
-]
-
-[[package]]
-name = "pallet-template"
-version = "4.0.0-dev"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-support-test",
- "frame-system",
- "log",
- "pallet-balances",
- "parity-scale-codec 3.1.2",
- "scale-info",
- "sortition-sum-game",
- "sortition-sum-game-link",
- "sp-core",
- "sp-io",
- "sp-runtime",
 ]
 
 [[package]]
@@ -6361,31 +6338,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "900fba806f70c630b0a382d0d825e17a0f19fcd059a2ade1ff237bcddf446b31"
 dependencies = [
  "lazy_static",
-]
-
-[[package]]
-name = "shivarthu-rpc"
-version = "0.1.0"
-dependencies = [
- "jsonrpc-core",
- "jsonrpc-core-client",
- "jsonrpc-derive",
- "parity-scale-codec 2.3.1",
- "sc-rpc",
- "sc-rpc-api",
- "shivarthu-runtime-api",
- "sp-api",
- "sp-blockchain",
- "sp-runtime",
-]
-
-[[package]]
-name = "shivarthu-runtime-api"
-version = "4.0.0-dev"
-dependencies = [
- "frame-support",
- "pallet-template",
- "sp-api",
 ]
 
 [[package]]

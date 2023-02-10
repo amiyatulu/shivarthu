@@ -42,7 +42,7 @@ pub use sp_runtime::{Perbill, Permill};
 
 pub use election;
 /// Import the template pallet.
-pub use pallet_template;
+// pub use pallet_template;
 pub use profile_validation;
 pub use schelling_game_shared;
 pub use posts;
@@ -272,16 +272,16 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
-/// Configure the pallet-template in pallets/template.
-/// 🆕 Code
-impl pallet_template::Config for Runtime {
-	type Event = Event;
-	type Currency = Balances;
-	type RandomnessSource = RandomnessCollectiveFlip;
-	type Slash = ();
-	type Reward = ();
-	type SortitionSumGameSource = SortitionSumGame;
-}
+// /// Configure the pallet-template in pallets/template.
+// /// 🆕 Code
+// impl pallet_template::Config for Runtime {
+// 	type Event = Event;
+// 	type Currency = Balances;
+// 	type RandomnessSource = RandomnessCollectiveFlip;
+// 	type Slash = ();
+// 	type Reward = ();
+// 	type SortitionSumGameSource = SortitionSumGame;
+// }
 
 impl sortition_sum_game::Config for Runtime {
 	type Event = Event;
@@ -341,7 +341,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment,
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
-		TemplateModule: pallet_template,
+		// TemplateModule: pallet_template,
 		SortitionSumGame: sortition_sum_game,
 		Election: election,
 		Posts: posts,
@@ -391,7 +391,7 @@ mod benches {
 		[frame_system, SystemBench::<Runtime>]
 		[pallet_balances, Balances]
 		[pallet_timestamp, Timestamp]
-		[pallet_template, TemplateModule]
+		// [pallet_template, TemplateModule]
 	);
 }
 
@@ -592,33 +592,33 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl shivarthu_runtime_api::ShivarthuApi<Block, AccountId> for Runtime {
-		fn hello_world() -> u128 {
-			TemplateModule::hello_world()
-		}
-		fn get_challengers_evidence(profile_citizenid: u128, offset: u64, limit: u16) -> Vec<u128> {
-			TemplateModule::get_challengers_evidence(profile_citizenid, offset, limit)
-		}
-		fn get_evidence_period_end_block(profile_citizenid: u128) -> Option<u32> {
-			TemplateModule::get_evidence_period_end_block(profile_citizenid)
-		}
-		fn get_staking_period_end_block(profile_citizenid: u128) -> Option<u32> {
-			TemplateModule::get_staking_period_end_block(profile_citizenid)
-		}
-		fn get_drawing_period_end(profile_citizenid: u128) -> (u64, u64, bool) {
-			TemplateModule::get_drawing_period_end(profile_citizenid)
-		}
-		fn get_commit_period_end_block(profile_citizenid: u128) -> Option<u32> {
-			TemplateModule::get_commit_period_end_block(profile_citizenid)
-		}
+	// impl shivarthu_runtime_api::ShivarthuApi<Block, AccountId> for Runtime {
+	// 	fn hello_world() -> u128 {
+	// 		TemplateModule::hello_world()
+	// 	}
+	// 	fn get_challengers_evidence(profile_citizenid: u128, offset: u64, limit: u16) -> Vec<u128> {
+	// 		TemplateModule::get_challengers_evidence(profile_citizenid, offset, limit)
+	// 	}
+	// 	fn get_evidence_period_end_block(profile_citizenid: u128) -> Option<u32> {
+	// 		TemplateModule::get_evidence_period_end_block(profile_citizenid)
+	// 	}
+	// 	fn get_staking_period_end_block(profile_citizenid: u128) -> Option<u32> {
+	// 		TemplateModule::get_staking_period_end_block(profile_citizenid)
+	// 	}
+	// 	fn get_drawing_period_end(profile_citizenid: u128) -> (u64, u64, bool) {
+	// 		TemplateModule::get_drawing_period_end(profile_citizenid)
+	// 	}
+	// 	fn get_commit_period_end_block(profile_citizenid: u128) -> Option<u32> {
+	// 		TemplateModule::get_commit_period_end_block(profile_citizenid)
+	// 	}
 
-		fn get_vote_period_end_block(profile_citizenid: u128) -> Option<u32> {
-			TemplateModule::get_vote_period_end_block(profile_citizenid)
-		}
-		fn selected_as_juror(profile_citizenid: u128, who: AccountId) -> bool {
-			TemplateModule::selected_as_juror(profile_citizenid, who)
-		}
-	}
+	// 	fn get_vote_period_end_block(profile_citizenid: u128) -> Option<u32> {
+	// 		TemplateModule::get_vote_period_end_block(profile_citizenid)
+	// 	}
+	// 	fn selected_as_juror(profile_citizenid: u128, who: AccountId) -> bool {
+	// 		TemplateModule::selected_as_juror(profile_citizenid, who)
+	// 	}
+	// }
 
 	impl profile_validation_runtime_api::ProfileValidationApi<Block, AccountId> for Runtime {
 		fn get_challengers_evidence(profile_citizenid: u128, offset: u64, limit: u16) -> Vec<u128> {

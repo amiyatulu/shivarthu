@@ -28,11 +28,11 @@ use serde::{Deserialize, Serialize};
 
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
+use spaces::{types::Space, Pallet as Spaces};
 use support::{
 	ensure_content_is_valid, new_who_and_when, remove_from_vec, Content, PostId, SpaceId,
 	WhoAndWhen, WhoAndWhenOf,
 };
-use spaces::{types::Space, Pallet as Spaces};
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -40,9 +40,7 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config:
-		frame_system::Config + pallet_timestamp::Config + spaces::Config
-	{
+	pub trait Config: frame_system::Config + pallet_timestamp::Config + spaces::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 	}
@@ -67,6 +65,18 @@ pub mod pallet {
 	#[pallet::getter(fn post_by_id)]
 	pub type PostById<T: Config> = StorageMap<_, Twox64Concat, PostId, Post<T>>;
 
+	/// Get the ids of all direct replies by their parent's post id.
+    #[pallet::storage]
+    #[pallet::getter(fn reply_ids_by_post_id)]
+    pub type ReplyIdsByPostId<T: Config> =
+        StorageMap<_, Twox64Concat, PostId, Vec<PostId>, ValueQuery>;
+
+    /// Get the ids of all posts in a given space, by the space's id.
+    #[pallet::storage]
+    #[pallet::getter(fn post_ids_by_space_id)]
+    pub type PostIdsBySpaceId<T: Config> =
+        StorageMap<_, Twox64Concat, SpaceId, Vec<PostId>, ValueQuery>;
+
 	// The pallet's runtime storage items.
 	// https://docs.substrate.io/v3/runtime/storage
 	#[pallet::storage]
@@ -83,6 +93,21 @@ pub mod pallet {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		SomethingStored(u32, T::AccountId),
+
+		PostCreated {
+            account: T::AccountId,
+            post_id: PostId,
+        },
+        PostUpdated {
+            account: T::AccountId,
+            post_id: PostId,
+        },
+        PostMoved {
+            account: T::AccountId,
+            post_id: PostId,
+            from_space: Option<SpaceId>,
+            to_space: Option<SpaceId>,
+        },
 	}
 
 	// Errors inform users that something went wrong.
@@ -171,6 +196,19 @@ pub mod pallet {
 
 			let new_post: Post<T> =
 				Post::new(new_post_id, creator.clone(), space_id_opt, extension, content.clone());
+
+			 // Get space from either space_id_opt or Comment if a comment provided
+			 let space = &new_post.get_space()?;
+			if new_post.is_root_post() {
+				PostIdsBySpaceId::<T>::mutate(space.id, |ids| ids.push(new_post_id));
+			}
+
+			PostById::insert(new_post_id, new_post);
+			NextPostId::<T>::mutate(|n| {
+				*n += 1;
+			});
+
+			Self::deposit_event(Event::PostCreated { account: creator, post_id: new_post_id });
 
 			Ok(())
 		}

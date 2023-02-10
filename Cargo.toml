@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "node",
-    "pallets/template",
+    # "pallets/template",
     "pallets/sortition-sum-game",
     "traits/sortition-sum-game-link",
     "traits/schelling-game-shared-link",

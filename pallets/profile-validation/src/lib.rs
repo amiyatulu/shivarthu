@@ -41,6 +41,7 @@ type ChallengerFundInfoOf<T> =
 	ChallengerFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber, AccountIdOf<T>>;
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
 type ChallengeEvidencePostOf<T> = ChallengeEvidencePost<AccountIdOf<T>>;
+type CitizenId = u128;
 
 const PALLET_ID: PalletId = PalletId(*b"ex/cfund");
 
@@ -72,11 +73,11 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn citizen_count)]
-	pub type CitizenCount<T> = StorageValue<_, u128, ValueQuery>;
+	pub type CitizenCount<T> = StorageValue<_, CitizenId, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn citizen_id)]
-	pub type CitizenId<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, u128>;
+	#[pallet::getter(fn get_citizen_id)]
+	pub type GetCitizenId<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, CitizenId>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn approved_citizen_address)]
@@ -84,7 +85,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn citizen_profile)]
-	pub type CitizenProfile<T> = StorageMap<_, Blake2_128Concat, u128, CitizenDetailsOf<T>>; // Peer account id => Peer Profile Hash
+	pub type CitizenProfile<T> = StorageMap<_, Blake2_128Concat, CitizenId, CitizenDetailsOf<T>>; // Peer account id => Peer Profile Hash
 
 	// Registration Fees
 
@@ -110,12 +111,12 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn profile_fund)]
-	pub type ProfileFundDetails<T> = StorageMap<_, Blake2_128Concat, u128, ProfileFundInfoOf<T>>;
+	pub type ProfileFundDetails<T> = StorageMap<_, Blake2_128Concat, CitizenId, ProfileFundInfoOf<T>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn challenger_fund)]
 	pub type ChallengerFundDetails<T> =
-		StorageMap<_, Blake2_128Concat, u128, ChallengerFundInfoOf<T>>;
+		StorageMap<_, Blake2_128Concat, CitizenId, ChallengerFundInfoOf<T>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn challenger_evidence_list)]
@@ -169,14 +170,16 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+
+		/// Add citizen
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn add_citizen(origin: OriginFor<T>, profile_hash: Vec<u8>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let count = <CitizenCount<T>>::get();
-			match <CitizenId<T>>::get(&who) {
+			match <GetCitizenId<T>>::get(&who) {
 				Some(_citizen_id) => Err(Error::<T>::ProfileExists)?,
 				None => {
-					<CitizenId<T>>::insert(&who, count);
+					<GetCitizenId<T>>::insert(&who, count);
 					let citizen_details = CitizenDetails {
 						profile_hash: profile_hash.clone(),
 						citizenid: count,
@@ -191,7 +194,10 @@ pub mod pallet {
 			}
 		}
         
-		#[doc=include_str!("docimages/change_period.svg")]
+		/// Add profile fund
+		/// Enhancement:
+		/// How to stake for profile?
+		/// For profile validation should one person submit the staking fee, or allow crowdfunding. What will be better? 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn add_profile_fund(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
 			let who = ensure_signed(origin)?;

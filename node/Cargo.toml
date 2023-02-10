@@ -57,8 +57,8 @@ frame-benchmarking-cli = { version = "4.0.0-dev", git = "https://github.com/pari
 # Local Dependencies
 node-template-runtime = { version = "4.0.0-dev", path = "../runtime" }
 
-shivarthu-runtime-api ={ path="../pallets/template/runtime-api", default-features = false}
-shivarthu-rpc = { path="../pallets/template/rpc"}
+# shivarthu-runtime-api ={ path="../pallets/template/runtime-api", default-features = false}
+# shivarthu-rpc = { path="../pallets/template/rpc"}
 election-runtime-api = {path="../pallets/election/election-runtime-api", default-features = false}
 election-rpc = {path="../pallets/election/election-rpc", default-features = false}
 profile-validation-runtime-api = {path="../pallets/profile-validation/profile-validation-runtime-api", default-features = false}

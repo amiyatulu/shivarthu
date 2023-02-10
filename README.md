@@ -3,13 +3,15 @@
 ### Decentralized democracy with experts as leaders.
 https://shivarthu.reaudito.com/#/
 
-## Frontend
+## Yew/Rust Frontend
+https://github.com/amiyatulu/shivarthu_client
+## React Frontend
 https://github.com/amiyatulu/shivarthu_frontend
 
-Whitepaper
+## Whitepaper
 https://shivarthu.reaudito.com/paper/Shivarthu_whitepaper.pdf
 
-Technical Details
+## Technical Details
 https://github.com/amiyatulu/shivarthu/blob/main/docs/Shivarthu.md
 
 ![Web3 Foundation Grants](https://github.com/amiyatulu/shivarthu/blob/main/docs/web3_foundation_grants.svg)
@@ -111,32 +113,14 @@ Start the development chain with detailed logging:
 RUST_BACKTRACE=1 ./target/release/node-template -ldebug --dev
 ```
 
-### Connect with Polkadot-JS Apps Front-end
+### Connect with Yew Apps Front-end
 
-The front end repository: https://github.com/amiyatulu/shivarthu_frontend
-
-```bash
-cd shivarthu_frontend
-yarn install
-```
-
-You can start the template in development mode to connect to a locally running node
+The front end repository: https://github.com/amiyatulu/shivarthu_client
 
 ```bash
-yarn start
+cd shivarthu_client
+trunk serve
 ```
-
-You can also build the app in production mode,
-
-```bash
-yarn build
-```
-
-and open `build/index.html` in your favorite browser.
-
-### Tutorial
-https://github.com/amiyatulu/shivarthu_frontend/blob/main/docs/Tutorial.md
-
 
 ### Multi-Node Local Testnet
 

@@ -33,7 +33,7 @@ where
 	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
 	C::Api: BlockBuilder<Block>,
-	C::Api: shivarthu_runtime_api::ShivarthuApi<Block, AccountId>,
+	// C::Api: shivarthu_runtime_api::ShivarthuApi<Block, AccountId>,
 	C::Api: election_runtime_api::ElectionApi<Block, AccountId>,
 	C::Api: profile_validation_runtime_api::ProfileValidationApi<Block, AccountId>,
 	P: TransactionPool + 'static,
@@ -57,9 +57,9 @@ where
 		crate::silly_rpc::Silly {},
 	));
 
-	io.extend_with(shivarthu_rpc::ShivarthuApi::to_delegate(
-		shivarthu_rpc::Shivarthu::new(client.clone()),
-	));
+	// io.extend_with(shivarthu_rpc::ShivarthuApi::to_delegate(
+	// 	shivarthu_rpc::Shivarthu::new(client.clone()),
+	// ));
 
 	io.extend_with(election_rpc::ElectionApi::to_delegate(
 		election_rpc::Election::new(client.clone()),
