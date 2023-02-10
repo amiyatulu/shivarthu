@@ -18,7 +18,7 @@ mod extras;
 pub mod functions;
 pub mod types;
 
-pub use types::{Comment, Post, PostExtension, FIRST_POST_ID};
+pub use types::{Comment, Post, PostExtension, PostUpdate, FIRST_POST_ID};
 
 // use frame_support::sp_std::{prelude::*};
 // use scale_info::prelude::format;
@@ -66,16 +66,16 @@ pub mod pallet {
 	pub type PostById<T: Config> = StorageMap<_, Twox64Concat, PostId, Post<T>>;
 
 	/// Get the ids of all direct replies by their parent's post id.
-    #[pallet::storage]
-    #[pallet::getter(fn reply_ids_by_post_id)]
-    pub type ReplyIdsByPostId<T: Config> =
-        StorageMap<_, Twox64Concat, PostId, Vec<PostId>, ValueQuery>;
+	#[pallet::storage]
+	#[pallet::getter(fn reply_ids_by_post_id)]
+	pub type ReplyIdsByPostId<T: Config> =
+		StorageMap<_, Twox64Concat, PostId, Vec<PostId>, ValueQuery>;
 
-    /// Get the ids of all posts in a given space, by the space's id.
-    #[pallet::storage]
-    #[pallet::getter(fn post_ids_by_space_id)]
-    pub type PostIdsBySpaceId<T: Config> =
-        StorageMap<_, Twox64Concat, SpaceId, Vec<PostId>, ValueQuery>;
+	/// Get the ids of all posts in a given space, by the space's id.
+	#[pallet::storage]
+	#[pallet::getter(fn post_ids_by_space_id)]
+	pub type PostIdsBySpaceId<T: Config> =
+		StorageMap<_, Twox64Concat, SpaceId, Vec<PostId>, ValueQuery>;
 
 	// The pallet's runtime storage items.
 	// https://docs.substrate.io/v3/runtime/storage
@@ -95,19 +95,19 @@ pub mod pallet {
 		SomethingStored(u32, T::AccountId),
 
 		PostCreated {
-            account: T::AccountId,
-            post_id: PostId,
-        },
-        PostUpdated {
-            account: T::AccountId,
-            post_id: PostId,
-        },
-        PostMoved {
-            account: T::AccountId,
-            post_id: PostId,
-            from_space: Option<SpaceId>,
-            to_space: Option<SpaceId>,
-        },
+			account: T::AccountId,
+			post_id: PostId,
+		},
+		PostUpdated {
+			account: T::AccountId,
+			post_id: PostId,
+		},
+		PostMoved {
+			account: T::AccountId,
+			post_id: PostId,
+			from_space: Option<SpaceId>,
+			to_space: Option<SpaceId>,
+		},
 	}
 
 	// Errors inform users that something went wrong.
@@ -197,8 +197,8 @@ pub mod pallet {
 			let new_post: Post<T> =
 				Post::new(new_post_id, creator.clone(), space_id_opt, extension, content.clone());
 
-			 // Get space from either space_id_opt or Comment if a comment provided
-			 let space = &new_post.get_space()?;
+			// Get space from either space_id_opt or Comment if a comment provided
+			let space = &new_post.get_space()?;
 			if new_post.is_root_post() {
 				PostIdsBySpaceId::<T>::mutate(space.id, |ids| ids.push(new_post_id));
 			}
@@ -212,6 +212,51 @@ pub mod pallet {
 
 			Ok(())
 		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn update_post(
+			origin: OriginFor<T>,
+			post_id: PostId,
+			update: PostUpdate,
+		) -> DispatchResult {
+			let editor = ensure_signed(origin)?;
+
+			let has_updates = update.content.is_some() || update.hidden.is_some();
+
+			ensure!(has_updates, Error::<T>::NoUpdatesForPost);
+
+			let mut post = Self::require_post(post_id)?;
+
+			let space_opt = &post.try_get_space();
+
+			let mut is_update_applied = false;
+
+			if let Some(content) = update.content {
+				if content != post.content {
+					ensure_content_is_valid(content.clone())?;
+
+					post.content = content;
+					post.edited = true;
+					is_update_applied = true;
+				}
+			}
+
+			if let Some(hidden) = update.hidden {
+                if hidden != post.hidden {
+                    post.hidden = hidden;
+                    is_update_applied = true;
+                }
+            }
+
+            // Update this post only if at least one field should be updated:
+            if is_update_applied {
+                <PostById<T>>::insert(post.id, post);
+                Self::deposit_event(Event::PostUpdated { account: editor, post_id });
+            }
+
+			Ok(())
+		}
+
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
