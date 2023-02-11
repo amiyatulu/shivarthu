@@ -1,7 +1,7 @@
 use frame_support::dispatch::DispatchResult;
 use sp_runtime::traits::Saturating;
 
-use support::{remove_from_vec, SpaceId};
+use pallet_support::{remove_from_vec, SpaceId};
 
 use super::*;
 

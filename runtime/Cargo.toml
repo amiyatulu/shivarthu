@@ -54,8 +54,8 @@ hex-literal = { version = "0.3.4", optional = true }
 sortition-sum-game = {default-features = false, path ="../pallets/sortition-sum-game"}
 election={ default-features = false, path="../pallets/election"}
 election-runtime-api={default-features=false, path="../pallets/election/election-runtime-api"}
-posts = {default-features=false, path="../pallets/posts"}
-spaces = {default-features=false, path="../pallets/spaces"}
+pallet-posts = {default-features=false, path="../pallets/posts"}
+pallet-spaces = {default-features=false, path="../pallets/spaces"}
 schelling-game-shared = {default-features=false, path="../pallets/schelling-game-shared"}
 profile-validation = {default-features=false, path="../pallets/profile-validation"}
 profile-validation-runtime-api = {default-features=false, path="../pallets/profile-validation/profile-validation-runtime-api"}
@@ -95,7 +95,7 @@ std = [
 	# "pallet-template/std",
 	# "shivarthu-runtime-api/std",
 	"sortition-sum-game/std",
-	"posts/std",
+	"pallet-posts/std",
 	"schelling-game-shared/std",
 	"profile-validation/std",
 	"profile-validation-runtime-api/std"

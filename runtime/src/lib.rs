@@ -45,8 +45,8 @@ pub use election;
 // pub use pallet_template;
 pub use profile_validation;
 pub use schelling_game_shared;
-pub use posts;
-pub use spaces;
+pub use pallet_posts;
+pub use pallet_spaces;
 pub use sortition_sum_game;
 
 /// An index to a block.
@@ -302,11 +302,11 @@ impl election::Config for Runtime {
 	type CandidacyBond = CandidacyBond;
 }
 
-impl posts::Config for Runtime {
+impl pallet_posts::Config for Runtime {
 	type Event = Event;
 }
 
-impl spaces::Config for Runtime {
+impl pallet_spaces::Config for Runtime {
 	type Event = Event;
 }
 
@@ -344,8 +344,8 @@ construct_runtime!(
 		// TemplateModule: pallet_template,
 		SortitionSumGame: sortition_sum_game,
 		Election: election,
-		Posts: posts,
-		Spaces: spaces,
+		Posts: pallet_posts,
+		Spaces: pallet_spaces,
 		SchellingGameShared: schelling_game_shared,
 		ProfileValidation: profile_validation,
 

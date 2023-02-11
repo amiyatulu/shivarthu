@@ -28,8 +28,9 @@ use serde::{Deserialize, Serialize};
 
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
-use spaces::{types::Space, Pallet as Spaces};
-use support::{
+use frame_support::sp_std::prelude::*;
+use pallet_spaces::{types::Space, Pallet as Spaces};
+use pallet_support::{
 	ensure_content_is_valid, new_who_and_when, remove_from_vec, Content, PostId, SpaceId,
 	WhoAndWhen, WhoAndWhenOf,
 };
@@ -40,7 +41,7 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_timestamp::Config + spaces::Config {
+	pub trait Config: frame_system::Config + pallet_timestamp::Config + pallet_spaces::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 	}

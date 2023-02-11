@@ -5,7 +5,7 @@ use scale_info::TypeInfo;
 
 use super::*;
 
-use support::{new_who_and_when, WhoAndWhenOf};
+use pallet_support::{new_who_and_when, WhoAndWhenOf};
 
 
 pub const FIRST_SPACE_ID: u64 = 1;

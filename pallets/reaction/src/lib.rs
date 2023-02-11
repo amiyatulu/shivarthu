@@ -1,7 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-/// Here spaces are departments
-
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://docs.substrate.io/v3/runtime/frame>
@@ -16,26 +14,26 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
-pub mod extras;
-pub mod types;
+mod extras;
+use pallet_spaces::{types::Space, Pallet as Spaces};
+use pallet_posts::{Pallet as Posts, PostById};
+use pallet_support::{
+	ensure_content_is_valid, new_who_and_when, remove_from_vec, Content, PostId, SpaceId,
+	WhoAndWhen, WhoAndWhenOf,
+};
 
-use frame_support::sp_std::prelude::*;
+use frame_support::sp_std::{prelude::*};
 // use scale_info::prelude::format;
-use crate::types::RESERVED_SPACE_COUNT;
-
-
-use frame_support::pallet_prelude::{DispatchResult, *};
-use frame_system::pallet_prelude::*;
-use pallet_support::{Content, SpaceId};
-use types::Space;
 
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
+	use frame_support::pallet_prelude::*;
+	use frame_system::pallet_prelude::*;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_timestamp::Config{
+	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 	}
@@ -53,22 +51,8 @@ pub mod pallet {
 	// https://docs.substrate.io/v3/runtime/storage#declaring-storage-items
 	pub type Something<T> = StorageValue<_, u32>;
 
-	#[pallet::type_value]
-    pub fn DefaultForNextSpaceId() -> SpaceId {
-        RESERVED_SPACE_COUNT + 1
-    }
 
-	/// The next space id.
-    #[pallet::storage]
-    #[pallet::getter(fn next_space_id)]
-    pub type NextSpaceId<T: Config> = StorageValue<_, SpaceId, ValueQuery, DefaultForNextSpaceId>;
-
-	/// Get the details of a space by its' id.
-    #[pallet::storage]
-    #[pallet::getter(fn space_by_id)]
-    pub type SpaceById<T: Config> = StorageMap<_, Twox64Concat, SpaceId, Space<T>>;
-
-
+	
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
 	#[pallet::event]
@@ -86,9 +70,6 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
-		InvalidIpfsCid,
-		OtherContentTypeNotSupported,
-		SpaceNotFound,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -96,11 +77,6 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-
-		/// [] Create space or department
-		/// [] How space/department are created, through proposal??
-
-	
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
@@ -109,7 +85,7 @@ pub mod pallet {
 			// This function will return an error if the extrinsic is not signed.
 			// https://docs.substrate.io/v3/runtime/origins
 			let who = ensure_signed(origin)?;
-			// let s = format!("The number is {}", 1);
+            // let s = format!("The number is {}", 1);
 			// Update storage.
 			<Something<T>>::put(something);
 
