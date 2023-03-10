@@ -13,7 +13,7 @@ mod tests;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
-
+mod permissions;
 mod extras;
 mod types;
 
@@ -81,7 +81,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn approved_citizen_address)]
-	pub type ApprovedCitizenAddress<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
+	pub type ApprovedCitizenAddress<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>; // Its set, add element through binary_search
 
 	#[pallet::storage]
 	#[pallet::getter(fn citizen_profile)]
