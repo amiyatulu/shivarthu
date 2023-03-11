@@ -171,7 +171,17 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 
-		/// Add citizen
+		/// Add citizen 
+		/// <pre> 
+		/// Get the count  
+		/// Check that if who in exists in the GetCitizenId  
+		///    if exists: ProfileExists error  
+		///    if not exists: Insert the count in GetCitizenId  
+		///                   Initialized CitizenDetails with who, count and ipfs profile_hash that contains profile data  
+		///                   Insert count and citizen_details into CitizenProfile  
+		///                   Increment citizen count and put the newcount to CitizenCount  
+		///                   Release CreateCitizen event 
+		/// </pre> 
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn add_citizen(origin: OriginFor<T>, profile_hash: Vec<u8>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -194,10 +204,23 @@ pub mod pallet {
 			}
 		}
         
-		/// Add profile fund
+		/// Add profile fund  
+		/// <pre>
+		/// Check profile exists for profile_citizenid, if not throw error CitizenDoNotExists inside the function get_citizen_accountid
+		/// Get the RegistrationFee and store in deposit variable
+		/// Get the current block number
+		/// Withdraw the deposit or RegistrationFee
+		/// Check the profile_citizenid exists in ProfileFundDetails:
+		///        if exists: ProfileFundExists error
+		///        if doesnot exits: 
+		///                          create profile fund info with who, deposit, block_time,
+		///                          Insert profile_fund_info into ProfileFundDetails
+		/// Create sortition sum tree
+		/// Set the evidence period to now
 		/// Enhancement:
 		/// How to stake for profile?
 		/// For profile validation should one person submit the staking fee, or allow crowdfunding. What will be better? 
+		/// </pre>
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn add_profile_fund(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
 			let who = ensure_signed(origin)?;
