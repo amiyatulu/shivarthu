@@ -9,6 +9,9 @@ pub trait SchellingGameSharedLink {
 	type AccountId;
 	type Balance;
 	type RangePoint;
+	type Period;
+
+	fn get_period_link(key: Self::SumTreeName) -> Option<Self::Period>;
 
 	fn set_to_evidence_period_link(
 		key: Self::SumTreeName,

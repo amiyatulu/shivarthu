@@ -9,6 +9,12 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	type AccountId = AccountIdOf<T>;
 	type Balance = BalanceOf<T>;
 	type RangePoint = RangePoint;
+	type Period = Period;
+
+	/// Get the Period
+	fn get_period_link(key: Self::SumTreeName) -> Option<Period> {
+		Self::get_period(key)
+	}
 
 	/// Set `PeriodName` to `Period::Evidence`
 	/// Called with submission of `Evidence` stake e.g. Profile stake

@@ -1,6 +1,8 @@
 use crate::*;
 
 impl<T: Config> Pallet<T> {
+
+
 	/// Set to evidence period, when some one stakes for validation
 	pub(super) fn set_to_evidence_period(
 		key: SumTreeName,

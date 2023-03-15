@@ -13,8 +13,8 @@ mod tests;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
-mod permissions;
 mod extras;
+mod permissions;
 mod types;
 
 use crate::types::{ChallengeEvidencePost, ChallengerFundInfo, CitizenDetails, ProfileFundInfo};
@@ -23,13 +23,10 @@ use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::prelude::*;
 use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 use frame_support::{
-	traits::{
-		Currency, ExistenceRequirement, Get, ReservableCurrency,
-		WithdrawReasons,
-	},
+	traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
 	PalletId,
 };
-use schelling_game_shared::types::{SchellingGameType, RangePoint};
+use schelling_game_shared::types::{Period, RangePoint, SchellingGameType};
 use schelling_game_shared_link::SchellingGameSharedLink;
 use sortition_sum_game::types::SumTreeName;
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -62,6 +59,7 @@ pub mod pallet {
 			AccountId = AccountIdOf<Self>,
 			Balance = BalanceOf<Self>,
 			RangePoint = RangePoint,
+			Period = Period,
 		>;
 		type Currency: ReservableCurrency<Self::AccountId>;
 	}
@@ -111,7 +109,8 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn profile_fund)]
-	pub type ProfileFundDetails<T> = StorageMap<_, Blake2_128Concat, CitizenId, ProfileFundInfoOf<T>>;
+	pub type ProfileFundDetails<T> =
+		StorageMap<_, Blake2_128Concat, CitizenId, ProfileFundInfoOf<T>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn challenger_fund)]
@@ -163,6 +162,8 @@ pub mod pallet {
 		IsComment,
 		ProfileFundNotExists,
 		ChallengerFundInfoExists,
+		NotProfileUser,
+		NotEvidencePeriod,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -170,9 +171,8 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-
-		/// Add citizen 
-		/// <pre> 
+		/// Add citizen
+		/// <pre>
 		/// Get the count  
 		/// Check that if who in exists in the GetCitizenId  
 		///    if exists: ProfileExists error  
@@ -180,8 +180,8 @@ pub mod pallet {
 		///                   Initialized CitizenDetails with who, count and ipfs profile_hash that contains profile data  
 		///                   Insert count and citizen_details into CitizenProfile  
 		///                   Increment citizen count and put the newcount to CitizenCount  
-		///                   Release CreateCitizen event 
-		/// </pre> 
+		///                   Release CreateCitizen event
+		/// </pre>
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn add_citizen(origin: OriginFor<T>, profile_hash: Vec<u8>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -203,7 +203,7 @@ pub mod pallet {
 				},
 			}
 		}
-        
+
 		/// Add profile fund  
 		/// <pre>
 		/// Check profile exists for profile_citizenid, if not throw error CitizenDoNotExists inside the function get_citizen_accountid
@@ -212,15 +212,54 @@ pub mod pallet {
 		/// Withdraw the deposit or RegistrationFee
 		/// Check the profile_citizenid exists in ProfileFundDetails:
 		///        if exists: ProfileFundExists error
-		///        if doesnot exits: 
+		///        if doesnot exits:
 		///                          create profile fund info with who, deposit, block_time,
 		///                          Insert profile_fund_info into ProfileFundDetails
 		/// Create sortition sum tree
 		/// Set the evidence period to now
 		/// Enhancement:
 		/// How to stake for profile?
-		/// For profile validation should one person submit the staking fee, or allow crowdfunding. What will be better? 
+		/// For profile validation should one person submit the staking fee, or allow crowdfunding. What will be better?
 		/// </pre>
+
+		/// Update profile
+		/// Can update profile if evidence period is not over
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn update_profile(
+			origin: OriginFor<T>,
+			profile_citizenid: u128,
+			profile_hash: Vec<u8>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let citizen_account_id = Self::get_citizen_accountid(profile_citizenid)?;
+			ensure!(who == citizen_account_id, Error::<T>::NotProfileUser);
+
+			let citizen_details = CitizenDetails {
+				profile_hash: profile_hash.clone(),
+				citizenid: profile_citizenid,
+				accountid: who.clone(),
+			};
+
+			let key = SumTreeName::UniqueIdenfier1 {
+				citizen_id: profile_citizenid,
+				name: "challengeprofile".as_bytes().to_vec(),
+			};
+
+			let period = T::SchellingGameSharedSource::get_period_link(key);
+			match period {
+				None => {
+					<CitizenProfile<T>>::insert(&profile_citizenid, citizen_details);
+				},
+				Some(periodname) => {
+					ensure!(periodname == Period::Evidence, Error::<T>::NotEvidencePeriod);
+					<CitizenProfile<T>>::insert(&profile_citizenid, citizen_details);
+				},
+			}
+
+			Ok(())
+		}
+
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn add_profile_fund(origin: OriginFor<T>, profile_citizenid: u128) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -368,7 +407,6 @@ pub mod pallet {
 							game_type,
 							now,
 						);
-
 					}
 				},
 				None => {
