@@ -164,6 +164,7 @@ pub mod pallet {
 		ChallengerFundInfoExists,
 		NotProfileUser,
 		NotEvidencePeriod,
+		CitizenNotApproved,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.

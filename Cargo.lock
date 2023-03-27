@@ -4708,6 +4708,7 @@ dependencies = [
  "frame-system",
  "pallet-balances",
  "parity-scale-codec 3.1.2",
+ "profile-validation-link",
  "scale-info",
  "schelling-game-shared",
  "schelling-game-shared-link",
@@ -4715,6 +4716,14 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-runtime",
+]
+
+[[package]]
+name = "profile-validation-link"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec 3.1.2",
 ]
 
 [[package]]
@@ -7805,6 +7814,25 @@ name = "typenum"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dcf81ac59edc17cc8697ff311e8f5ef2d99fcbd9817b34cec66f90b6c3dfd987"
+
+[[package]]
+name = "ubi-pallet"
+version = "4.0.0-dev"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-support-test",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "parity-scale-codec 3.1.2",
+ "scale-info",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
 
 [[package]]
 name = "ucd-trie"
