@@ -17,8 +17,11 @@ mod benchmarking;
 mod extras;
 
 use frame_support::sp_std::{prelude::*};
+use profile_validation_link::ProfileValidationLink;
 // use scale_info::prelude::format;
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
+type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
+
 type CitizenId = u128;
 
 
@@ -33,6 +36,7 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type ProfileValidationSource: ProfileValidationLink<>;
 	}
 
 	#[pallet::pallet]

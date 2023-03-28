@@ -26,6 +26,10 @@ log = { default-features= false, version="0.4"}
 sp-runtime = { default-features = false, version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
 sp-std = { default-features = false, version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
 sp-arithmetic = { default-features = false, version = "5.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
+profile-validation = { default-features = false, path="../profile-validation"}
+profile-validation-link  = { default-features = false, path="../../traits/profile-validation-link"}
+schelling-game-shared = {default-features = false, path = "../schelling-game-shared"}
+sortition-sum-game = {default-features = false, path="../sortition-sum-game"}
 
 
 [dev-dependencies]
@@ -47,6 +51,10 @@ std = [
     "sp-runtime/std",
 	"sp-std/std",
     "sp-arithmetic/std", 
+	"profile-validation/std",
+	"profile-validation-link/std",
+	"schelling-game-shared/std",
+
 ]
 
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
