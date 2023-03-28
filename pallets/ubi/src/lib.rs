@@ -16,7 +16,11 @@ mod benchmarking;
 
 mod extras;
 
-use frame_support::sp_std::{prelude::*};
+use frame_support::sp_std::prelude::*;
+use frame_support::{
+	traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
+	PalletId,
+};
 use profile_validation_link::ProfileValidationLink;
 // use scale_info::prelude::format;
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
@@ -24,11 +28,10 @@ type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 
 type CitizenId = u128;
 
-
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::pallet_prelude::{*, DispatchResult};
+	use frame_support::pallet_prelude::{DispatchResult, *};
 	use frame_system::pallet_prelude::*;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
@@ -36,7 +39,8 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-		type ProfileValidationSource: ProfileValidationLink<>;
+		type ProfileValidationSource: ProfileValidationLink<AccountId = AccountIdOf<Self>>;
+		type Currency: ReservableCurrency<Self::AccountId>;
 	}
 
 	#[pallet::pallet]
@@ -56,8 +60,6 @@ pub mod pallet {
 	#[pallet::getter(fn citizen_got_ubi_block_number)]
 	pub type CitizenLastUbiBlock<T> = StorageMap<_, Blake2_128Concat, CitizenId, BlockNumberOf<T>>;
 
-
-	
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
 	#[pallet::event]
@@ -82,17 +84,17 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-
 		/// Fund fixed UBI
 		/// Fund positive externality of more positive externality score
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn fun_ubi(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			T::ProfileValidationSource::account_is_validated_link(who)?;
+			let now = <frame_system::Pallet<T>>::block_number();
+			let total_issuance = T::Currency::total_issuance();
+			println!("test {:?}", total_issuance);
+			println!("Hello worldl");
 			Ok(())
 		}
-
-
-	
-		
 	}
 }
