@@ -135,6 +135,25 @@ pub mod pallet {
 	pub type ChallengePost<T: Config> =
 		StorageMap<_, Blake2_128Concat, u128, ChallengeEvidencePostOf<T>>; // challenge post id => post
 
+	#[pallet::genesis_config]
+	pub struct GenesisConfig<T: Config> {
+		pub approved_citizen_address: Vec<T::AccountId>,
+	}
+
+	#[cfg(feature = "std")]
+	impl<T: Config> Default for GenesisConfig<T> {
+		fn default() -> Self {
+			Self { approved_citizen_address: Default::default() }
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+		fn build(&self) {
+			<ApprovedCitizenAddress<T>>::put(self.approved_citizen_address.clone());
+		}
+	}
+
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
 	#[pallet::event]

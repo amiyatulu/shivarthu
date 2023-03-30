@@ -1,5 +1,5 @@
 use node_template_runtime::{
-	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
+	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig, ProfileValidationConfig, 
 	SystemConfig, WASM_BINARY,
 };
 use sc_service::ChainType;
@@ -152,5 +152,6 @@ fn testnet_genesis(
 			key: Some(root_key),
 		},
 		transaction_payment: Default::default(),
+		profile_validation: Default::default(),
 	}
 }
