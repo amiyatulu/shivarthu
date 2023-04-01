@@ -6,5 +6,7 @@ pub trait ProfileValidationLink {
 	type AccountId;
 
 	fn account_is_validated_link(address: Self::AccountId) -> DispatchResult;
+
+	fn get_approved_citizen_count_link() -> u64;
 	
 }
