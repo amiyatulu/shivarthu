@@ -3761,6 +3761,7 @@ dependencies = [
  "profile-validation-runtime-api",
  "scale-info",
  "schelling-game-shared",
+ "shared-storage",
  "sortition-sum-game",
  "sp-api",
  "sp-block-builder",
@@ -4616,6 +4617,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "positive-externality-validation"
+version = "4.0.0-dev"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-support-test",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "parity-scale-codec 3.1.2",
+ "scale-info",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "ppv-lite86"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4708,7 +4728,6 @@ dependencies = [
  "frame-system",
  "pallet-balances",
  "parity-scale-codec 3.1.2",
- "profile-validation-link",
  "scale-info",
  "schelling-game-shared",
  "schelling-game-shared-link",
@@ -4716,14 +4735,6 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-runtime",
-]
-
-[[package]]
-name = "profile-validation-link"
-version = "0.1.0"
-dependencies = [
- "frame-support",
- "parity-scale-codec 3.1.2",
 ]
 
 [[package]]
@@ -6415,6 +6426,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "shared-storage"
+version = "4.0.0-dev"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-support-test",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "parity-scale-codec 3.1.2",
+ "scale-info",
+ "shared-storage-link",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "shared-storage-link"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec 3.1.2",
+]
+
+[[package]]
 name = "shlex"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7826,11 +7865,9 @@ dependencies = [
  "log",
  "pallet-balances",
  "parity-scale-codec 3.1.2",
- "profile-validation",
- "profile-validation-link",
  "scale-info",
- "schelling-game-shared",
- "sortition-sum-game",
+ "shared-storage",
+ "shared-storage-link",
  "sp-arithmetic",
  "sp-core",
  "sp-io",

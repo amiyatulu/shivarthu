@@ -20,7 +20,7 @@ use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::prelude::*;
 use frame_support::traits::{Currency, OnUnbalanced, ReservableCurrency};
 
-use profile_validation_link::ProfileValidationLink;
+use shared_storage_link::SharedStorageLink;
 // use scale_info::prelude::format;
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -44,7 +44,7 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-		type ProfileValidationSource: ProfileValidationLink<AccountId = AccountIdOf<Self>>;
+		type SharedStorageSource: SharedStorageLink<AccountId = AccountIdOf<Self>>;
 		type Currency: ReservableCurrency<Self::AccountId>;
 		/// Handler for the unbalanced increment when rewarding (minting rewards)
 		type Reward: OnUnbalanced<PositiveImbalanceOf<Self>>;
@@ -100,14 +100,14 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Fund fixed UBI every three month
-		/// Fund positive externality of more positive externality score
+		/// Fund positive externality based on positive externality score
 		/// Give tranferable staking coins
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn fun_ubi(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			T::ProfileValidationSource::account_is_validated_link(who.clone())?;
+			T::SharedStorageSource::check_citizen_is_approved_link(who.clone())?;
 			let number_of_validated_accounts =
-				T::ProfileValidationSource::get_approved_citizen_count_link();
+				T::SharedStorageSource::get_approved_citizen_count_link();
 			let ubi_block_number = <CitizenUbiBlock<T>>::get(who.clone());
 			let now = <frame_system::Pallet<T>>::block_number();
 			let three_month_number = (3 * 30 * 24 * 60 * 60) / 6;

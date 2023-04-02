@@ -287,6 +287,10 @@ impl sortition_sum_game::Config for Runtime {
 	type Event = Event;
 }
 
+impl shared_storage::Config for Runtime {
+	type Event = Event;
+}
+
 parameter_types! {
 	pub const CandidacyBond: u64 = 3;
 }
@@ -348,6 +352,7 @@ construct_runtime!(
 		Spaces: pallet_spaces,
 		SchellingGameShared: schelling_game_shared,
 		ProfileValidation: profile_validation,
+		SharedStorage: shared_storage,
 
 	}
 );

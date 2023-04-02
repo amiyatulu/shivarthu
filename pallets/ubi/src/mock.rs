@@ -23,10 +23,7 @@ frame_support::construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>}, // new code
 		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>},
-		SchellingGameShared: schelling_game_shared::{Pallet, Call, Storage, Event<T>},
-		ProfileValidation: profile_validation::{Pallet, Call, Storage, Event<T>},
-		SortitionSumGame: sortition_sum_game::{Pallet, Call, Storage, Event<T>},
-	
+		SharedStorage: shared_storage::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -55,7 +52,6 @@ impl system::Config for Test {
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 	type AccountData = pallet_balances::AccountData<u64>; // New code
-
 }
 
 impl pallet_balances::Config for Test {
@@ -74,27 +70,13 @@ parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
 }
 
-impl schelling_game_shared::Config for Test {
-	type Event = Event;
-	type Currency = Balances; // New code
-	type RandomnessSource = TestRandomness<Self>;
-	type Slash = ();
-	type Reward = ();
-	type SortitionSumGameSource = SortitionSumGame;
-}
-
-impl sortition_sum_game::Config for Test {
+impl shared_storage::Config for Test {
 	type Event = Event;
 }
 
-impl profile_validation::Config for Test {
-	type Event = Event;
-	type Currency = Balances; // New code
-	type SchellingGameSharedSource = SchellingGameShared;
-}
 impl pallet_template::Config for Test {
 	type Event = Event;
-	type ProfileValidationSource = ProfileValidation;
+	type SharedStorageSource = SharedStorage;
 	type Currency = Balances; // New code
 	type Slash = ();
 	type Reward = ();
@@ -144,11 +126,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	} // new code
 	.assimilate_storage(&mut t)
 	.unwrap();
-     profile_validation::GenesisConfig::<Test> {
-		approved_citizen_address: vec![1,2]
-	 }
-	 .assimilate_storage(&mut t)
-	.unwrap();
+	shared_storage::GenesisConfig::<Test> { approved_citizen_address: vec![1, 2] }
+		.assimilate_storage(&mut t)
+		.unwrap();
 	t.into()
 }
-

@@ -1,37 +1,9 @@
 use crate::*;
 
-use profile_validation_link::ProfileValidationLink;
 
-impl<T: Config> ProfileValidationLink for Pallet<T> {
-	type AccountId = AccountIdOf<T>;
-
-	fn account_is_validated_link(address: Self::AccountId) -> DispatchResult {
-		Self::get_approved_citizen(address)
-	}
-	fn get_approved_citizen_count_link() -> u64 {
-		Self::get_approved_citizen_count()
-	}
-}
 
 impl<T: Config> Pallet<T> {
 
-	pub(super) fn get_approved_citizen(address: T::AccountId) -> DispatchResult {
-
-		let members = ApprovedCitizenAddress::<T>::get();
-
-		match members.binary_search(&address) {
-			Ok(_index) => {
-				Ok(())
-			}
-			Err(_) => Err(Error::<T>::CitizenNotApproved.into()),
-		}
-		
-	}
-
-	pub(super) fn get_approved_citizen_count() -> u64 {
-		let members = ApprovedCitizenAddress::<T>::get();
-		members.len() as u64
-	}
 
 
 	pub(super) fn get_citizen_accountid(citizenid: u128) -> Result<T::AccountId, DispatchError> {

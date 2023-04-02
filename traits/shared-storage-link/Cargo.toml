@@ -1,5 +1,5 @@
 [package]
-name = "profile-validation-link"
+name = "shared-storage-link"
 version = "0.1.0"
 edition = "2021"
 

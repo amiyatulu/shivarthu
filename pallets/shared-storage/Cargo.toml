@@ -1,5 +1,5 @@
 [package]
-name = "ubi-pallet"
+name = "shared-storage"
 version = "4.0.0-dev"
 description = "FRAME pallet template for defining custom runtime logic."
 authors = ["Substrate DevHub <https://github.com/substrate-developer-hub>"]
@@ -26,8 +26,8 @@ log = { default-features= false, version="0.4"}
 sp-runtime = { default-features = false, version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
 sp-std = { default-features = false, version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
 sp-arithmetic = { default-features = false, version = "5.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
-shared-storage = { default-features = false, path="../shared-storage"}
-shared-storage-link = { default-features = false, path="../../traits/shared-storage-link"}
+shared-storage-link = {default-features=false, path="../../traits/shared-storage-link"}
+
 
 
 [dev-dependencies]
@@ -49,9 +49,6 @@ std = [
     "sp-runtime/std",
 	"sp-std/std",
     "sp-arithmetic/std", 
-	"shared-storage/std",
-	"shared-storage-link/std",
-
 ]
 
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
