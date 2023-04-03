@@ -28,6 +28,9 @@ sp-std = { default-features = false, version = "4.0.0-dev", git = "https://githu
 sp-arithmetic = { default-features = false, version = "5.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.18" }
 shared-storage = { default-features = false, path="../shared-storage"}
 shared-storage-link = { default-features = false, path="../../traits/shared-storage-link"}
+schelling-game-shared = {default-features = false, path = "../schelling-game-shared"}
+schelling-game-shared-link = {default-features = false, path = "../../traits/schelling-game-shared-link"}
+sortition-sum-game = {default-features = false, path="../sortition-sum-game"}
 
 
 [dev-dependencies]
@@ -46,9 +49,15 @@ std = [
 	"frame-benchmarking/std",
 	"pallet-balances/std",
 	"log/std",
-    	"sp-runtime/std",
+    "sp-runtime/std",
 	"sp-std/std",
-    	"sp-arithmetic/std", 
+    "sp-arithmetic/std", 
+	"schelling-game-shared-link/std",
+  	"schelling-game-shared/std",
+  	"sortition-sum-game/std",
+	"shared-storage/std",
+	"shared-storage-link/std",
+
 ]
 
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]

@@ -18,6 +18,9 @@ mod extras;
 
 use frame_support::sp_std::{prelude::*};
 use shared_storage_link::SharedStorageLink;
+use schelling_game_shared::types::{Period, RangePoint, SchellingGameType};
+use schelling_game_shared_link::SchellingGameSharedLink;
+use sortition_sum_game::types::SumTreeName;
 use frame_support::{
 	traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
 	PalletId,
@@ -40,6 +43,15 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type SharedStorageSource: SharedStorageLink<AccountId = AccountIdOf<Self>>;
+		type SchellingGameSharedSource: SchellingGameSharedLink<
+			SumTreeName = SumTreeName,
+			SchellingGameType = SchellingGameType,
+			BlockNumber = Self::BlockNumber,
+			AccountId = AccountIdOf<Self>,
+			Balance = BalanceOf<Self>,
+			RangePoint = RangePoint,
+			Period = Period,
+		>;
 		type Currency: ReservableCurrency<Self::AccountId>;
 
 	}

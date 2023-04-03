@@ -7,6 +7,7 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup},
 };
 use frame_support::parameter_types;
+use frame_support_test::TestRandomness;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -22,6 +23,9 @@ frame_support::construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>}, // new code
 		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>},
 		SharedStorage: shared_storage::{Pallet, Call, Storage, Event<T>},
+		SchellingGameShared: schelling_game_shared::{Pallet, Call, Storage, Event<T>},
+		SortitionSumGame: sortition_sum_game::{Pallet, Call, Storage, Event<T>},
+
 
 	}
 );
@@ -77,6 +81,20 @@ impl pallet_template::Config for Test {
 	type Event = Event;
 	type SharedStorageSource = SharedStorage;
 	type Currency = Balances; // New code
+	type SchellingGameSharedSource = SchellingGameShared;
+}
+
+impl schelling_game_shared::Config for Test {
+	type Event = Event;
+	type Currency = Balances; // New code
+	type RandomnessSource = TestRandomness<Self>;
+	type Slash = ();
+	type Reward = ();
+	type SortitionSumGameSource = SortitionSumGame;
+}
+
+impl sortition_sum_game::Config for Test {
+	type Event = Event;
 }
 
 // Build genesis storage according to the mock runtime.
