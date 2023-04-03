@@ -1,11 +1,12 @@
 use crate as pallet_template;
-use frame_support::traits::{ConstU16, ConstU64};
+use frame_support::traits::{ConstU16, ConstU64, GenesisBuild};
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
+use frame_support::parameter_types;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -18,7 +19,10 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>}, // new code
 		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>},
+		SharedStorage: shared_storage::{Pallet, Call, Storage, Event<T>},
+
 	}
 );
 
@@ -40,20 +44,87 @@ impl system::Config for Test {
 	type BlockHashCount = ConstU64<250>;
 	type Version = ();
 	type PalletInfo = PalletInfo;
-	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ConstU16<42>;
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
+	type AccountData = pallet_balances::AccountData<u64>; // New code
+}
+
+impl shared_storage::Config for Test {
+	type Event = Event;
+}
+
+impl pallet_balances::Config for Test {
+	type MaxLocks = ();
+	type MaxReserves = ();
+	type ReserveIdentifier = [u8; 8];
+	type Balance = u64;
+	type Event = Event;
+	type DustRemoval = ();
+	type ExistentialDeposit = ExistentialDeposit;
+	type AccountStore = System;
+	type WeightInfo = ();
+}
+
+parameter_types! {
+	pub const ExistentialDeposit: u64 = 1;
 }
 
 impl pallet_template::Config for Test {
 	type Event = Event;
+	type SharedStorageSource = SharedStorage;
+	type Currency = Balances; // New code
 }
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
+	pallet_balances::GenesisConfig::<Test> {
+		balances: vec![
+			(1, 100000),
+			(2, 200000),
+			(3, 300000),
+			(4, 300000),
+			(5, 300000),
+			(6, 300000),
+			(7, 300000),
+			(8, 300000),
+			(9, 300000),
+			(10, 300000),
+			(11, 300000),
+			(12, 300000),
+			(13, 300000),
+			(14, 300000),
+			(15, 300000),
+			(16, 300000),
+			(17, 300000),
+			(18, 300000),
+			(19, 300000),
+			(20, 300000),
+			(21, 300000),
+			(22, 300000),
+			(23, 300000),
+			(24, 300000),
+			(25, 300000),
+			(26, 300000),
+			(27, 300000),
+			(28, 300000),
+			(29, 300000),
+			(30, 300000),
+			(31, 300000),
+			(32, 300000),
+			(33, 300000),
+			(34, 300000),
+			(35, 300000),
+		],
+	} // new code
+	.assimilate_storage(&mut t)
+	.unwrap();
+	shared_storage::GenesisConfig::<Test> { approved_citizen_address: vec![1, 2] }
+		.assimilate_storage(&mut t)
+		.unwrap();
+	t.into()
 }

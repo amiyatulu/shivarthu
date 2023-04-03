@@ -4628,6 +4628,8 @@ dependencies = [
  "pallet-balances",
  "parity-scale-codec 3.1.2",
  "scale-info",
+ "shared-storage",
+ "shared-storage-link",
  "sp-arithmetic",
  "sp-core",
  "sp-io",

@@ -20,6 +20,7 @@ use frame_support::sp_std::{prelude::*};
 use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
+type Score = u8;
 
 
 // use scale_info::prelude::format;
@@ -45,6 +46,11 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn approved_citizen_address)]
 	pub type ApprovedCitizenAddress<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>; // Its set, add element through binary_search
+
+
+	#[pallet::storage]
+	#[pallet::getter(fn positive_externality_score)]
+	pub type PositiveExternalityScore<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Score, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
