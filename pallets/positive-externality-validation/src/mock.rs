@@ -84,6 +84,17 @@ impl pallet_template::Config for Test {
 	type SchellingGameSharedSource = SchellingGameShared;
 }
 
+parameter_types! {
+    pub const MinimumPeriod: u64 = 5;
+}
+
+impl pallet_timestamp::Config for Test {
+    type Moment = u64;
+    type OnTimestampSet = ();
+    type MinimumPeriod = MinimumPeriod;
+    type WeightInfo = ();
+}
+
 impl schelling_game_shared::Config for Test {
 	type Event = Event;
 	type Currency = Balances; // New code

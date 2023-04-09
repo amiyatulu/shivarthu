@@ -15,6 +15,7 @@ mod tests;
 mod benchmarking;
 
 mod extras;
+pub mod types;
 
 use frame_support::sp_std::{prelude::*};
 use frame_support::{dispatch::DispatchResult, pallet_prelude::*};

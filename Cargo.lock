@@ -4626,6 +4626,8 @@ dependencies = [
  "frame-system",
  "log",
  "pallet-balances",
+ "pallet-support",
+ "pallet-timestamp",
  "parity-scale-codec 3.1.2",
  "scale-info",
  "schelling-game-shared",

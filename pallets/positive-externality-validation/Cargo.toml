@@ -31,6 +31,9 @@ shared-storage-link = { default-features = false, path="../../traits/shared-stor
 schelling-game-shared = {default-features = false, path = "../schelling-game-shared"}
 schelling-game-shared-link = {default-features = false, path = "../../traits/schelling-game-shared-link"}
 sortition-sum-game = {default-features = false, path="../sortition-sum-game"}
+pallet-support = { default-features = false, path = '../support' }
+pallet-timestamp = { git = 'https://github.com/paritytech/substrate', branch = "polkadot-v0.9.18", default-features = false }
+
 
 
 [dev-dependencies]

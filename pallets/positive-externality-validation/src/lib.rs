@@ -15,6 +15,7 @@ mod tests;
 mod benchmarking;
 
 mod extras;
+pub mod types;
 
 use frame_support::sp_std::{prelude::*};
 use shared_storage_link::SharedStorageLink;
@@ -24,6 +25,10 @@ use sortition_sum_game::types::SumTreeName;
 use frame_support::{
 	traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
 	PalletId,
+};
+use pallet_support::{
+    ensure_content_is_valid, new_who_and_when, remove_from_vec,
+    Content, PositiveExternalityPostId, WhoAndWhen, WhoAndWhenOf,
 };
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
@@ -39,7 +44,7 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + pallet_timestamp::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type SharedStorageSource: SharedStorageLink<AccountId = AccountIdOf<Self>>;
@@ -61,13 +66,9 @@ pub mod pallet {
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
-	// The pallet's runtime storage items.
-	// https://docs.substrate.io/v3/runtime/storage
-	#[pallet::storage]
-	#[pallet::getter(fn something)]
-	// Learn more about declaring storage items:
-	// https://docs.substrate.io/v3/runtime/storage#declaring-storage-items
-	pub type Something<T> = StorageValue<_, u32>;
+	// #[pallet::storage]
+	// #[pallet::getter(fn positive_externality_evidence)]
+	// pub type PositiveExternalityScore<T: Config> = 
 
 
 	
@@ -95,6 +96,13 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		
+                // Every 3 months 
+                // Check blocknumber evidence are uploaded within today and last 3 months 
+                // Start time-> First 10 days, any juror can stake, and change to stake period
+                // Add the blocknumber when positive externality score is added as (u8, blocknumber) tuple.
+
+
+			
+				
 	}
 }
