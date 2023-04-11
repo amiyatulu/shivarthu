@@ -16,12 +16,17 @@ mod benchmarking;
 
 mod extras;
 pub mod types;
+pub use types::*;
 
 use frame_support::sp_std::{prelude::*};
 use shared_storage_link::SharedStorageLink;
 use schelling_game_shared::types::{Period, RangePoint, SchellingGameType};
 use schelling_game_shared_link::SchellingGameSharedLink;
 use sortition_sum_game::types::SumTreeName;
+use frame_support::{
+    dispatch::{DispatchError, DispatchResult},
+    ensure, fail,
+};
 use frame_support::{
 	traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
 	PalletId,
@@ -89,6 +94,7 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
+		NotAPostOwner,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.

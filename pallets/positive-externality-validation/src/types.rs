@@ -29,7 +29,7 @@ pub struct PositiveExternalityPost<T: Config> {
 
 #[derive(Encode, Decode, Default, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct PositiveExternalityPostUpdate {
-
+    
     pub content: Option<Content>,
     pub hidden: Option<bool>,
 }
