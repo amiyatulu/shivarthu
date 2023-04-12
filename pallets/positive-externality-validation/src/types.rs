@@ -5,6 +5,8 @@ use frame_support::pallet_prelude::*;
 
 use super::*;
 
+pub const FIRST_POST_ID: u64 = 1;
+
 /// Information about a post's owner, its' related space, content, and visibility.
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]

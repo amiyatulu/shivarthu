@@ -16,28 +16,27 @@ mod benchmarking;
 
 mod extras;
 pub mod types;
-pub use types::*;
+pub use types::{PositiveExternalityPost, FIRST_POST_ID};
 
-use frame_support::sp_std::{prelude::*};
-use shared_storage_link::SharedStorageLink;
-use schelling_game_shared::types::{Period, RangePoint, SchellingGameType};
-use schelling_game_shared_link::SchellingGameSharedLink;
-use sortition_sum_game::types::SumTreeName;
+use frame_support::sp_std::prelude::*;
 use frame_support::{
-    dispatch::{DispatchError, DispatchResult},
-    ensure, fail,
+	dispatch::{DispatchError, DispatchResult},
+	ensure, fail,
 };
 use frame_support::{
 	traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
 	PalletId,
 };
 use pallet_support::{
-    ensure_content_is_valid, new_who_and_when, remove_from_vec,
-    Content, PositiveExternalityPostId, WhoAndWhen, WhoAndWhenOf,
+	ensure_content_is_valid, new_who_and_when, remove_from_vec, Content, PositiveExternalityPostId,
+	WhoAndWhen, WhoAndWhenOf,
 };
+use schelling_game_shared::types::{Period, RangePoint, SchellingGameType};
+use schelling_game_shared_link::SchellingGameSharedLink;
+use shared_storage_link::SharedStorageLink;
+use sortition_sum_game::types::SumTreeName;
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
-
 
 // use scale_info::prelude::format;
 
@@ -63,7 +62,6 @@ pub mod pallet {
 			Period = Period,
 		>;
 		type Currency: ReservableCurrency<Self::AccountId>;
-
 	}
 
 	#[pallet::pallet]
@@ -71,12 +69,32 @@ pub mod pallet {
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
-	// #[pallet::storage]
-	// #[pallet::getter(fn positive_externality_evidence)]
-	// pub type PositiveExternalityScore<T: Config> = 
+	#[pallet::type_value]
+	pub fn DefaultForNextPositiveExternalityPostId() -> PositiveExternalityPostId {
+		FIRST_POST_ID
+	}
 
+	/// The next post id.
+	#[pallet::storage]
+	#[pallet::getter(fn next_positive_externality_post_id)]
+	pub type NextPositiveExternalityPostId<T: Config> = StorageValue<
+		_,
+		PositiveExternalityPostId,
+		ValueQuery,
+		DefaultForNextPositiveExternalityPostId,
+	>;
 
-	
+	/// Get the details of a post by its' id.
+	#[pallet::storage]
+	#[pallet::getter(fn positive_externality_post_by_id)]
+	pub type PositiveExternalityPostById<T: Config> =
+		StorageMap<_, Twox64Concat, PositiveExternalityPostId, PositiveExternalityPost<T>>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn positive_externality_evidence)]
+	pub type PositiveExternalityEvidence<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<PositiveExternalityPostId>, ValueQuery>;
+
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
 	#[pallet::event]
@@ -102,13 +120,35 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-                // Every 3 months 
-                // Check blocknumber evidence are uploaded within today and last 3 months 
-                // Start time-> First 10 days, any juror can stake, and change to stake period
-                // Add the blocknumber when positive externality score is added as (u8, blocknumber) tuple.
+		// Every 3 months
+		// Check blocknumber evidence are uploaded within today and last 3 months
+		// Start time-> First 10 days, any juror can stake, and change to stake period
+		// Add the blocknumber when positive externality score is added as (u8, blocknumber) tuple.
 
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn create_positive_externality_post(
+			origin: OriginFor<T>,
+			content: Content,
+		) -> DispatchResult {
+			let creator = ensure_signed(origin)?;
 
-			
-				
+			ensure_content_is_valid(content.clone())?;
+
+			let new_post_id = Self::next_positive_externality_post_id();
+
+			let new_post: PositiveExternalityPost<T> =
+				PositiveExternalityPost::new(new_post_id, creator.clone(), content.clone());
+
+			PositiveExternalityEvidence::<T>::mutate(creator, |ids| ids.push(new_post_id));
+
+			PositiveExternalityPostById::insert(new_post_id, new_post);
+			NextPositiveExternalityPostId::<T>::mutate(|n| {
+				*n += 1;
+			});
+
+			// emit event
+
+			Ok(())
+		}
 	}
 }
