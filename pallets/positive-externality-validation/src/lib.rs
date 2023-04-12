@@ -119,8 +119,10 @@ pub mod pallet {
 	// These functions materialize as "extrinsics", which are often compared to transactions.
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {
-		// Every 3 months
+	impl<T: Config> Pallet<T> {		
+		// Should user need to stake every round?? or stake once and keep minimum stake balance.
+		// User can on and off validation
+		// Every 3 months validation
 		// Check blocknumber evidence are uploaded within today and last 3 months
 		// Start time-> First 10 days, any juror can stake, and change to stake period
 		// Add the blocknumber when positive externality score is added as (u8, blocknumber) tuple.
@@ -133,6 +135,7 @@ pub mod pallet {
 			let creator = ensure_signed(origin)?;
 
 			ensure_content_is_valid(content.clone())?;
+			T::SharedStorageSource::check_citizen_is_approved_link(creator.clone())?;
 
 			let new_post_id = Self::next_positive_externality_post_id();
 
