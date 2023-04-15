@@ -18,6 +18,8 @@ mod extras;
 pub mod types;
 pub use types::{PositiveExternalityPost, FIRST_POST_ID};
 
+use frame_support::sp_runtime::traits::Saturating;
+use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::prelude::*;
 use frame_support::{
 	dispatch::{DispatchError, DispatchResult},
@@ -95,6 +97,16 @@ pub mod pallet {
 	pub type PositiveExternalityEvidence<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<PositiveExternalityPostId>, ValueQuery>;
 
+	#[pallet::type_value]
+	pub fn MinimumPositiveExternalityStake<T: Config>() -> BalanceOf<T> {
+		10000u128.saturated_into::<BalanceOf<T>>()
+	}
+
+	#[pallet::storage]
+	#[pallet::getter(fn positive_externality_user_stake)]
+	pub type PositiveExternalityStakeBalance<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
 	#[pallet::event]
@@ -119,7 +131,7 @@ pub mod pallet {
 	// These functions materialize as "extrinsics", which are often compared to transactions.
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {		
+	impl<T: Config> Pallet<T> {
 		// Should user need to stake every round?? or stake once and keep minimum stake balance.
 		// User can on and off validation
 		// Every 3 months validation
@@ -151,6 +163,24 @@ pub mod pallet {
 
 			// emit event
 
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn add_positive_externality_stake(
+			origin: OriginFor<T>,
+			deposit: BalanceOf<T>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let _ = T::Currency::withdraw(
+				&who,
+				deposit,
+				WithdrawReasons::TRANSFER,
+				ExistenceRequirement::AllowDeath,
+			)?;
+			let stake = PositiveExternalityStakeBalance::<T>::get(&who);
+			let total_balance = stake.saturating_add(deposit);
+			PositiveExternalityStakeBalance::<T>::insert(&who, total_balance);
 			Ok(())
 		}
 	}
