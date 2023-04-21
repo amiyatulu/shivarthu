@@ -65,7 +65,7 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
 		type SortitionSumGameSource: SortitionSumGameLink<
-			SumTreeName = SumTreeName,
+			SumTreeName = SumTreeName<Self::AccountId>,
 			AccountId = Self::AccountId,
 		>;
 
@@ -92,7 +92,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_period)]
-	pub type PeriodName<T> = StorageMap<_, Blake2_128Concat, SumTreeName, Period>;
+	pub type PeriodName<T> = StorageMap<_, Blake2_128Concat, SumTreeName<AccountIdOf<T>>, Period>;
 
 	#[pallet::type_value]
 	pub fn DefaultMinBlockTime<T: Config>() -> StakingTime<BlockNumberOf<T>> {
@@ -139,29 +139,29 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn draws_in_round)]
-	pub type DrawsInRound<T> = StorageMap<_, Blake2_128Concat, SumTreeName, u64, ValueQuery>; // A counter of draws made in the current round.
+	pub type DrawsInRound<T> = StorageMap<_, Blake2_128Concat, SumTreeName<AccountIdOf<T>>, u64, ValueQuery>; // A counter of draws made in the current round.
 
 
 	#[pallet::storage]
 	#[pallet::getter(fn evidence_start_time)]
 	pub type EvidenceStartTime<T> =
-		StorageMap<_, Blake2_128Concat, SumTreeName, BlockNumberOf<T>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, SumTreeName<AccountIdOf<T>>, BlockNumberOf<T>, ValueQuery>;
 
 
 	#[pallet::storage]
 	#[pallet::getter(fn staking_start_time)]
 	pub type StakingStartTime<T> =
-		StorageMap<_, Blake2_128Concat, SumTreeName, BlockNumberOf<T>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, SumTreeName<AccountIdOf<T>>, BlockNumberOf<T>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn commit_start_time)]
 	pub type CommitStartTime<T> =
-		StorageMap<_, Blake2_128Concat, SumTreeName, BlockNumberOf<T>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, SumTreeName<AccountIdOf<T>>, BlockNumberOf<T>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn vote_start_time)]
 	pub type VoteStartTime<T> =
-		StorageMap<_, Blake2_128Concat, SumTreeName, BlockNumberOf<T>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, SumTreeName<AccountIdOf<T>>, BlockNumberOf<T>, ValueQuery>;
 
 	
 	/// Drawn jurors containing account id and stake Vec<(AccountId, Stake)>
@@ -169,11 +169,11 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn  drawn_jurors)]
 	pub type DrawnJurors<T: Config> =
-		StorageMap<_, Blake2_128Concat, SumTreeName, Vec<(T::AccountId, u64)>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, SumTreeName<AccountIdOf<T>>, Vec<(T::AccountId, u64)>, ValueQuery>;
 	#[pallet::storage]
 	#[pallet::getter(fn unstaked_jurors)]
 	pub type UnstakedJurors<T: Config> =
-		StorageMap<_, Blake2_128Concat, SumTreeName, Vec<T::AccountId>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, SumTreeName<AccountIdOf<T>>, Vec<T::AccountId>, ValueQuery>;
 
 	#[pallet::type_value]
 	pub fn DefaultDrawJurorsLimitNum<T: Config>() -> DrawJurorsLimit {
@@ -199,7 +199,7 @@ pub mod pallet {
 	pub type VoteCommits<T: Config> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
-		SumTreeName,
+		SumTreeName<AccountIdOf<T>>,
 		Blake2_128Concat,
 		T::AccountId,
 		CommitVote,
@@ -211,7 +211,7 @@ pub mod pallet {
 	pub type ScoreVoteCommits<T: Config> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
-		SumTreeName,
+		SumTreeName<AccountIdOf<T>>,
 		Blake2_128Concat,
 		T::AccountId,
 		ScoreCommitVote,
@@ -223,7 +223,7 @@ pub mod pallet {
 	pub type RevealScoreValues<T: Config> = StorageMap<
 	_,
 	Blake2_128Concat,
-	SumTreeName,
+	SumTreeName<AccountIdOf<T>>,
 	Vec<i64>,
 	ValueQuery,
 	>;
@@ -235,7 +235,7 @@ pub mod pallet {
 	pub type IncentiveMeanRevealScore<T: Config> = StorageMap<
 	_,
 	Blake2_128Concat,
-	SumTreeName,
+	SumTreeName<AccountIdOf<T>>,
 	i64
 	>;
 
@@ -243,7 +243,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn decision_count)]
 	pub type DecisionCount<T> =
-		StorageMap<_, Blake2_128Concat, SumTreeName, (u64, u64), ValueQuery>; // Count for 0, Count for 1
+		StorageMap<_, Blake2_128Concat, SumTreeName<AccountIdOf<T>>, (u64, u64), ValueQuery>; // Count for 0, Count for 1
 	#[pallet::type_value]
 	pub fn DefaultJurorIncentives<T: Config>() -> (u64, u64) {
 		(100, 100)
@@ -265,7 +265,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn juror_incentive_distribution)]
 	pub type JurorsIncentiveDistributedAccounts<T: Config> =
-		StorageMap<_, Blake2_128Concat, SumTreeName, Vec<T::AccountId>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, SumTreeName<AccountIdOf<T>>, Vec<T::AccountId>, ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors

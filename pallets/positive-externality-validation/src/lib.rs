@@ -55,7 +55,7 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type SharedStorageSource: SharedStorageLink<AccountId = AccountIdOf<Self>>;
 		type SchellingGameSharedSource: SchellingGameSharedLink<
-			SumTreeName = SumTreeName,
+			SumTreeName = SumTreeName<Self::AccountId>,
 			SchellingGameType = SchellingGameType,
 			BlockNumber = Self::BlockNumber,
 			AccountId = AccountIdOf<Self>,
@@ -106,6 +106,11 @@ pub mod pallet {
 	#[pallet::getter(fn positive_externality_user_stake)]
 	pub type PositiveExternalityStakeBalance<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn validate_positive_externality)]
+	pub type ValidatePositiveExternality<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, bool, ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
@@ -172,6 +177,7 @@ pub mod pallet {
 			deposit: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			// Check user has done kyc
 			let _ = T::Currency::withdraw(
 				&who,
 				deposit,
@@ -181,7 +187,39 @@ pub mod pallet {
 			let stake = PositiveExternalityStakeBalance::<T>::get(&who);
 			let total_balance = stake.saturating_add(deposit);
 			PositiveExternalityStakeBalance::<T>::insert(&who, total_balance);
+
+			// emit event
 			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn set_validate_positive_externality(
+			origin: OriginFor<T>,
+			value: bool,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			// Check user has done kyc
+
+			ValidatePositiveExternality::<T>::insert(&who, value);
+			// emit event
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn apply_jurors_positive_externality(
+			origin: OriginFor<T>,
+			user_to_calculate: T::AccountId,
+			stake: BalanceOf<T>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			let key = SumTreeName::PositiveExternality { user_address: user_to_calculate };
+
+			let game_type = SchellingGameType::PositiveExternality;
+
+			let result =
+				T::SchellingGameSharedSource::apply_jurors_helper_link(key, game_type, who, stake);
+			result
 		}
 	}
 }

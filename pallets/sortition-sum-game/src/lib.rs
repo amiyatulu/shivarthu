@@ -49,7 +49,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn sortition_sum_trees)]
 	pub type SortitionSumTrees<T> =
-		StorageMap<_, Blake2_128Concat, SumTreeName, SortitionSumTree<AccountIdOf<T>>>;
+		StorageMap<_, Blake2_128Concat, SumTreeName<AccountIdOf<T>>, SortitionSumTree<AccountIdOf<T>>>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events

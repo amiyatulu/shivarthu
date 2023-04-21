@@ -3,7 +3,7 @@ use crate::*;
 impl<T: Config> Pallet<T> {
 	/// Commit your score vote
 	pub(super) fn commit_vote_for_score_helper(
-		key: SumTreeName,
+		key: SumTreeName<AccountIdOf<T>>,
 		who: AccountIdOf<T>,
 		vote_commit: [u8; 32],
 	) -> DispatchResult {
@@ -30,7 +30,7 @@ impl<T: Config> Pallet<T> {
 
 	/// choice is i64. Validate the range of the choice while using the function
 	pub(super) fn reveal_vote_score_helper(
-		key: SumTreeName,
+		key: SumTreeName<AccountIdOf<T>>,
 		who: AccountIdOf<T>,
 		choice: i64,
 		salt: Vec<u8>,
@@ -74,7 +74,7 @@ impl<T: Config> Pallet<T> {
 
 	/// Distribute incentives to all jurors in execution period in score schelling game
 	pub(super) fn get_incentives_score_schelling_helper(
-		key: SumTreeName,
+		key: SumTreeName<AccountIdOf<T>>,
 		game_type: SchellingGameType,
 		range_point: RangePoint,
 	) -> DispatchResult {
