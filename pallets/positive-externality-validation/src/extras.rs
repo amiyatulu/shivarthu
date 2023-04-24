@@ -32,6 +32,22 @@ impl<T: Config> PositiveExternalityPost<T> {
 
 impl<T: Config> Pallet<T> {
 
-    
+    pub fn ensure_validation_on_positive_externality(account: T::AccountId) -> DispatchResult {
+
+        let bool_data = ValidatePositiveExternality::<T>::get(account);
+        ensure!(bool_data == true, Error::<T>::ValidationPositiveExternalityIsOff);
+
+        Ok(())
+    }
+
+    pub fn ensure_min_stake_positive_externality(account: T::AccountId) -> DispatchResult {
+        let stake = PositiveExternalityStakeBalance::<T>::get(account);
+        let min_stake = MinimumPositiveExternalityStake::<T>::get();
+        ensure!(stake >= min_stake, Error::<T>::LessThanMinStake);
+        
+
+
+        Ok(())
+    }
 	
 }

@@ -130,6 +130,8 @@ pub mod pallet {
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
 		NotAPostOwner,
+		ValidationPositiveExternalityIsOff,
+		LessThanMinStake,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -212,14 +214,17 @@ pub mod pallet {
 			stake: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			
+			Self::ensure_validation_on_positive_externality(user_to_calculate.clone())?;
+			Self::ensure_min_stake_positive_externality(user_to_calculate.clone())?;
 
 			let key = SumTreeName::PositiveExternality { user_address: user_to_calculate };
 
 			let game_type = SchellingGameType::PositiveExternality;
 
-			let result =
-				T::SchellingGameSharedSource::apply_jurors_helper_link(key, game_type, who, stake);
-			result
+			T::SchellingGameSharedSource::apply_jurors_helper_link(key, game_type, who, stake)?;
+			
+			Ok(())
 		}
 	}
 }
