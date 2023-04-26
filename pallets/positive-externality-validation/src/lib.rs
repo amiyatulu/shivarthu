@@ -39,6 +39,8 @@ use shared_storage_link::SharedStorageLink;
 use sortition_sum_game::types::SumTreeName;
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
+pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
+
 
 // use scale_info::prelude::format;
 
@@ -55,7 +57,7 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type SharedStorageSource: SharedStorageLink<AccountId = AccountIdOf<Self>>;
 		type SchellingGameSharedSource: SchellingGameSharedLink<
-			SumTreeName = SumTreeName<Self::AccountId>,
+			SumTreeName = SumTreeName<Self::AccountId, Self::BlockNumber>,
 			SchellingGameType = SchellingGameType,
 			BlockNumber = Self::BlockNumber,
 			AccountId = AccountIdOf<Self>,
@@ -112,6 +114,12 @@ pub mod pallet {
 	pub type ValidatePositiveExternality<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, bool, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn validation_positive_externality_block_number)]
+	pub type ValidationPositiveExternalityBlock<T: Config> =
+			StorageMap<_, Blake2_128Concat, T::AccountId, BlockNumberOf<T>, ValueQuery>;
+	
+
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
 	#[pallet::event]
@@ -139,8 +147,8 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		// Should user need to stake every round?? or stake once and keep minimum stake balance.
-		// User can on and off validation
+		// Should user need to stake every round?? or stake once and keep minimum stake balance. ✔️
+		// User can on and off validation ✔️
 		// Every 3 months validation
 		// Check blocknumber evidence are uploaded within today and last 3 months
 		// Start time-> First 10 days, any juror can stake, and change to stake period
@@ -208,6 +216,44 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn apply_staking_period(
+			origin: OriginFor<T>,
+			user_to_calculate: T::AccountId,
+		) -> DispatchResult {
+
+			let who = ensure_signed(origin)?;
+			
+			Self::ensure_validation_on_positive_externality(user_to_calculate.clone())?;
+			Self::ensure_min_stake_positive_externality(user_to_calculate.clone())?;
+
+			
+
+			let pe_block_number = <ValidationPositiveExternalityBlock<T>>::get(user_to_calculate.clone());
+			let now = <frame_system::Pallet<T>>::block_number();
+			let three_month_number = (3 * 30 * 24 * 60 * 60) / 6;
+			let three_month_block = Self::u64_to_block_saturated(three_month_number);
+			let modulus = now % three_month_block;
+			let storage_main_block = now - modulus;
+
+			let key = SumTreeName::PositiveExternality { user_address: user_to_calculate.clone(), block_number: storage_main_block.clone() };
+
+			let game_type = SchellingGameType::PositiveExternality;
+
+
+			if storage_main_block > pe_block_number {
+				<ValidationPositiveExternalityBlock<T>>::insert(user_to_calculate.clone(), storage_main_block);
+				T::SchellingGameSharedSource::set_to_staking_period_link(
+					key.clone(),
+					game_type,
+					now,
+				)?;
+			}
+
+         Ok(())
+
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn apply_jurors_positive_externality(
 			origin: OriginFor<T>,
 			user_to_calculate: T::AccountId,
@@ -218,9 +264,13 @@ pub mod pallet {
 			Self::ensure_validation_on_positive_externality(user_to_calculate.clone())?;
 			Self::ensure_min_stake_positive_externality(user_to_calculate.clone())?;
 
-			let key = SumTreeName::PositiveExternality { user_address: user_to_calculate };
+			let pe_block_number = <ValidationPositiveExternalityBlock<T>>::get(user_to_calculate.clone());
+
+
+			let key = SumTreeName::PositiveExternality { user_address: user_to_calculate, block_number: pe_block_number.clone() };
 
 			let game_type = SchellingGameType::PositiveExternality;
+
 
 			T::SchellingGameSharedSource::apply_jurors_helper_link(key, game_type, who, stake)?;
 			

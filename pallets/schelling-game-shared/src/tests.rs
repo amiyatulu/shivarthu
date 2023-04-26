@@ -19,7 +19,7 @@ fn _run_to_block(n: u64) {
 	}
 }
 
-fn return_key_profile(citizen_id: u128) -> SumTreeName<u64>{
+fn return_key_profile(citizen_id: u128) -> SumTreeName<u64, u64>{
 	let key =
 		SumTreeName::UniqueIdenfier1 { citizen_id, name: "challengeprofile".as_bytes().to_vec() };
 	key

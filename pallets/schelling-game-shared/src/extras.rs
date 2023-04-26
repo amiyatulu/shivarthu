@@ -1,11 +1,9 @@
 use crate::*;
 
 impl<T: Config> Pallet<T> {
-
-
 	/// Set to evidence period, when some one stakes for validation
 	pub(super) fn set_to_evidence_period(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		now: BlockNumberOf<T>,
 	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
@@ -29,7 +27,7 @@ impl<T: Config> Pallet<T> {
 	///  }
 	/// ```
 	pub(super) fn set_to_staking_period(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		game_type: SchellingGameType,
 		now: BlockNumberOf<T>,
 	) -> DispatchResult {
@@ -49,7 +47,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	pub(super) fn create_tree_link_helper(key: SumTreeName<AccountIdOf<T>>, k: u64) -> DispatchResult {
+	pub(super) fn create_tree_link_helper(key: SumTreeNameType<T>, k: u64) -> DispatchResult {
 		let result = T::SortitionSumGameSource::create_tree_link(key.clone(), k);
 		result
 	}
@@ -81,7 +79,7 @@ impl<T: Config> Pallet<T> {
 	/// }
 	/// ```
 	pub(super) fn change_period(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		game_type: SchellingGameType,
 		now: BlockNumberOf<T>,
 	) -> DispatchResult {
@@ -143,7 +141,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn apply_jurors_helper(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		game_type: SchellingGameType,
 		who: AccountIdOf<T>,
 		stake: BalanceOf<T>,
@@ -187,7 +185,7 @@ impl<T: Config> Pallet<T> {
 
 	// Improvements: Set stake to zero after a juror is drawn, so that they are not drawn again. Store the stake in storage map in DrawnJurors, and use it in get_incentives_helper
 	pub(super) fn draw_jurors_helper(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		game_type: SchellingGameType,
 		iterations: u64,
 	) -> DispatchResult {
@@ -234,7 +232,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	// When DrawnJurors contains stake, use drawn_juror.binary_search_by(|(c, _)| c.cmp(&who));
-	pub(super) fn unstaking_helper(key: SumTreeName<AccountIdOf<T>>, who: AccountIdOf<T>) -> DispatchResult {
+	pub(super) fn unstaking_helper(key: SumTreeNameType<T>, who: AccountIdOf<T>) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
 			Some(period) => {
 				ensure!(
@@ -287,7 +285,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn commit_vote_helper(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		who: AccountIdOf<T>,
 		vote_commit: [u8; 32],
 	) -> DispatchResult {
@@ -313,7 +311,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn reveal_vote_two_choice_helper(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		who: AccountIdOf<T>,
 		choice: u128,
 		salt: Vec<u8>,
@@ -362,10 +360,10 @@ impl<T: Config> Pallet<T> {
 
 		Ok(())
 	}
-    
+
 	/// Distribute incentives in a single go.
 	pub(super) fn get_all_incentives_two_choice_helper(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		game_type: SchellingGameType,
 	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
@@ -402,19 +400,15 @@ impl<T: Config> Pallet<T> {
 									result
 								},
 								RevealedVote::No => {
-									let result = Self::looser_getting_incentives2(
-										juror.0.clone(),
-										juror.1,
-									)?;
+									let result =
+										Self::looser_getting_incentives2(juror.0.clone(), juror.1)?;
 									result
 								},
 							},
 							WinningDecision::WinnerNo => match vote {
 								RevealedVote::Yes => {
-									let result = Self::looser_getting_incentives2(
-										juror.0.clone(),
-										juror.1,
-									)?;
+									let result =
+										Self::looser_getting_incentives2(juror.0.clone(), juror.1)?;
 									result
 								},
 								RevealedVote::No => {
@@ -427,10 +421,8 @@ impl<T: Config> Pallet<T> {
 								},
 							},
 							WinningDecision::Draw => {
-								let result = Self::getting_incentives_draw2(
-									juror.0.clone(),
-									juror.1,
-								)?;
+								let result =
+									Self::getting_incentives_draw2(juror.0.clone(), juror.1)?;
 								result
 							},
 						}
@@ -447,17 +439,17 @@ impl<T: Config> Pallet<T> {
 
 		// Remove VoteCommits
 		<VoteCommits<T>>::remove_prefix(key.clone(), None); // Deprecated: Use clear_prefix instead
-		// let reveal_votes_iterator2 = <VoteCommits<T>>::iter_prefix(&key);
-		// reveal_votes_iterator2.for_each(|(account_id, _)|{
-		// 	<VoteCommits<T>>::remove(key.clone(), account_id);
-		// });
+													// let reveal_votes_iterator2 = <VoteCommits<T>>::iter_prefix(&key);
+													// reveal_votes_iterator2.for_each(|(account_id, _)|{
+													// 	<VoteCommits<T>>::remove(key.clone(), account_id);
+													// });
 
 		Ok(())
 	}
 
 	// Improvements: Will it be better to distribute all jurors incentives in single call
 	pub(super) fn get_incentives_two_choice_helper(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		game_type: SchellingGameType,
 		who: AccountIdOf<T>,
 	) -> DispatchResult {
@@ -543,7 +535,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn getting_incentives_draw(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		who: AccountIdOf<T>,
 		stake: u64,
 	) -> DispatchResult {
@@ -562,10 +554,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	pub(super) fn getting_incentives_draw2(
-		who: AccountIdOf<T>,
-		stake: u64,
-	) -> DispatchResult {
+	pub(super) fn getting_incentives_draw2(who: AccountIdOf<T>, stake: u64) -> DispatchResult {
 		let balance = Self::u64_to_balance_saturated(stake);
 
 		let r = T::Currency::deposit_into_existing(&who, balance).ok().unwrap();
@@ -575,7 +564,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn looser_getting_incentives(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		who: AccountIdOf<T>,
 		stake: u64,
 	) -> DispatchResult {
@@ -593,10 +582,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	pub(super) fn looser_getting_incentives2(
-		who: AccountIdOf<T>,
-		stake: u64,
-	) -> DispatchResult {
+	pub(super) fn looser_getting_incentives2(who: AccountIdOf<T>, stake: u64) -> DispatchResult {
 		let balance = Self::u64_to_balance_saturated(stake * 3 / 4);
 
 		let r = T::Currency::deposit_into_existing(&who, balance).ok().unwrap();
@@ -606,7 +592,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn winner_getting_incentives(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		who: AccountIdOf<T>,
 		winning_incentives: u64,
 		stake: u64,
@@ -626,8 +612,7 @@ impl<T: Config> Pallet<T> {
 
 		Ok(())
 	}
-    
-	
+
 	pub(super) fn winner_getting_incentives2(
 		who: AccountIdOf<T>,
 		winning_incentives: u64,
@@ -691,7 +676,7 @@ impl<T: Config> Pallet<T> {
 		nonce.encode()
 	}
 	pub(super) fn get_evidence_period_end_block_helper(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		game_type: SchellingGameType,
 		now: BlockNumberOf<T>,
 	) -> Option<u32> {
@@ -711,7 +696,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn get_staking_period_end_block_helper(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		game_type: SchellingGameType,
 		now: BlockNumberOf<T>,
 	) -> Option<u32> {
@@ -731,7 +716,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn get_drawing_period_end_helper(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		game_type: SchellingGameType,
 	) -> (u64, u64, bool) {
 		let draw_limit = <DrawJurorsLimitNum<T>>::get(&game_type);
@@ -744,7 +729,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn get_commit_period_end_block_helper(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		game_type: SchellingGameType,
 		now: BlockNumberOf<T>,
 	) -> Option<u32> {
@@ -764,7 +749,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn get_vote_period_end_block_helper(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		game_type: SchellingGameType,
 		now: BlockNumberOf<T>,
 	) -> Option<u32> {
@@ -783,7 +768,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	pub(super) fn selected_as_juror_helper(key: SumTreeName<AccountIdOf<T>>, who: T::AccountId) -> bool {
+	pub(super) fn selected_as_juror_helper(key: SumTreeNameType<T>, who: T::AccountId) -> bool {
 		let drawn_juror = <DrawnJurors<T>>::get(&key);
 		match drawn_juror.binary_search_by(|(c, _)| c.cmp(&who.clone())) {
 			Ok(_) => true,

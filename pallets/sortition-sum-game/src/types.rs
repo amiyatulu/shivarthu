@@ -4,9 +4,9 @@ use scale_info::TypeInfo;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
-pub enum SumTreeName<AccountId> {
+pub enum SumTreeName<AccountId, BlockNumber> {
     UniqueIdenfier1 { citizen_id: u128, name: Vec<u8>},
-    PositiveExternality {user_address: AccountId }
+    PositiveExternality {user_address: AccountId, block_number: BlockNumber }
 }
 
 

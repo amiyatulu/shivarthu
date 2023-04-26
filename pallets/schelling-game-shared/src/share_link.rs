@@ -3,7 +3,7 @@ use crate::*;
 use schelling_game_shared_link::SchellingGameSharedLink;
 
 impl<T: Config> SchellingGameSharedLink for Pallet<T> {
-	type SumTreeName = SumTreeName<AccountIdOf<T>>;
+	type SumTreeName = SumTreeNameType<T>;
 	type SchellingGameType = SchellingGameType;
 	type BlockNumber = BlockNumberOf<T>;
 	type AccountId = AccountIdOf<T>;

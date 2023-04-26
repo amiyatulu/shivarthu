@@ -1,7 +1,7 @@
 use crate::*;
 
 impl<T: Config> SortitionSumGameLink for Pallet<T> {
-	type SumTreeName = SumTreeName<AccountIdOf<T>>;
+	type SumTreeName = SumTreeNameType<T>;
 	type AccountId = AccountIdOf<T>;
 	fn create_tree_link(key: Self::SumTreeName, k: u64) -> DispatchResult {
 		Self::create_tree(key, k)
@@ -26,7 +26,7 @@ impl<T: Config> SortitionSumGameLink for Pallet<T> {
 
 impl<T: Config> Pallet<T> {
 	// SortitionSumTree
-	pub fn create_tree(key: SumTreeName<AccountIdOf<T>>, k: u64) -> DispatchResult {
+	pub fn create_tree(key: SumTreeNameType<T>, k: u64) -> DispatchResult {
 		if k < 1 {
 			Err(Error::<T>::KMustGreaterThanOne)?
 		}
@@ -50,7 +50,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	pub fn set(key: SumTreeName<AccountIdOf<T>>, value: u64, citizen_id: AccountIdOf<T>) -> DispatchResult {
+	pub fn set(key: SumTreeNameType<T>, value: u64, citizen_id: AccountIdOf<T>) -> DispatchResult {
 		let tree_option = <SortitionSumTrees<T>>::get(&key);
 
 		match tree_option {
@@ -110,7 +110,7 @@ impl<T: Config> Pallet<T> {
 		tree_index: u64,
 		plus_or_minus: bool,
 		value: u64,
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 	) {
 		let mut parent_index = tree_index;
 		while parent_index != 0 {
@@ -129,7 +129,7 @@ impl<T: Config> Pallet<T> {
 		citizen_id: AccountIdOf<T>,
 		mut tree: SortitionSumTree<AccountIdOf<T>>,
 		mut tree_index: u64,
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 	) {
 		// No existing node.
 		if value != 0 {
@@ -171,7 +171,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn stake_of(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		citizen_id: AccountIdOf<T>,
 	) -> Result<Option<u64>, DispatchError> {
 		let tree_option = <SortitionSumTrees<T>>::get(&key);
@@ -196,7 +196,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	pub fn draw(key: SumTreeName<AccountIdOf<T>>, draw_number: u64) -> Result<AccountIdOf<T>, DispatchError> {
+	pub fn draw(key: SumTreeNameType<T>, draw_number: u64) -> Result<AccountIdOf<T>, DispatchError> {
 		let tree_option = <SortitionSumTrees<T>>::get(&key);
 
 		match tree_option {
@@ -234,7 +234,7 @@ impl<T: Config> Pallet<T> {
 	 *  `n` is the maximum number of nodes ever appended.
 	 */
 	pub fn query_leafs(
-		key: SumTreeName<AccountIdOf<T>>,
+		key: SumTreeNameType<T>,
 		cursor: u64,
 		count: u64,
 	) -> Result<(u64, Vec<u64>, bool), DispatchError> {
@@ -276,7 +276,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	pub fn remove_tree(key: SumTreeName<AccountIdOf<T>>)-> DispatchResult {
+	pub fn remove_tree(key: SumTreeNameType<T>)-> DispatchResult {
 		<SortitionSumTrees<T>>::remove(&key);
 		Ok(())
 	}
