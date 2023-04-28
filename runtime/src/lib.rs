@@ -291,6 +291,7 @@ impl shared_storage::Config for Runtime {
 	type Event = Event;
 }
 
+
 parameter_types! {
 	pub const CandidacyBond: u64 = 3;
 }

@@ -242,6 +242,7 @@ pub mod pallet {
 
 			if storage_main_block > pe_block_number {
 				<ValidationPositiveExternalityBlock<T>>::insert(user_to_calculate.clone(), storage_main_block);
+				// check what if called again
 				T::SchellingGameSharedSource::set_to_staking_period_link(
 					key.clone(),
 					game_type,

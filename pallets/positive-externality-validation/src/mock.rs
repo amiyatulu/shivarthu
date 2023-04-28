@@ -25,8 +25,7 @@ frame_support::construct_runtime!(
 		SharedStorage: shared_storage::{Pallet, Call, Storage, Event<T>},
 		SchellingGameShared: schelling_game_shared::{Pallet, Call, Storage, Event<T>},
 		SortitionSumGame: sortition_sum_game::{Pallet, Call, Storage, Event<T>},
-
-
+		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 	}
 );
 
