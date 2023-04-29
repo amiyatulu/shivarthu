@@ -140,6 +140,7 @@ pub mod pallet {
 		NotAPostOwner,
 		ValidationPositiveExternalityIsOff,
 		LessThanMinStake,
+		CannotStakeNow,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -234,6 +235,10 @@ pub mod pallet {
 			let three_month_block = Self::u64_to_block_saturated(three_month_number);
 			let modulus = now % three_month_block;
 			let storage_main_block = now - modulus;
+            println!("{:?}", now);
+			println!("{:?}", three_month_number);
+			println!("{:?}", storage_main_block);
+			println!("{:?}", pe_block_number);
 
 			let key = SumTreeName::PositiveExternality { user_address: user_to_calculate.clone(), block_number: storage_main_block.clone() };
 
@@ -245,9 +250,14 @@ pub mod pallet {
 				// check what if called again
 				T::SchellingGameSharedSource::set_to_staking_period_link(
 					key.clone(),
-					game_type,
+					game_type.clone(),
 					now,
 				)?;
+
+			//  println!("{:?}", data);
+
+			} else {
+				return Err(Error::<T>::CannotStakeNow.into());
 			}
 
          Ok(())

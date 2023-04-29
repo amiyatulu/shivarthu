@@ -68,6 +68,10 @@ fn test_applying_for_staking_period() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(TemplateModule::set_validate_positive_externality(Origin::signed(1), true));
 		assert_ok!(TemplateModule::add_positive_externality_stake(Origin::signed(1), 10000));
+		run_to_block(1298000);
 		assert_ok!(TemplateModule::apply_staking_period(Origin::signed(2), 1));
+		run_to_block(1298000+ 1298000);
+		assert_ok!(TemplateModule::apply_staking_period(Origin::signed(2), 1));
+
 	});
 }

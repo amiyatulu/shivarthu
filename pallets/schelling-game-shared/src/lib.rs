@@ -288,6 +288,7 @@ pub mod pallet {
 		PeriodExists,
 		EvidencePeriodNotOver,
 		StakingPeriodNotOver,
+		PeriodIsNotEvidence,
 		MaxJurorNotDrawn,
 		CommitPeriodNotOver,
 		VotePeriodNotOver,

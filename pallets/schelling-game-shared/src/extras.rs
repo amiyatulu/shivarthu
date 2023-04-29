@@ -42,6 +42,8 @@ impl<T: Config> Pallet<T> {
 			} else {
 				Err(Error::<T>::EvidencePeriodNotOver)?
 			}
+		} else {
+			Err(Error::<T>::PeriodIsNotEvidence)?
 		}
 
 		Ok(())
