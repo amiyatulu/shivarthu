@@ -24,6 +24,11 @@ pub trait SchellingGameSharedLink {
 		game_type: Self::SchellingGameType,
 		now: Self::BlockNumber,
 	) -> DispatchResult;
+
+	fn set_to_staking_period_pe_link(
+		key: Self::SumTreeName,
+		now: Self::BlockNumber,
+	) -> DispatchResult;
 	fn change_period_link(
 		key: Self::SumTreeName,
 		game_type: Self::SchellingGameType,

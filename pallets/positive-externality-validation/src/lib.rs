@@ -41,7 +41,6 @@ type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
 
-
 // use scale_info::prelude::format;
 
 #[frame_support::pallet]
@@ -117,8 +116,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn validation_positive_externality_block_number)]
 	pub type ValidationPositiveExternalityBlock<T: Config> =
-			StorageMap<_, Blake2_128Concat, T::AccountId, BlockNumberOf<T>, ValueQuery>;
-	
+		StorageMap<_, Blake2_128Concat, T::AccountId, BlockNumberOf<T>, ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
@@ -221,47 +219,44 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			user_to_calculate: T::AccountId,
 		) -> DispatchResult {
-
 			let who = ensure_signed(origin)?;
-			
+
 			Self::ensure_validation_on_positive_externality(user_to_calculate.clone())?;
 			Self::ensure_min_stake_positive_externality(user_to_calculate.clone())?;
 
-			
-
-			let pe_block_number = <ValidationPositiveExternalityBlock<T>>::get(user_to_calculate.clone());
+			let pe_block_number =
+				<ValidationPositiveExternalityBlock<T>>::get(user_to_calculate.clone());
 			let now = <frame_system::Pallet<T>>::block_number();
 			let three_month_number = (3 * 30 * 24 * 60 * 60) / 6;
 			let three_month_block = Self::u64_to_block_saturated(three_month_number);
 			let modulus = now % three_month_block;
 			let storage_main_block = now - modulus;
-            println!("{:?}", now);
-			println!("{:?}", three_month_number);
-			println!("{:?}", storage_main_block);
-			println!("{:?}", pe_block_number);
+			// println!("{:?}", now);
+			// println!("{:?}", three_month_number);
+			// println!("{:?}", storage_main_block);
+			// println!("{:?}", pe_block_number);
 
-			let key = SumTreeName::PositiveExternality { user_address: user_to_calculate.clone(), block_number: storage_main_block.clone() };
+			let key = SumTreeName::PositiveExternality {
+				user_address: user_to_calculate.clone(),
+				block_number: storage_main_block.clone(),
+			};
 
-			let game_type = SchellingGameType::PositiveExternality;
-
+			// let game_type = SchellingGameType::PositiveExternality;
 
 			if storage_main_block > pe_block_number {
-				<ValidationPositiveExternalityBlock<T>>::insert(user_to_calculate.clone(), storage_main_block);
+				<ValidationPositiveExternalityBlock<T>>::insert(
+					user_to_calculate.clone(),
+					storage_main_block,
+				);
 				// check what if called again
-				T::SchellingGameSharedSource::set_to_staking_period_link(
-					key.clone(),
-					game_type.clone(),
-					now,
-				)?;
+				T::SchellingGameSharedSource::set_to_staking_period_pe_link(key.clone(), now)?;
 
 			//  println!("{:?}", data);
-
 			} else {
 				return Err(Error::<T>::CannotStakeNow.into());
 			}
 
-         Ok(())
-
+			Ok(())
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
@@ -271,20 +266,22 @@ pub mod pallet {
 			stake: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			
+
 			Self::ensure_validation_on_positive_externality(user_to_calculate.clone())?;
 			Self::ensure_min_stake_positive_externality(user_to_calculate.clone())?;
 
-			let pe_block_number = <ValidationPositiveExternalityBlock<T>>::get(user_to_calculate.clone());
+			let pe_block_number =
+				<ValidationPositiveExternalityBlock<T>>::get(user_to_calculate.clone());
 
-
-			let key = SumTreeName::PositiveExternality { user_address: user_to_calculate, block_number: pe_block_number.clone() };
+			let key = SumTreeName::PositiveExternality {
+				user_address: user_to_calculate,
+				block_number: pe_block_number.clone(),
+			};
 
 			let game_type = SchellingGameType::PositiveExternality;
 
-
 			T::SchellingGameSharedSource::apply_jurors_helper_link(key, game_type, who, stake)?;
-			
+
 			Ok(())
 		}
 	}

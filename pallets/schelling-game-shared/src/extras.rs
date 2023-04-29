@@ -49,6 +49,21 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	pub(super) fn set_to_staking_period_pe(
+		key: SumTreeNameType<T>,
+		now: BlockNumberOf<T>,
+	) -> DispatchResult {
+		if let None = <PeriodName<T>>::get(&key) {
+			let new_period = Period::Staking;
+			<PeriodName<T>>::insert(&key, new_period);
+			<StakingStartTime<T>>::insert(&key, now);
+		} else {
+			Err(Error::<T>::PeriodIsNotNone)?
+		}
+
+		Ok(())
+	}
+
 	pub(super) fn create_tree_link_helper(key: SumTreeNameType<T>, k: u64) -> DispatchResult {
 		let result = T::SortitionSumGameSource::create_tree_link(key.clone(), k);
 		result

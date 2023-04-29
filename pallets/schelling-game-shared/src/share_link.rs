@@ -48,6 +48,13 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 		Self::set_to_staking_period(key, game_type, now)
 	}
 
+	fn set_to_staking_period_pe_link(
+		key: Self::SumTreeName,
+		now: Self::BlockNumber,
+	) -> DispatchResult {
+		Self::set_to_staking_period_pe(key, now)
+	}
+
 	/// Change the `Period`
 	///    
 	/// `Period::Staking` to `Period::Drawing`
