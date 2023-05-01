@@ -171,7 +171,7 @@ impl<T: Config> Pallet<T> {
 		}
 		let min_stake = <MinJurorStake<T>>::get(&game_type);
 
-		ensure!(stake >= min_stake, Error::<T>::StakeLessThanMin);
+		ensure!(stake >= min_stake, Error::<T>::JurorStakeLessThanMin);
 
 		// let imb = T::Currency::withdraw(
 		// 	&who,

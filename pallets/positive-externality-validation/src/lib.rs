@@ -249,7 +249,8 @@ pub mod pallet {
 					storage_main_block,
 				);
 				// check what if called again
-				T::SchellingGameSharedSource::set_to_staking_period_pe_link(key.clone(), now)?;
+			T::SchellingGameSharedSource::set_to_staking_period_pe_link(key.clone(), now)?;
+			T::SchellingGameSharedSource::create_tree_helper_link(key, 3)?;
 
 			//  println!("{:?}", data);
 			} else {
@@ -265,6 +266,7 @@ pub mod pallet {
 			user_to_calculate: T::AccountId,
 			stake: BalanceOf<T>,
 		) -> DispatchResult {
+			
 			let who = ensure_signed(origin)?;
 
 			Self::ensure_validation_on_positive_externality(user_to_calculate.clone())?;

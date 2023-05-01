@@ -43,6 +43,8 @@ impl<T: Config> Pallet<T> {
     pub fn ensure_min_stake_positive_externality(account: T::AccountId) -> DispatchResult {
         let stake = PositiveExternalityStakeBalance::<T>::get(account);
         let min_stake = MinimumPositiveExternalityStake::<T>::get();
+        // println!("stake {:?}", stake);
+        // println!("min stake {:?}", min_stake);
         ensure!(stake >= min_stake, Error::<T>::LessThanMinStake);
         
 

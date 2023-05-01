@@ -295,7 +295,7 @@ pub mod pallet {
 		VotePeriodNotOver,
 		PeriodDoesNotExists,
 		PeriodDontMatch,
-		StakeLessThanMin,
+		JurorStakeLessThanMin,
 		AlreadyStaked,
 		MaxDrawExceeded,
 		SelectedAsJuror,
