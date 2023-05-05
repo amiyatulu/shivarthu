@@ -249,8 +249,8 @@ pub mod pallet {
 					storage_main_block,
 				);
 				// check what if called again
-			T::SchellingGameSharedSource::set_to_staking_period_pe_link(key.clone(), now)?;
-			T::SchellingGameSharedSource::create_tree_helper_link(key, 3)?;
+				T::SchellingGameSharedSource::set_to_staking_period_pe_link(key.clone(), now)?;
+				T::SchellingGameSharedSource::create_tree_helper_link(key, 3)?;
 
 			//  println!("{:?}", data);
 			} else {
@@ -266,7 +266,6 @@ pub mod pallet {
 			user_to_calculate: T::AccountId,
 			stake: BalanceOf<T>,
 		) -> DispatchResult {
-			
 			let who = ensure_signed(origin)?;
 
 			Self::ensure_validation_on_positive_externality(user_to_calculate.clone())?;
@@ -286,5 +285,54 @@ pub mod pallet {
 
 			Ok(())
 		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn pass_period(
+			origin: OriginFor<T>,
+			user_to_calculate: T::AccountId,
+		) -> DispatchResult {
+			let _who = ensure_signed(origin)?;
+
+			let pe_block_number =
+				<ValidationPositiveExternalityBlock<T>>::get(user_to_calculate.clone());
+
+			let key = SumTreeName::PositiveExternality {
+				user_address: user_to_calculate,
+				block_number: pe_block_number.clone(),
+			};
+
+			let now = <frame_system::Pallet<T>>::block_number();
+			let game_type = SchellingGameType::PositiveExternality;
+			T::SchellingGameSharedSource::change_period_link(key, game_type, now)?;
+
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn draw_jurors_positive_externality(
+			origin: OriginFor<T>,
+			user_to_calculate: T::AccountId,
+			iterations: u64,
+		) -> DispatchResult {
+
+			let _who = ensure_signed(origin)?;
+
+			let pe_block_number =
+				<ValidationPositiveExternalityBlock<T>>::get(user_to_calculate.clone());
+
+			let key = SumTreeName::PositiveExternality {
+				user_address: user_to_calculate,
+				block_number: pe_block_number.clone(),
+			};
+
+			let game_type = SchellingGameType::PositiveExternality;
+
+			T::SchellingGameSharedSource::draw_jurors_helper_link(key, game_type, iterations)?;
+
+			Ok(())
+
+		}
+
+
 	}
 }
