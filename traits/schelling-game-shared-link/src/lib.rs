@@ -109,4 +109,6 @@ pub trait SchellingGameSharedLink {
 		key: Self::SumTreeName,
 		game_type: Self::SchellingGameType,
 	) -> DispatchResult;
+
+	fn get_drawn_jurors(key: Self::SumTreeName) -> Vec<(Self::AccountId, u64)>;
 }

@@ -221,7 +221,7 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	) -> DispatchResult {
 		Self::reveal_vote_score_helper(key, who, choice, salt)
 	}
-    
+
 	/// Distribute incentives to all score schelling game jurors
 	fn get_incentives_score_schelling_helper_link(
 		key: Self::SumTreeName,
@@ -237,5 +237,9 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 		game_type: Self::SchellingGameType,
 	) -> DispatchResult {
 		Self::get_all_incentives_two_choice_helper(key, game_type)
+	}
+
+	fn get_drawn_jurors(key: Self::SumTreeName) -> Vec<(Self::AccountId, u64)> {
+		Self::drawn_jurors(key)
 	}
 }
