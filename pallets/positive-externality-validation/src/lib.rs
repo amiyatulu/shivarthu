@@ -42,7 +42,6 @@ type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balan
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
 pub type SumTreeNameType<T> = SumTreeName<AccountIdOf<T>, BlockNumberOf<T>>;
 
-
 // use scale_info::prelude::format;
 
 #[frame_support::pallet]
@@ -316,7 +315,6 @@ pub mod pallet {
 			user_to_calculate: T::AccountId,
 			iterations: u64,
 		) -> DispatchResult {
-
 			let _who = ensure_signed(origin)?;
 
 			let pe_block_number =
@@ -332,9 +330,62 @@ pub mod pallet {
 			T::SchellingGameSharedSource::draw_jurors_helper_link(key, game_type, iterations)?;
 
 			Ok(())
-
 		}
 
+		// Unstaking
+		// Stop drawn juror to unstake ✔️
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn unstaking(origin: OriginFor<T>, user_to_calculate: T::AccountId) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let pe_block_number =
+				<ValidationPositiveExternalityBlock<T>>::get(user_to_calculate.clone());
 
+			let key = SumTreeName::PositiveExternality {
+				user_address: user_to_calculate,
+				block_number: pe_block_number.clone(),
+			};
+
+			T::SchellingGameSharedSource::unstaking_helper_link(key, who)?;
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn commit_vote(
+			origin: OriginFor<T>,
+			user_to_calculate: T::AccountId,
+			vote_commit: [u8; 32],
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let pe_block_number =
+				<ValidationPositiveExternalityBlock<T>>::get(user_to_calculate.clone());
+
+			let key = SumTreeName::PositiveExternality {
+				user_address: user_to_calculate,
+				block_number: pe_block_number.clone(),
+			};
+
+			T::SchellingGameSharedSource::commit_vote_for_score_helper_link(key, who, vote_commit)?;
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn reveal_vote(
+			origin: OriginFor<T>,
+			user_to_calculate: T::AccountId,
+			choice: i64,
+			salt: Vec<u8>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let pe_block_number =
+				<ValidationPositiveExternalityBlock<T>>::get(user_to_calculate.clone());
+
+			let key = SumTreeName::PositiveExternality {
+				user_address: user_to_calculate,
+				block_number: pe_block_number.clone(),
+			};
+
+			T::SchellingGameSharedSource::reveal_vote_score_helper_link(key, who, choice, salt)?;
+			Ok(())
+		}
 	}
 }
