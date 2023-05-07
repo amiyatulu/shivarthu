@@ -131,7 +131,11 @@ fn test_drawn_jurors(){
 		assert_ok!(TemplateModule::add_positive_externality_stake(Origin::signed(1), 10000));
 		run_to_block(1298000);
 		assert_ok!(TemplateModule::apply_staking_period(Origin::signed(2), 1));
+		let balance = Balances::free_balance(4);
+		assert_eq!(300000, balance);
 		assert_ok!(TemplateModule::apply_jurors_positive_externality(Origin::signed(4), 1, 1000));
+		let balance = Balances::free_balance(4);
+		assert_eq!(299000, balance);
 		assert_ok!(TemplateModule::apply_jurors_positive_externality(Origin::signed(5), 1, 2000));
 		assert_ok!(TemplateModule::apply_jurors_positive_externality(Origin::signed(6), 1, 3000));
 		assert_ok!(TemplateModule::apply_jurors_positive_externality(Origin::signed(7), 1, 4000));
@@ -143,6 +147,53 @@ fn test_drawn_jurors(){
 		assert_eq!(data, [(4, 1000), (5, 2000), (6, 3000), (7, 4000), (8, 5000)]);
 		// println!("drawn jurors {:?}",data);
 	})
+}
+
+#[test]
+fn test_commit_vote() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(TemplateModule::set_validate_positive_externality(Origin::signed(1), true));
+		assert_ok!(TemplateModule::add_positive_externality_stake(Origin::signed(1), 10000));
+		run_to_block(1298000);
+		assert_ok!(TemplateModule::apply_staking_period(Origin::signed(2), 1));
+		let balance = Balances::free_balance(4);
+		assert_eq!(300000, balance);
+		assert_ok!(TemplateModule::apply_jurors_positive_externality(Origin::signed(4), 1, 1000));
+		let balance = Balances::free_balance(4);
+		assert_eq!(299000, balance);
+		assert_ok!(TemplateModule::apply_jurors_positive_externality(Origin::signed(5), 1, 2000));
+		assert_ok!(TemplateModule::apply_jurors_positive_externality(Origin::signed(6), 1, 3000));
+		assert_ok!(TemplateModule::apply_jurors_positive_externality(Origin::signed(7), 1, 4000));
+		assert_ok!(TemplateModule::apply_jurors_positive_externality(Origin::signed(8), 1, 5000));
+		run_to_block(1298080);
+		assert_ok!(TemplateModule::pass_period(Origin::signed(4), 1));
+		assert_ok!(TemplateModule::draw_jurors_positive_externality(Origin::signed(8),1,5));
+		
+
+		let data = TemplateModule::get_drawn_jurors(1);
+		assert_eq!(data, [(4, 1000), (5, 2000), (6, 3000), (7, 4000), (8, 5000)]);
+		assert_ok!(TemplateModule::pass_period(Origin::signed(4), 1));
+
+		let hash = sp_io::hashing::keccak_256("1salt".as_bytes());
+		assert_ok!(TemplateModule::commit_vote(Origin::signed(4), 1, hash));
+
+		let hash = sp_io::hashing::keccak_256("1salt2".as_bytes());
+		assert_ok!(TemplateModule::commit_vote(Origin::signed(5), 1, hash));
+		let hash = sp_io::hashing::keccak_256("5salt3".as_bytes());
+		assert_ok!(TemplateModule::commit_vote(Origin::signed(6), 1, hash));
+		let hash = sp_io::hashing::keccak_256("1salt4".as_bytes());
+		assert_ok!(TemplateModule::commit_vote(Origin::signed(7), 1, hash));
+		let hash = sp_io::hashing::keccak_256("7salt5".as_bytes());
+		assert_ok!(TemplateModule::commit_vote(Origin::signed(8), 1, hash));
+		run_to_block(12980160);
+		assert_ok!(TemplateModule::pass_period(Origin::signed(4), 1));
+		assert_ok!(TemplateModule::reveal_vote(Origin::signed(4),1, 1, "salt".as_bytes().to_vec()));
+		assert_ok!(TemplateModule::reveal_vote(Origin::signed(5), 1, 1, "salt2".as_bytes().to_vec()));
+		assert_ok!(TemplateModule::reveal_vote(Origin::signed(6), 1, 5, "salt3".as_bytes().to_vec()));
+		assert_ok!(TemplateModule::reveal_vote(Origin::signed(7), 1, 1, "salt4".as_bytes().to_vec()));
+		assert_ok!(TemplateModule::reveal_vote(Origin::signed(8), 1, 7, "salt5".as_bytes().to_vec()));
+	})
+
 }
 
 
