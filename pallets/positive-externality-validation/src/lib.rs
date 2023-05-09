@@ -140,6 +140,7 @@ pub mod pallet {
 		ValidationPositiveExternalityIsOff,
 		LessThanMinStake,
 		CannotStakeNow,
+		ChoiceOutOfRange,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -375,7 +376,11 @@ pub mod pallet {
 			choice: i64,
 			salt: Vec<u8>,
 		) -> DispatchResult {
+
 			let who = ensure_signed(origin)?;
+
+			ensure!(choice <= 5 && choice >= 1, Error::<T>::ChoiceOutOfRange);
+
 			let pe_block_number =
 				<ValidationPositiveExternalityBlock<T>>::get(user_to_calculate.clone());
 
@@ -385,6 +390,29 @@ pub mod pallet {
 			};
 
 			T::SchellingGameSharedSource::reveal_vote_score_helper_link(key, who, choice, salt)?;
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		pub fn get_incentives(
+			origin: OriginFor<T>,
+			user_to_calculate: T::AccountId,
+		) -> DispatchResult {
+			let _who = ensure_signed(origin)?;
+			let pe_block_number =
+				<ValidationPositiveExternalityBlock<T>>::get(user_to_calculate.clone());
+
+			let key = SumTreeName::PositiveExternality {
+				user_address: user_to_calculate,
+				block_number: pe_block_number.clone(),
+			};
+
+			let game_type = SchellingGameType::PositiveExternality;
+			T::SchellingGameSharedSource::get_incentives_score_schelling_helper_link(
+				key,
+				game_type,
+				RangePoint::ZeroToFive,
+			)?;
 			Ok(())
 		}
 	}
