@@ -237,7 +237,8 @@ pub mod pallet {
 	_,
 	Blake2_128Concat,
 	SumTreeNameType<T>,
-	i64
+	i64,
+	ValueQuery
 	>;
 
     /// Decision count for two choices after reveal vote:  (count for 0, count for 1)

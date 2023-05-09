@@ -403,16 +403,21 @@ pub mod pallet {
 				<ValidationPositiveExternalityBlock<T>>::get(user_to_calculate.clone());
 
 			let key = SumTreeName::PositiveExternality {
-				user_address: user_to_calculate,
+				user_address: user_to_calculate.clone(),
 				block_number: pe_block_number.clone(),
 			};
 
 			let game_type = SchellingGameType::PositiveExternality;
 			T::SchellingGameSharedSource::get_incentives_score_schelling_helper_link(
-				key,
+				key.clone(),
 				game_type,
 				RangePoint::ZeroToFive,
 			)?;
+
+			let score = T::SchellingGameSharedSource::get_mean_value_link(key.clone());
+			// println!("Score {:?}", score);
+			T::SharedStorageSource::set_positive_externality_link(user_to_calculate, score)?;
+
 			Ok(())
 		}
 	}

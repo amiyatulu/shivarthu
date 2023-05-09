@@ -604,7 +604,7 @@ fn score_schelling_game_test() {
 		assert_eq!(298500, balance);
 		assert_ok!(TemplateModule::get_incentives_score_schelling_helper(key.clone(), game_type.clone(), RangePoint::ZeroToTen));
 		let mean_values = TemplateModule::new_mean_reveal_score(key.clone());
-		assert_eq!(Some(2000), mean_values);
+		assert_eq!(2000, mean_values);
 		let balance = Balances::free_balance(4);
 		// println!("{:?}", balance);
 		assert_eq!(300033, balance);

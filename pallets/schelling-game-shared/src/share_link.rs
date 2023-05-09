@@ -231,6 +231,13 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 		Self::get_incentives_score_schelling_helper(key, game_type, range_point)
 	}
 
+	/// Get new mean in score schelling game
+	fn get_mean_value_link(
+		key: Self::SumTreeName
+	) -> i64 {
+		Self::get_mean_value(key)
+	}
+
 	/// Distribute incentives to all two choice shelling game jurors
 	fn get_all_incentives_two_choice_helper(
 		key: Self::SumTreeName,

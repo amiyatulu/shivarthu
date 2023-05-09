@@ -21,7 +21,7 @@ use frame_support::sp_std::{prelude::*};
 use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
-type Score = u8;
+type Score = i64;
 
 
 // use scale_info::prelude::format;

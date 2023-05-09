@@ -105,6 +105,8 @@ pub trait SchellingGameSharedLink {
 		range_point: Self::RangePoint,
 	) -> DispatchResult;
 
+	fn get_mean_value_link( key: Self::SumTreeName) -> i64;
+
 	fn get_all_incentives_two_choice_helper(
 		key: Self::SumTreeName,
 		game_type: Self::SchellingGameType,

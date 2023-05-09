@@ -164,6 +164,13 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+   
+   pub(super) fn get_mean_value(key: SumTreeNameType<T>) -> i64 {
+	  let value = 	<IncentiveMeanRevealScore<T>>::get(key.clone());
+	  value
+   }
+
+
 	/// Calculate the mean of integer
 	pub(super) fn mean_integer(data: &Vec<i64>) -> Option<i64> {
 		let data_mul_sum = data.iter().sum::<i64>();
