@@ -16,6 +16,7 @@ members = [
     "pallets/ubi",
     "pallets/positive-externality-validation",
     "pallets/shared-storage",
+    "pallets/department-funding",
     "runtime",
 ]
 [profile.release]

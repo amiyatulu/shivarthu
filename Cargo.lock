@@ -1133,6 +1133,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "department-funding"
+version = "4.0.0-dev"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-support-test",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-support",
+ "pallet-timestamp",
+ "parity-scale-codec 3.1.2",
+ "scale-info",
+ "schelling-game-shared",
+ "schelling-game-shared-link",
+ "shared-storage",
+ "shared-storage-link",
+ "sortition-sum-game",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "derive_more"
 version = "0.99.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
