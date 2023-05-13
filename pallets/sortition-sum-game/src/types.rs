@@ -6,7 +6,8 @@ use scale_info::TypeInfo;
 #[cfg_attr(feature = "std", derive(Debug))]
 pub enum SumTreeName<AccountId, BlockNumber> {
     UniqueIdenfier1 { citizen_id: u128, name: Vec<u8>},
-    PositiveExternality {user_address: AccountId, block_number: BlockNumber }
+    PositiveExternality {user_address: AccountId, block_number: BlockNumber },
+    DepartmentScore {department_id: u128, block_number: BlockNumber}
 }
 
 

@@ -22,6 +22,7 @@ pub enum SchellingGameType {
 	ProjectReview,
 	PriceDiscovery,
 	PositiveExternality,
+	DepartmentScore,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
