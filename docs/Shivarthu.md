@@ -41,10 +41,17 @@ https://github.com/amiyatulu/shivarthu/tree/main/pallets/template
  
 
 #### Schelling Game:
-In this project, the Schelling game is used for experise evaluation and review of projects. We use a modification of Schelling game named score Schelling game for fund distribution of projects.
-Juror applies for making a decision like whether the required experience can be accepted or quality of projects is acceptable. The probability of being drawn as a juror is proportional to the amount of tokens a juror stakes. The higher the amount of tokens he stakes, the higher the probability that he will be drawn as a juror. Also, jurors are drawn randomly. This protects the system from sybil attacks. 
+
+[Schelling Game Effectiveness](./effectiveness_schelling_game.md)
+
+
+In this project, the Schelling game is employed to perform Know Your Customer (KYC) checks on users. Furthermore, a modified version of the Schelling game called the score Schelling game is applied to funding departments, incorporating both funding allocation and rating of users based on the positive externality they generate.
+
+In the Schelling game, individuals who wish to participate as jurors can apply to make decisions. The likelihood of being selected as a juror is directly proportional to the number of tokens a juror stakes. The more tokens a juror stakes, the greater their chances of being chosen. Additionally, jurors are randomly selected, which helps safeguard the system against sybil attacks.
+
 We will use the substrate randomness trait for generating a random number.
 https://docs.substrate.io/reference/how-to-guides/pallet-design/incorporate-randomness/
+
 Then jurors will vote for their decision using the commit and reveal scheme. In the commit phase, they submit the hash of the vote string. Then, in the reveal phase, they submit the hash and the vote string. If the vote string matches with the hash, then the vote is accepted. 
 If a juror's vote is coherent (more than 51% of other jurors agree) then they receive incentives, otherwise, incentives are deducted from the stake of the juror. 
 
@@ -53,7 +60,8 @@ https://github.com/amiyatulu/shivarthu/tree/main/pallets/sortition-sum-game
 
 
 #### Voting for selection of department representatives:
-The election is multi-winner approval.  We will use seq-phragmen of the substrate to select the representatives. Here, we will keep vote weight as reputation and experience score (instead of stake), the amount of score they obtained through the participation of network. As previously said, experience score is calcuated by score schelling game. 
+
+The election will be conducted using a multi-winner approval system. To choose the representatives, we will employ the sequential Phragmén method on the substrate. In this approach, instead of using stake, we will consider the vote weight based on factors such as reputation, experience, and positive externality scores. These scores are determined by the level of participation in the network or the positive external effects they have generated. As mentioned earlier, the positive externality score is calculated using the score Schelling game.
 
 https://paritytech.github.io/substrate/master/sp_npos_elections/phragmen/fn.seq_phragmen.html
 
@@ -104,20 +112,18 @@ ax+ 0.1bx + 0.2cx + 0.3dx + ..... + 0.9jx = Total fund
 
 100% funding = x    
 0.1 when you get 1 score, 0.3 when you get 3 score etc.   
-a, b, c, etc. are a number of departments with particular scores.     
-
-
-
+a, b, c, etc. are a number of departments with particular scores. 
 
 ## Price discovery of projects through Score Schelling Game:
-You can rate the project from 1-5, without knowing what others are assigning. If the “mean” of all the product rating is near to your rating then the juror will get incentives, otherwise, juror incentives will be deducted. So, the juror will try to match the score with what others will assign based on information available rather than defecting by any arbitrary rating.
-We can discover the prices of projects that need to be funded from a common funding pool.
-Here is an algorithm:
+
+You have the option to assign a rating to the department on a scale of 0 to 5 or 0 to 10, without any knowledge of what ratings others are giving. If the "mean" rating of all the jurors closely matches your rating, you will receive incentives as a juror. However, if the "mean" rating deviates significantly from your assigned rating, your incentives will be deducted. Consequently, jurors will strive to align their ratings with what others are likely to assign based on the available information, rather than arbitrarily defecting from the consensus.
+
+
 1) When you submit a project, you need to provide details of the funding needed for work to be done.
-You can’t provide a funding amount value of more than 4/5 power of the total funding pool amount.
-e.g. If the total funding pool has $50000, you can’t assign a value larger than $5743
-2) Then, we will have a percentage Schelling game to predict the price. That is, you can predict whether to increase or decrease the funding amount in percentage. Remember, it can’t be larger than (Total funding pool amount)^(4/5). Score values will remain from -10 to +10, -10 means 100% decrease, +10 means 100% increase
+2) Then, we will have a percentage Schelling game to predict the price. That is, you can predict whether to increase or decrease the funding amount in percentage. Score values will remain from -10 to +10, -10 means 100% decrease, +10 means 100% increase
 The range of -10 to +10 has a problem because the mean works best without extreme values. So, if someone gives -10, and others give 1, the mean result can get screwed due to the -10 outlier. So the trick is to remove outliers by computing the standard deviation. Remove all values more than one standard deviation away from the mean. Then, we calculate the new mean of the left values (it consists of 68.27% data of the set).
+
+
 Code to calculate new mean:
 
 ```python
@@ -178,8 +184,6 @@ Code:
 ```python
 total_fund = 200000
 
-price = total_fund ** (4/5)
-print(price)
 
 predictprice = [(17411)*(5/5*2), (411)*(5/5*2), (17411)*(5/5*2), (1741)*(2/5*2)]
 
@@ -204,20 +208,14 @@ print(money_distribution)
 
 The algorithm tries to meet the values of teal organization through reduced compensation inequality.
 
+
 ### Randomized Tax collection
 
 Initial project funding comes from inflation, however as the inflation rate declines over time, the funds are collected by subtracting some amount of balance from different accounts so that there is no longer any inflation.
 
-To avoid creating disincentives to invest in the coin, tax collection or deduction of balance is randomized.
+To avoid creating disincentives to invest in the coin, tax collection or deduction of balance is randomized for every transaction.
 
-An account number is assigned to each account starting from 1000 in ascending order. A random number `n` between 1-1000 is drawn.
-
-All account numbers with `account_number % 1000 == drawn random number` are taxed
-
-If the drawn number is 1,000, one out of every 1,000 accounts will be taxed.
-
-The primary governance determines the tax rate. The block number is stored during the draw. One draw is conducted each month at random time. Tax is deducted when the account interacts with the blockchain. 
-
+During a transaction, a random value is generated between 0 and 10. If the drawn number is 0, no tax will be deducted. If the number is 10, a 5% tax will be deducted from the transaction. In the case of the drawn number being 5, a 2.5% tax will be deducted.
 
 
 

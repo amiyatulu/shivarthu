@@ -14,7 +14,7 @@ https://shivarthu.reaudito.com/paper/Shivarthu_whitepaper.pdf
 ## Technical Details
 https://github.com/amiyatulu/shivarthu/blob/main/docs/Shivarthu.md
 
-![Web3 Foundation Grants](https://github.com/amiyatulu/shivarthu/blob/main/docs/web3_foundation_grants.svg)
+
 
 # Substrate Node Template
 

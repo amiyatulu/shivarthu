@@ -189,9 +189,9 @@ pub mod pallet {
 
 			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
 			let now = <frame_system::Pallet<T>>::block_number();
-			let three_month_number = (3 * 30 * 24 * 60 * 60) / 6;
-			let three_month_block = Self::u64_to_block_saturated(three_month_number);
-			let modulus = now % three_month_block;
+			let six_month_number = (6 * 30 * 24 * 60 * 60) / 6;
+			let six_month_block = Self::u64_to_block_saturated(six_month_number);
+			let modulus = now % six_month_block;
 			let storage_main_block = now - modulus;
 			// println!("{:?}", now);
 			// println!("{:?}", three_month_number);
