@@ -2,10 +2,12 @@ use frame_support::{pallet_prelude::*};
 use frame_support::sp_std::{vec::Vec, collections::btree_map::BTreeMap};
 use scale_info::TypeInfo;
 
+type CitizenId = u64;
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub enum SumTreeName<AccountId, BlockNumber> {
-    UniqueIdenfier1 { citizen_id: u128, name: Vec<u8>},
+    UniqueIdenfier1 { citizen_id: CitizenId, name: Vec<u8>},
     PositiveExternality {user_address: AccountId, block_number: BlockNumber },
     DepartmentScore {department_id: u128, block_number: BlockNumber}
 }

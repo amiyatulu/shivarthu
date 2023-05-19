@@ -1,21 +1,40 @@
 use crate::*;
 
+impl<T: Config> CitizenDetailsPost<T> {
+	pub fn new(citizen_id: CitizenId, created_by: T::AccountId, content: Content) -> Self {
+		CitizenDetailsPost {
+			created: new_who_and_when::<T>(created_by.clone()),
+			content,
+			citizen_id,
+			owner: created_by,
+			edited: false,
+			hidden: false,
+			upvotes_count: 0,
+			downvotes_count: 0,
+		}
+	}
 
+	pub fn ensure_owner(&self, account: &T::AccountId) -> DispatchResult {
+		ensure!(self.is_owner(account), Error::<T>::NotAPostOwner);
+		Ok(())
+	}
+
+	pub fn is_owner(&self, account: &T::AccountId) -> bool {
+		self.owner == *account
+	}
+}
 
 impl<T: Config> Pallet<T> {
-
-
-
-	pub(super) fn get_citizen_accountid(citizenid: u128) -> Result<T::AccountId, DispatchError> {
+	pub(super) fn get_citizen_accountid(citizenid: CitizenId) -> Result<T::AccountId, DispatchError> {
 		let profile = Self::citizen_profile(citizenid).ok_or(Error::<T>::CitizenDoNotExists)?;
-		Ok(profile.accountid)
+		Ok(profile.owner)
 	}
 
 	pub(super) fn fund_profile_account() -> T::AccountId {
 		PALLET_ID.into_sub_account(1)
 	}
 
-	pub fn get_challengers_evidence(profile_citizenid: u128, offset: u64, limit: u16) -> Vec<u128> {
+	pub fn get_challengers_evidence(profile_citizenid: CitizenId, offset: u64, limit: u16) -> Vec<u128> {
 		let mut data = <ChallengerEvidenceId<T>>::iter_prefix_values(&profile_citizenid)
 			.skip(offset as usize)
 			.take(limit as usize)
@@ -25,7 +44,7 @@ impl<T: Config> Pallet<T> {
 		data
 	}
 
-	pub fn get_evidence_period_end_block(profile_citizenid: u128) -> Option<u32> {
+	pub fn get_evidence_period_end_block(profile_citizenid: CitizenId) -> Option<u32> {
 		let now = <frame_system::Pallet<T>>::block_number();
 		let key = SumTreeName::UniqueIdenfier1 {
 			citizen_id: profile_citizenid,
@@ -45,7 +64,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	pub fn get_staking_period_end_block(profile_citizenid: u128) -> Option<u32> {
+	pub fn get_staking_period_end_block(profile_citizenid: CitizenId) -> Option<u32> {
 		let now = <frame_system::Pallet<T>>::block_number();
 		let key = SumTreeName::UniqueIdenfier1 {
 			citizen_id: profile_citizenid,
@@ -60,7 +79,7 @@ impl<T: Config> Pallet<T> {
 		result
 	}
 
-	pub fn get_drawing_period_end(profile_citizenid: u128) -> (u64, u64, bool) {
+	pub fn get_drawing_period_end(profile_citizenid: CitizenId) -> (u64, u64, bool) {
 		let key = SumTreeName::UniqueIdenfier1 {
 			citizen_id: profile_citizenid,
 			name: "challengeprofile".as_bytes().to_vec(),
@@ -72,7 +91,7 @@ impl<T: Config> Pallet<T> {
 		result
 	}
 
-	pub fn get_commit_period_end_block(profile_citizenid: u128) -> Option<u32> {
+	pub fn get_commit_period_end_block(profile_citizenid: CitizenId) -> Option<u32> {
 		let now = <frame_system::Pallet<T>>::block_number();
 		let key = SumTreeName::UniqueIdenfier1 {
 			citizen_id: profile_citizenid,
@@ -86,7 +105,7 @@ impl<T: Config> Pallet<T> {
 		result
 	}
 
-	pub fn get_vote_period_end_block(profile_citizenid: u128) -> Option<u32> {
+	pub fn get_vote_period_end_block(profile_citizenid: CitizenId) -> Option<u32> {
 		let now = <frame_system::Pallet<T>>::block_number();
 		let key = SumTreeName::UniqueIdenfier1 {
 			citizen_id: profile_citizenid,
@@ -100,7 +119,7 @@ impl<T: Config> Pallet<T> {
 		result
 	}
 
-	pub fn selected_as_juror(profile_citizenid: u128, who: T::AccountId) -> bool {
+	pub fn selected_as_juror(profile_citizenid: CitizenId, who: T::AccountId) -> bool {
 		let key = SumTreeName::UniqueIdenfier1 {
 			citizen_id: profile_citizenid,
 			name: "challengeprofile".as_bytes().to_vec(),

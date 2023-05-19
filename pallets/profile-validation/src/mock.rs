@@ -25,6 +25,8 @@ frame_support::construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>}, // new code
 		SchellingGameShared: schelling_game_shared::{Pallet, Call, Storage, Event<T>},
 		SortitionSumGame: sortition_sum_game::{Pallet, Call, Storage, Event<T>},
+		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
+
 
 	}
 );
@@ -61,6 +63,15 @@ impl pallet_template::Config for Test {
 	type Event = Event;
 	type Currency = Balances; // New code
 	type SchellingGameSharedSource = SchellingGameShared;
+}
+parameter_types! {
+    pub const MinimumPeriod: u64 = 5;
+}
+impl pallet_timestamp::Config for Test {
+    type Moment = u64;
+    type OnTimestampSet = ();
+    type MinimumPeriod = MinimumPeriod;
+    type WeightInfo = ();
 }
 
 impl pallet_balances::Config for Test {

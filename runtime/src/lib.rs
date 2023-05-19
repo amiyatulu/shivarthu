@@ -49,6 +49,8 @@ pub use pallet_posts;
 pub use pallet_spaces;
 pub use sortition_sum_game;
 
+pub type CitizenId = u64;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -627,26 +629,26 @@ impl_runtime_apis! {
 	// }
 
 	impl profile_validation_runtime_api::ProfileValidationApi<Block, AccountId> for Runtime {
-		fn get_challengers_evidence(profile_citizenid: u128, offset: u64, limit: u16) -> Vec<u128> {
+		fn get_challengers_evidence(profile_citizenid: CitizenId, offset: u64, limit: u16) -> Vec<u128> {
 			ProfileValidation::get_challengers_evidence(profile_citizenid, offset, limit)
 		}
-		fn get_evidence_period_end_block(profile_citizenid: u128) -> Option<u32> {
+		fn get_evidence_period_end_block(profile_citizenid: CitizenId) -> Option<u32> {
 			ProfileValidation::get_evidence_period_end_block(profile_citizenid)
 		}
-		fn get_staking_period_end_block(profile_citizenid: u128) -> Option<u32> {
+		fn get_staking_period_end_block(profile_citizenid: CitizenId) -> Option<u32> {
 			ProfileValidation::get_staking_period_end_block(profile_citizenid)
 		}
-		fn get_drawing_period_end(profile_citizenid: u128) -> (u64, u64, bool) {
+		fn get_drawing_period_end(profile_citizenid: CitizenId) -> (u64, u64, bool) {
 			ProfileValidation::get_drawing_period_end(profile_citizenid)
 		}
-		fn get_commit_period_end_block(profile_citizenid: u128) -> Option<u32> {
+		fn get_commit_period_end_block(profile_citizenid: CitizenId) -> Option<u32> {
 			ProfileValidation::get_commit_period_end_block(profile_citizenid)
 		}
 
-		fn get_vote_period_end_block(profile_citizenid: u128) -> Option<u32> {
+		fn get_vote_period_end_block(profile_citizenid: CitizenId) -> Option<u32> {
 			ProfileValidation::get_vote_period_end_block(profile_citizenid)
 		}
-		fn selected_as_juror(profile_citizenid: u128, who: AccountId) -> bool {
+		fn selected_as_juror(profile_citizenid: CitizenId, who: AccountId) -> bool {
 			ProfileValidation::selected_as_juror(profile_citizenid, who)
 		}
 	}

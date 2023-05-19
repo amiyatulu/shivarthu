@@ -6,13 +6,13 @@ use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 use std::sync::Arc;
-
+type CitizenId = u64;
 #[rpc]
 pub trait ProfileValidationApi<BlockHash, AccountId> {
 	#[rpc(name = "profilevalidation_challengerevidence")]
 	fn get_challengers_evidence(
 		&self,
-		profile_citizenid: u128,
+		profile_citizenid: CitizenId,
 		offset: u64,
 		limit: u16,
 		at: Option<BlockHash>,
@@ -20,37 +20,37 @@ pub trait ProfileValidationApi<BlockHash, AccountId> {
 	#[rpc(name = "profilevalidation_evidenceperiodendblock")]
 	fn get_evidence_period_end_block(
 		&self,
-		profile_citizenid: u128,
+		profile_citizenid: CitizenId,
 		at: Option<BlockHash>,
 	) -> Result<Option<u32>>;
 	#[rpc(name = "profilevalidation_stakingperiodendblock")]
 	fn get_staking_period_end_block(
 		&self,
-		rofile_citizenid: u128,
+		profile_citizenid: CitizenId,
 		at: Option<BlockHash>,
 	) -> Result<Option<u32>>;
 	#[rpc(name = "profilevalidation_drawingperiodend")]
 	fn get_drawing_period_end(
 		&self,
-		profile_citizenid: u128,
+		profile_citizenid: CitizenId,
 		at: Option<BlockHash>,
 	) -> Result<(u64, u64, bool)>;
 	#[rpc(name = "profilevalidation_commitendblock")]
 	fn get_commit_period_end_block(
 		&self,
-		profile_citizenid: u128,
+		profile_citizenid: CitizenId,
 		at: Option<BlockHash>,
 	) -> Result<Option<u32>>;
 	#[rpc(name = "profilevalidation_voteendblock")]
 	fn get_vote_period_end_block(
 		&self,
-		profile_citizenid: u128,
+		profile_citizenid: CitizenId,
 		at: Option<BlockHash>,
 	) -> Result<Option<u32>>;
 	#[rpc(name = "profilevalidation_selectedjuror")]
 	fn selected_as_juror(
 		&self,
-		profile_citizenid: u128,
+		profile_citizenid: CitizenId,
 		who: AccountId,
 		at: Option<BlockHash>,
 	) -> Result<bool>;
@@ -82,7 +82,7 @@ where
 {
 	fn get_challengers_evidence(
 		&self,
-		profile_citizenid: u128,
+		profile_citizenid: CitizenId,
 		offset: u64,
 		limit: u16,
 		at: Option<<Block as BlockT>::Hash>,
@@ -102,7 +102,7 @@ where
 	}
 	fn get_evidence_period_end_block(
 		&self,
-		profile_citizenid: u128,
+		profile_citizenid: CitizenId,
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<Option<u32>> {
 		let api = self.client.runtime_api();
@@ -119,7 +119,7 @@ where
 	}
 	fn get_staking_period_end_block(
 		&self,
-		profile_citizenid: u128,
+		profile_citizenid: CitizenId,
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<Option<u32>> {
 		let api = self.client.runtime_api();
@@ -136,7 +136,7 @@ where
 	}
 	fn get_drawing_period_end(
 		&self,
-		profile_citizenid: u128,
+		profile_citizenid: CitizenId,
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<(u64, u64, bool)> {
 		let api = self.client.runtime_api();
@@ -154,7 +154,7 @@ where
 
 	fn get_commit_period_end_block(
 		&self,
-		profile_citizenid: u128,
+		profile_citizenid: CitizenId,
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<Option<u32>> {
 		let api = self.client.runtime_api();
@@ -172,7 +172,7 @@ where
 
 	fn get_vote_period_end_block(
 		&self,
-		profile_citizenid: u128,
+		profile_citizenid: CitizenId,
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<Option<u32>> {
 		let api = self.client.runtime_api();
@@ -190,7 +190,7 @@ where
 
 	fn selected_as_juror(
 		&self,
-		profile_citizenid: u128,
+		profile_citizenid: CitizenId,
 		who: AccountId,
 		at: Option<<Block as BlockT>::Hash>,
 	) -> Result<bool> {

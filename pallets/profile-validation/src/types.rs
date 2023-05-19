@@ -2,12 +2,22 @@ use frame_support::{pallet_prelude::*};
 use scale_info::TypeInfo;
 use frame_support::sp_std::{vec::Vec};
 
+use super::*;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct CitizenDetails<AccountId> {
-    pub profile_hash: Vec<u8>,
-    pub citizenid: u128,
-    pub accountid: AccountId,
+pub const FIRST_CITIZEN_ID: CitizenId  = 1;
+
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub struct CitizenDetailsPost<T: Config> {
+    pub created: WhoAndWhenOf<T>,
+    pub content: Content,
+    pub citizen_id: CitizenId,
+    pub owner: T::AccountId,
+    pub edited: bool,
+    pub hidden: bool,
+    pub upvotes_count: u32,
+    pub downvotes_count: u32,
 }
 
 
