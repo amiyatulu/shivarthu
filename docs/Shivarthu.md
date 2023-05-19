@@ -114,10 +114,9 @@ ax+ 0.1bx + 0.2cx + 0.3dx + ..... + 0.9jx = Total fund
 0.1 when you get 1 score, 0.3 when you get 3 score etc.   
 a, b, c, etc. are a number of departments with particular scores. 
 
-## Price discovery of projects through Score Schelling Game:
-
 You have the option to assign a rating to the department on a scale of 0 to 5 or 0 to 10, without any knowledge of what ratings others are giving. If the "mean" rating of all the jurors closely matches your rating, you will receive incentives as a juror. However, if the "mean" rating deviates significantly from your assigned rating, your incentives will be deducted. Consequently, jurors will strive to align their ratings with what others are likely to assign based on the available information, rather than arbitrarily defecting from the consensus.
 
+## Price discovery of projects through Score Schelling Game:
 
 1) When you submit a project, you need to provide details of the funding needed for work to be done.
 2) Then, we will have a percentage Schelling game to predict the price. That is, you can predict whether to increase or decrease the funding amount in percentage. Score values will remain from -10 to +10, -10 means 100% decrease, +10 means 100% increase
