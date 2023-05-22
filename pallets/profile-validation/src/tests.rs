@@ -1,19 +1,18 @@
 use crate::{
 	mock::*,
-	types::{ChallengerFundInfo,  ProfileFundInfo},
-	Error, CitizenDetailsPost,
+	types::{ChallengerFundInfo, ProfileFundInfo},
+	CitizenDetailsPost, Error,
 };
 use frame_support::{assert_noop, assert_ok};
 use pallet_support::{Content, WhoAndWhen};
 
-
 #[test]
-fn it_works_for_default_value() {
+fn add_citizen() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(TemplateModule::add_citizen(Origin::signed(1), Content::None));
-		assert_eq!(TemplateModule::next_citizen_id(), 1);
+		assert_eq!(TemplateModule::next_citizen_id(), 2);
 		let citizen_profile = CitizenDetailsPost {
-            citizen_id: 0,
+			citizen_id: 1,
 			created: WhoAndWhen { account: 1, block: 0, time: 0 },
 			edited: false,
 			owner: 1,
@@ -22,10 +21,32 @@ fn it_works_for_default_value() {
 			upvotes_count: 0,
 			downvotes_count: 0,
 		};
-		assert_eq!(TemplateModule::citizen_profile(0), Some(citizen_profile));
+		assert_eq!(TemplateModule::citizen_profile(1), Some(citizen_profile));
 	});
 }
 
+#[test]
+fn add_citizen_error() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(TemplateModule::add_citizen(Origin::signed(1), Content::None));
+		assert_eq!(TemplateModule::next_citizen_id(), 2);
+		let citizen_profile = CitizenDetailsPost {
+			citizen_id: 1,
+			created: WhoAndWhen { account: 1, block: 0, time: 0 },
+			edited: false,
+			owner: 1,
+			content: Content::None,
+			hidden: false,
+			upvotes_count: 0,
+			downvotes_count: 0,
+		};
+		assert_eq!(TemplateModule::citizen_profile(1), Some(citizen_profile));
+		assert_noop!(
+			TemplateModule::add_citizen(Origin::signed(1), Content::None),
+			Error::<Test>::ProfileExists
+		);
+	});
+}
 // #[test]
 // fn check_update_profile_works(){
 // 	new_test_ext().execute_with(|| {
@@ -49,7 +70,6 @@ fn it_works_for_default_value() {
 // 			accountid: 1,
 // 		};
 // 		assert_eq!(TemplateModule::citizen_profile(0), Some(citizen_profile));
-		
 
 // 	});
 // }

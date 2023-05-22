@@ -202,6 +202,7 @@ pub mod pallet {
 			match <GetCitizenId<T>>::get(&who) {
 				Some(_citizen_id) => Err(Error::<T>::ProfileExists)?,
 				None => {
+					<GetCitizenId<T>>::insert(&who, count);
 
 					let new_post: CitizenDetailsPost<T> = CitizenDetailsPost::new(count, who.clone(), content.clone());
 			
