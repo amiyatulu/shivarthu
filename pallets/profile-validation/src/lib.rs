@@ -41,8 +41,8 @@ type ProfileFundInfoOf<T> =
 type ChallengerFundInfoOf<T> =
 	ChallengerFundInfo<BalanceOf<T>, <T as frame_system::Config>::BlockNumber, AccountIdOf<T>>;
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
-type ChallengeEvidencePostOf<T> = ChallengeEvidencePost<AccountIdOf<T>>;
 type CitizenId = u64;
+type ChallengePostId = u64;
 
 const PALLET_ID: PalletId = PalletId(*b"ex/cfund");
 
@@ -127,22 +127,28 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, CitizenId, ChallengerFundInfoOf<T>>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn challenger_evidence_list)]
+	#[pallet::getter(fn challenger_evidence_query)]
 	pub type ChallengerEvidenceId<T: Config> =
-		StorageDoubleMap<_, Blake2_128Concat, CitizenId, Blake2_128Concat, T::AccountId, u128>; // profile number, challenger accountid => Challenge post id
+		StorageDoubleMap<_, Blake2_128Concat, CitizenId, Blake2_128Concat, T::AccountId, ChallengePostId>; // profile number, challenger accountid => Challenge post id
+	
+		#[pallet::type_value]
+	pub fn DefaultForNextChallengePostId() -> CitizenId {
+		FIRST_CITIZEN_ID
+	}
+	
 	#[pallet::storage]
-	#[pallet::getter(fn post_count)]
-	pub type ChallengePostCount<T> = StorageValue<_, u128, ValueQuery>;
+	#[pallet::getter(fn next_challenge_post_count)]
+	pub type NextChallengePostId<T> = StorageValue<_, ChallengePostId, ValueQuery, DefaultForNextChallengePostId>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn challenge_post_comment)]
 	pub type ChallengePostCommentIds<T> =
-		StorageMap<_, Blake2_128Concat, u128, Vec<u128>, ValueQuery>; // challenge post id => Vec<Comment Post It>
+		StorageMap<_, Blake2_128Concat, ChallengePostId, Vec<ChallengePostId>, ValueQuery>; // challenge post id => Vec<Comment Post It>
 
 	#[pallet::storage]
 	#[pallet::getter(fn challenge_post)]
 	pub type ChallengePost<T: Config> =
-		StorageMap<_, Blake2_128Concat, u128, ChallengeEvidencePostOf<T>>; // challenge post id => post
+		StorageMap<_, Blake2_128Concat, ChallengePostId, ChallengeEvidencePost<T>>; // challenge post id => post
 
 
 
@@ -318,21 +324,18 @@ pub mod pallet {
 		pub fn challenge_evidence(
 			origin: OriginFor<T>,
 			profile_citizenid: CitizenId,
-			hash: Vec<u8>,
+			content: Content,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			let _citizen_account_id = Self::get_citizen_accountid(profile_citizenid)?;
-			let count = <ChallengePostCount<T>>::get();
-			let challenge_evidence_post = ChallengeEvidencePost {
-				author_account_id: who.clone(),
-				post_hash: hash,
-				is_comment: false,
-			};
+			let citizen_account_id = Self::get_citizen_accountid(profile_citizenid)?;
+			let count = Self::next_challenge_post_count();
+			let challenge_evidence_post = ChallengeEvidencePost::new(citizen_account_id, who.clone(), content, None); 
 			match <ChallengerEvidenceId<T>>::get(&profile_citizenid, &who) {
 				None => {
 					<ChallengePost<T>>::insert(&count, challenge_evidence_post);
-					let newcount = count.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
-					<ChallengePostCount<T>>::put(newcount);
+					NextChallengePostId::<T>::mutate(|n| {
+						*n += 1;
+					});
 
 					<ChallengerEvidenceId<T>>::insert(&profile_citizenid, &who, count);
 				},
@@ -359,23 +362,22 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
 		pub fn challenge_comment_create(
 			origin: OriginFor<T>,
-			post_id: u128,
-			hash: Vec<u8>,
+			post_id: ChallengePostId,
+			content: Content,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			let count = <ChallengePostCount<T>>::get();
-			let challenge_evidence_post = ChallengeEvidencePost {
-				author_account_id: who.clone(),
-				post_hash: hash,
-				is_comment: true,
-			};
+			let count = Self::next_challenge_post_count();
+			let main_evidence_post = Self::challenge_post(post_id).unwrap();
+			let challenge_evidence_post = ChallengeEvidencePost::new(main_evidence_post.kyc_profile_id, who, content, Some(post_id)); 
+
 			match <ChallengePost<T>>::get(&post_id) {
 				None => Err(Error::<T>::ChallengeDoesNotExists)?,
 				Some(challenge_evidence_post_c) => {
 					if challenge_evidence_post_c.is_comment == false {
 						<ChallengePost<T>>::insert(&count, challenge_evidence_post);
-						let newcount = count.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
-						<ChallengePostCount<T>>::put(newcount);
+						NextChallengePostId::<T>::mutate(|n| {
+							*n += 1;
+						});
 						let mut comment_ids = <ChallengePostCommentIds<T>>::get(&post_id);
 						match comment_ids.binary_search(&count) {
 							Ok(_) => Err(Error::<T>::CommentExists)?,

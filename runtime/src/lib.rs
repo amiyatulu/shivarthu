@@ -48,8 +48,8 @@ pub use schelling_game_shared;
 pub use pallet_posts;
 pub use pallet_spaces;
 pub use sortition_sum_game;
-
 pub type CitizenId = u64;
+pub type ChallengePostId = u64;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -627,9 +627,9 @@ impl_runtime_apis! {
 	// 		TemplateModule::selected_as_juror(profile_citizenid, who)
 	// 	}
 	// }
-
 	impl profile_validation_runtime_api::ProfileValidationApi<Block, AccountId> for Runtime {
-		fn get_challengers_evidence(profile_citizenid: CitizenId, offset: u64, limit: u16) -> Vec<u128> {
+
+		fn get_challengers_evidence(profile_citizenid: CitizenId, offset: u64, limit: u16) -> Vec<ChallengePostId> {
 			ProfileValidation::get_challengers_evidence(profile_citizenid, offset, limit)
 		}
 		fn get_evidence_period_end_block(profile_citizenid: CitizenId) -> Option<u32> {
@@ -644,7 +644,7 @@ impl_runtime_apis! {
 		fn get_commit_period_end_block(profile_citizenid: CitizenId) -> Option<u32> {
 			ProfileValidation::get_commit_period_end_block(profile_citizenid)
 		}
-
+	
 		fn get_vote_period_end_block(profile_citizenid: CitizenId) -> Option<u32> {
 			ProfileValidation::get_vote_period_end_block(profile_citizenid)
 		}
@@ -652,6 +652,7 @@ impl_runtime_apis! {
 			ProfileValidation::selected_as_juror(profile_citizenid, who)
 		}
 	}
+	
 
 
 	impl election_runtime_api::ElectionApi<Block, AccountId> for Runtime {

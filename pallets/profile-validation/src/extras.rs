@@ -24,8 +24,32 @@ impl<T: Config> CitizenDetailsPost<T> {
 	}
 }
 
+impl<T: Config> ChallengeEvidencePost<T> {
+	pub fn new(kyc_profile_id: T::AccountId, created_by: T::AccountId, content: Content, post_id_if_comment: Option<ChallengePostId>) -> Self {
+		ChallengeEvidencePost {
+			created: new_who_and_when::<T>(created_by.clone()),
+			owner: created_by,
+			kyc_profile_id,
+			content,
+			post_id_if_comment,
+			is_comment: false,
+		}
+	}
+
+	pub fn ensure_owner(&self, account: &T::AccountId) -> DispatchResult {
+		ensure!(self.is_owner(account), Error::<T>::NotAPostOwner);
+		Ok(())
+	}
+
+	pub fn is_owner(&self, account: &T::AccountId) -> bool {
+		self.owner == *account
+	}
+}
+
 impl<T: Config> Pallet<T> {
-	pub(super) fn get_citizen_accountid(citizenid: CitizenId) -> Result<T::AccountId, DispatchError> {
+	pub(super) fn get_citizen_accountid(
+		citizenid: CitizenId,
+	) -> Result<T::AccountId, DispatchError> {
 		let profile = Self::citizen_profile(citizenid).ok_or(Error::<T>::CitizenDoNotExists)?;
 		Ok(profile.owner)
 	}
@@ -34,7 +58,11 @@ impl<T: Config> Pallet<T> {
 		PALLET_ID.into_sub_account(1)
 	}
 
-	pub fn get_challengers_evidence(profile_citizenid: CitizenId, offset: u64, limit: u16) -> Vec<u128> {
+	pub fn get_challengers_evidence(
+		profile_citizenid: CitizenId,
+		offset: u64,
+		limit: u16,
+	) -> Vec<ChallengePostId> {
 		let mut data = <ChallengerEvidenceId<T>>::iter_prefix_values(&profile_citizenid)
 			.skip(offset as usize)
 			.take(limit as usize)

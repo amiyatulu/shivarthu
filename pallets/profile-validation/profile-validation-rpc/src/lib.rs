@@ -7,6 +7,7 @@ use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 use std::sync::Arc;
 type CitizenId = u64;
+type ChallengePostId = u64;
 #[rpc]
 pub trait ProfileValidationApi<BlockHash, AccountId> {
 	#[rpc(name = "profilevalidation_challengerevidence")]
@@ -16,7 +17,7 @@ pub trait ProfileValidationApi<BlockHash, AccountId> {
 		offset: u64,
 		limit: u16,
 		at: Option<BlockHash>,
-	) -> Result<Vec<u128>>;
+	) -> Result<Vec<ChallengePostId>>;
 	#[rpc(name = "profilevalidation_evidenceperiodendblock")]
 	fn get_evidence_period_end_block(
 		&self,
@@ -86,7 +87,7 @@ where
 		offset: u64,
 		limit: u16,
 		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Vec<u128>> {
+	) -> Result<Vec<ChallengePostId>> {
 		let api = self.client.runtime_api();
 		let at = BlockId::hash(at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
