@@ -1,6 +1,23 @@
+use core::cmp::min;
+
 use crate::*;
 
 impl<T: Config> Pallet<T> {
+	pub(super) fn create_phase_data(
+		block_length: u64,
+		max_draws: u64,
+		min_number_juror_staked: u64,
+		min_juror_stake: u64,
+		juror_incentives: (u64, u64),
+	) -> PhaseDataOf<T> {
+		PhaseData::create_with_data(
+			block_length,
+			max_draws,
+			min_number_juror_staked,
+			min_juror_stake,
+			juror_incentives,
+		)
+	}
 	/// Set to evidence period, when some one stakes for validation
 	pub(super) fn set_to_evidence_period(
 		key: SumTreeNameType<T>,
@@ -28,14 +45,14 @@ impl<T: Config> Pallet<T> {
 	/// ```
 	pub(super) fn set_to_staking_period(
 		key: SumTreeNameType<T>,
-		game_type: SchellingGameType,
+		phase_data: PhaseDataOf<T>,
 		now: BlockNumberOf<T>,
 	) -> DispatchResult {
 		if let Some(Period::Evidence) = <PeriodName<T>>::get(&key) {
 			let evidence_stake_block_number = <EvidenceStartTime<T>>::get(&key);
 			let time = now.checked_sub(&evidence_stake_block_number).expect("Overflow");
-			let block_time = <MinBlockTime<T>>::get(&game_type);
-			if time >= block_time.min_short_block_length {
+			let evidence_length = phase_data.evidence_length;
+			if time >= evidence_length {
 				let new_period = Period::Staking;
 				<PeriodName<T>>::insert(&key, new_period);
 				<StakingStartTime<T>>::insert(&key, now);
@@ -49,6 +66,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	/// Set staking period for no evidence period
 	pub(super) fn set_to_staking_period_pe(
 		key: SumTreeNameType<T>,
 		now: BlockNumberOf<T>,
@@ -97,7 +115,7 @@ impl<T: Config> Pallet<T> {
 	/// ```
 	pub(super) fn change_period(
 		key: SumTreeNameType<T>,
-		game_type: SchellingGameType,
+		phase_data: PhaseDataOf<T>,
 		now: BlockNumberOf<T>,
 	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
@@ -107,8 +125,8 @@ impl<T: Config> Pallet<T> {
 					Period::Staking => {
 						// Also check has min number of jurors has staked
 						let staking_start_time = <StakingStartTime<T>>::get(&key);
-						let block_time = <MinBlockTime<T>>::get(&game_type);
-						if now >= block_time.min_long_block_length + staking_start_time {
+						let staking_length = phase_data.staking_length;
+						if now >= staking_length + staking_start_time {
 							let new_period = Period::Drawing;
 							<PeriodName<T>>::insert(&key, new_period);
 						} else {
@@ -117,9 +135,9 @@ impl<T: Config> Pallet<T> {
 					},
 					Period::Drawing => {
 						// Also give time
-						let draw_limit = <DrawJurorsLimitNum<T>>::get(&game_type);
+						let max_draws = phase_data.max_draws;
 						let draws_in_round = <DrawsInRound<T>>::get(&key);
-						if draws_in_round >= draw_limit.max_draws {
+						if draws_in_round >= max_draws {
 							<CommitStartTime<T>>::insert(&key, now);
 							let new_period = Period::Commit;
 							<PeriodName<T>>::insert(&key, new_period);
@@ -129,8 +147,8 @@ impl<T: Config> Pallet<T> {
 					},
 					Period::Commit => {
 						let commit_start_time = <CommitStartTime<T>>::get(&key);
-						let block_time = <MinBlockTime<T>>::get(&game_type);
-						if now >= block_time.min_long_block_length + commit_start_time {
+						let commit_length = phase_data.commit_length;
+						if now >= commit_length + commit_start_time {
 							<VoteStartTime<T>>::insert(&key, now);
 							let new_period = Period::Vote;
 							<PeriodName<T>>::insert(&key, new_period);
@@ -140,8 +158,8 @@ impl<T: Config> Pallet<T> {
 					},
 					Period::Vote => {
 						let vote_start_time = <VoteStartTime<T>>::get(&key);
-						let block_time = <MinBlockTime<T>>::get(&game_type);
-						if now >= block_time.min_long_block_length + vote_start_time {
+						let vote_length = phase_data.vote_length;
+						if now >= vote_length + vote_start_time {
 							let new_period = Period::Execution;
 							<PeriodName<T>>::insert(&key, new_period);
 						} else {
@@ -159,7 +177,7 @@ impl<T: Config> Pallet<T> {
 
 	pub(super) fn apply_jurors_helper(
 		key: SumTreeNameType<T>,
-		game_type: SchellingGameType,
+		phase_data: PhaseDataOf<T>,
 		who: AccountIdOf<T>,
 		stake: BalanceOf<T>,
 	) -> DispatchResult {
@@ -169,7 +187,7 @@ impl<T: Config> Pallet<T> {
 			},
 			None => Err(Error::<T>::PeriodDoesNotExists)?,
 		}
-		let min_stake = <MinJurorStake<T>>::get(&game_type);
+		let min_stake = phase_data.min_juror_stake;
 
 		ensure!(stake >= min_stake, Error::<T>::JurorStakeLessThanMin);
 
@@ -203,7 +221,7 @@ impl<T: Config> Pallet<T> {
 	// Improvements: Set stake to zero after a juror is drawn, so that they are not drawn again. Store the stake in storage map in DrawnJurors, and use it in get_incentives_helper
 	pub(super) fn draw_jurors_helper(
 		key: SumTreeNameType<T>,
-		game_type: SchellingGameType,
+		phase_data: PhaseDataOf<T>,
 		iterations: u64,
 	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
@@ -212,12 +230,12 @@ impl<T: Config> Pallet<T> {
 			},
 			None => Err(Error::<T>::PeriodDoesNotExists)?,
 		}
-		let draw_limit = <DrawJurorsLimitNum<T>>::get(&game_type);
+		let max_draws = phase_data.max_draws;
 		let draws_in_round = <DrawsInRound<T>>::get(&key);
-		ensure!(draws_in_round < draw_limit.max_draws.into(), Error::<T>::MaxDrawExceeded);
+		ensure!(draws_in_round < max_draws.into(), Error::<T>::MaxDrawExceeded);
 		let mut end_index = draws_in_round + iterations;
-		if draws_in_round + iterations >= draw_limit.max_draws {
-			end_index = draw_limit.max_draws;
+		if draws_in_round + iterations >= max_draws {
+			end_index = max_draws;
 		}
 		let mut draw_increment = draws_in_round.clone();
 
@@ -240,7 +258,7 @@ impl<T: Config> Pallet<T> {
 					<DrawnJurors<T>>::insert(&key, drawn_juror);
 					draw_increment = draw_increment + 1;
 					// println!("draw_increment, {:?}", draw_increment);
-					let _set = T::SortitionSumGameSource::set_link(key.clone(), 0, accountid)?;
+					T::SortitionSumGameSource::set_link(key.clone(), 0, accountid)?;
 				},
 			}
 			<DrawsInRound<T>>::insert(&key, draw_increment);
@@ -381,7 +399,7 @@ impl<T: Config> Pallet<T> {
 	/// Distribute incentives in a single go.
 	pub(super) fn get_all_incentives_two_choice_helper(
 		key: SumTreeNameType<T>,
-		game_type: SchellingGameType,
+		phase_data: PhaseDataOf<T>,
 	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
 			Some(period) => {
@@ -398,7 +416,7 @@ impl<T: Config> Pallet<T> {
 			.collect::<Vec<(_, _)>>();
 		reveal_votes.sort_by(|a, b| a.0.cmp(&b.0));
 		let decision_count = <DecisionCount<T>>::get(&key);
-		let incentives = <JurorIncentives<T>>::get(&game_type);
+		let incentives = phase_data.juror_incentives;
 		let (winning_decision, winning_incentives) =
 			Self::get_winning_incentives(decision_count, incentives);
 		for juror in drawn_jurors {
@@ -467,7 +485,7 @@ impl<T: Config> Pallet<T> {
 	// Improvements: Will it be better to distribute all jurors incentives in single call
 	pub(super) fn get_incentives_two_choice_helper(
 		key: SumTreeNameType<T>,
-		game_type: SchellingGameType,
+		phase_data: PhaseDataOf<T>,
 		who: AccountIdOf<T>,
 	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
@@ -486,7 +504,7 @@ impl<T: Config> Pallet<T> {
 				match vote_option {
 					Some(vote) => {
 						let decision_count = <DecisionCount<T>>::get(&key);
-						let incentives = <JurorIncentives<T>>::get(&game_type);
+						let incentives = phase_data.juror_incentives;
 						let (winning_decision, winning_incentives) =
 							Self::get_winning_incentives(decision_count, incentives);
 						if let Ok(i) = drawn_juror.binary_search_by(|(c, _)| c.cmp(&who.clone())) {
@@ -694,14 +712,12 @@ impl<T: Config> Pallet<T> {
 	}
 	pub(super) fn get_evidence_period_end_block_helper(
 		key: SumTreeNameType<T>,
-		game_type: SchellingGameType,
+		phase_data: PhaseDataOf<T>,
 		now: BlockNumberOf<T>,
 	) -> Option<u32> {
 		let start_block_number = <EvidenceStartTime<T>>::get(&key);
-		let block_time = <MinBlockTime<T>>::get(&game_type);
-		let end_block = start_block_number
-			.checked_add(&block_time.min_short_block_length)
-			.expect("Overflow");
+		let evidence_length = phase_data.evidence_length;
+		let end_block = start_block_number.checked_add(&evidence_length).expect("Overflow");
 		let left_block = end_block.checked_sub(&now);
 		match left_block {
 			Some(val) => {
@@ -714,14 +730,12 @@ impl<T: Config> Pallet<T> {
 
 	pub(super) fn get_staking_period_end_block_helper(
 		key: SumTreeNameType<T>,
-		game_type: SchellingGameType,
+		phase_data: PhaseDataOf<T>,
 		now: BlockNumberOf<T>,
 	) -> Option<u32> {
 		let staking_start_time = <StakingStartTime<T>>::get(&key);
-		let block_time = <MinBlockTime<T>>::get(&game_type);
-		let end_block = staking_start_time
-			.checked_add(&block_time.min_long_block_length)
-			.expect("Overflow");
+		let staking_length = phase_data.staking_length;
+		let end_block = staking_start_time.checked_add(&staking_length).expect("Overflow");
 		let left_block = end_block.checked_sub(&now);
 		match left_block {
 			Some(val) => {
@@ -734,27 +748,25 @@ impl<T: Config> Pallet<T> {
 
 	pub(super) fn get_drawing_period_end_helper(
 		key: SumTreeNameType<T>,
-		game_type: SchellingGameType,
+		phase_data: PhaseDataOf<T>,
 	) -> (u64, u64, bool) {
-		let draw_limit = <DrawJurorsLimitNum<T>>::get(&game_type);
+		let max_draws = phase_data.max_draws;
 		let draws_in_round = <DrawsInRound<T>>::get(&key);
-		if draws_in_round >= draw_limit.max_draws.into() {
-			(draw_limit.max_draws, draws_in_round, true)
+		if draws_in_round >= max_draws.into() {
+			(max_draws, draws_in_round, true)
 		} else {
-			(draw_limit.max_draws, draws_in_round, false)
+			(max_draws, draws_in_round, false)
 		}
 	}
 
 	pub(super) fn get_commit_period_end_block_helper(
 		key: SumTreeNameType<T>,
-		game_type: SchellingGameType,
+		phase_data: PhaseDataOf<T>,
 		now: BlockNumberOf<T>,
 	) -> Option<u32> {
 		let commit_start_time = <CommitStartTime<T>>::get(&key);
-		let block_time = <MinBlockTime<T>>::get(&game_type);
-		let end_block = commit_start_time
-			.checked_add(&block_time.min_long_block_length)
-			.expect("Overflow");
+		let commit_length = phase_data.commit_length;
+		let end_block = commit_start_time.checked_add(&commit_length).expect("Overflow");
 		let left_block = end_block.checked_sub(&now);
 		match left_block {
 			Some(val) => {
@@ -767,14 +779,12 @@ impl<T: Config> Pallet<T> {
 
 	pub(super) fn get_vote_period_end_block_helper(
 		key: SumTreeNameType<T>,
-		game_type: SchellingGameType,
+		phase_data: PhaseDataOf<T>,
 		now: BlockNumberOf<T>,
 	) -> Option<u32> {
 		let vote_start_time = <VoteStartTime<T>>::get(&key);
-		let block_time = <MinBlockTime<T>>::get(&game_type);
-		let end_block = vote_start_time
-			.checked_add(&block_time.min_long_block_length)
-			.expect("Overflow");
+		let vote_length = phase_data.vote_length;
+		let end_block = vote_start_time.checked_add(&vote_length).expect("Overflow");
 		let left_block = end_block.checked_sub(&now);
 		match left_block {
 			Some(val) => {
@@ -792,5 +802,4 @@ impl<T: Config> Pallet<T> {
 			Err(_) => false,
 		}
 	}
-
 }

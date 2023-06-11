@@ -27,6 +27,11 @@ impl<T: Config> PositiveExternalityPost<T> {
 }
 
 impl<T: Config> Pallet<T> {
+
+	pub(super) fn get_phase_data() -> PhaseData<T> {
+		T::SchellingGameSharedSource::create_phase_data(50, 5, 3, 100, (100, 100))
+	}
+
 	pub fn ensure_validation_on_positive_externality(account: T::AccountId) -> DispatchResult {
 		let bool_data = ValidatePositiveExternality::<T>::get(account);
 		ensure!(bool_data == true, Error::<T>::ValidationPositiveExternalityIsOff);

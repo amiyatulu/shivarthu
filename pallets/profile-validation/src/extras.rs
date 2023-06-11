@@ -25,7 +25,12 @@ impl<T: Config> CitizenDetailsPost<T> {
 }
 
 impl<T: Config> ChallengeEvidencePost<T> {
-	pub fn new(kyc_profile_id: T::AccountId, created_by: T::AccountId, content: Content, post_id_if_comment: Option<ChallengePostId>) -> Self {
+	pub fn new(
+		kyc_profile_id: T::AccountId,
+		created_by: T::AccountId,
+		content: Content,
+		post_id_if_comment: Option<ChallengePostId>,
+	) -> Self {
 		ChallengeEvidencePost {
 			created: new_who_and_when::<T>(created_by.clone()),
 			owner: created_by,
@@ -47,6 +52,10 @@ impl<T: Config> ChallengeEvidencePost<T> {
 }
 
 impl<T: Config> Pallet<T> {
+	pub(super) fn get_phase_data() -> PhaseData<T> {
+		T::SchellingGameSharedSource::create_phase_data(50, 5, 3, 100, (100, 100))
+	}
+
 	pub(super) fn get_citizen_accountid(
 		citizenid: CitizenId,
 	) -> Result<T::AccountId, DispatchError> {
@@ -78,13 +87,13 @@ impl<T: Config> Pallet<T> {
 			citizen_id: profile_citizenid,
 			name: "challengeprofile".as_bytes().to_vec(),
 		};
-		let game_type = SchellingGameType::ProfileApproval;
-		match <ProfileFundDetails<T>>::get(&profile_citizenid) {
+		let phase_data = Self::get_phase_data();
+				match <ProfileFundDetails<T>>::get(&profile_citizenid) {
 			Some(_profilefundinfo) => {
 				// let start_block_number = profilefundinfo.start;
 				let result =
 					T::SchellingGameSharedSource::get_evidence_period_end_block_helper_link(
-						key, game_type, now,
+						key, phase_data, now,
 					);
 				result
 			},
@@ -99,10 +108,10 @@ impl<T: Config> Pallet<T> {
 			name: "challengeprofile".as_bytes().to_vec(),
 		};
 
-		let game_type = SchellingGameType::ProfileApproval;
+		let phase_data = Self::get_phase_data();
 
 		let result = T::SchellingGameSharedSource::get_staking_period_end_block_helper_link(
-			key, game_type, now,
+			key, phase_data, now,
 		);
 		result
 	}
@@ -112,10 +121,10 @@ impl<T: Config> Pallet<T> {
 			citizen_id: profile_citizenid,
 			name: "challengeprofile".as_bytes().to_vec(),
 		};
-		let game_type = SchellingGameType::ProfileApproval;
+		let phase_data = Self::get_phase_data();
 
 		let result =
-			T::SchellingGameSharedSource::get_drawing_period_end_helper_link(key, game_type);
+			T::SchellingGameSharedSource::get_drawing_period_end_helper_link(key, phase_data);
 		result
 	}
 
@@ -125,10 +134,10 @@ impl<T: Config> Pallet<T> {
 			citizen_id: profile_citizenid,
 			name: "challengeprofile".as_bytes().to_vec(),
 		};
-		let game_type = SchellingGameType::ProfileApproval;
+		let phase_data = Self::get_phase_data();
 
 		let result = T::SchellingGameSharedSource::get_commit_period_end_block_helper_link(
-			key, game_type, now,
+			key, phase_data, now,
 		);
 		result
 	}
@@ -139,10 +148,10 @@ impl<T: Config> Pallet<T> {
 			citizen_id: profile_citizenid,
 			name: "challengeprofile".as_bytes().to_vec(),
 		};
-		let game_type = SchellingGameType::ProfileApproval;
+		let phase_data = Self::get_phase_data();
 
 		let result = T::SchellingGameSharedSource::get_vote_period_end_block_helper_link(
-			key, game_type, now,
+			key, phase_data, now,
 		);
 		result
 	}

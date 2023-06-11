@@ -22,12 +22,13 @@ mod tests;
 mod benchmarking;
 
 mod extras;
+mod functions;
 pub mod types;
 mod score_game;
 mod share_link;
 
 use crate::types::{
-	CommitVote, DrawJurorsLimit, Period, SchellingGameType, StakingTime, VoteStatus, RevealedVote, WinningDecision, ScoreCommitVote, RangePoint
+	PhaseData, CommitVote, Period, SchellingGameType,VoteStatus, RevealedVote, WinningDecision, ScoreCommitVote, RangePoint
 };
 use frame_support::pallet_prelude::*;
 use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
@@ -54,6 +55,7 @@ type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
 	<T as frame_system::Config>::AccountId,
 >>::NegativeImbalance;
 type SumTreeNameType<T> = SumTreeName<AccountIdOf<T>, BlockNumberOf<T>>;
+type PhaseDataOf<T> = PhaseData<T>;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -95,48 +97,48 @@ pub mod pallet {
 	#[pallet::getter(fn get_period)]
 	pub type PeriodName<T> = StorageMap<_, Blake2_128Concat, SumTreeNameType<T>, Period>;
 
-	#[pallet::type_value]
-	pub fn DefaultMinBlockTime<T: Config>() -> StakingTime<BlockNumberOf<T>> {
-		let staking_time = StakingTime {
-			min_short_block_length: 50u128.saturated_into::<BlockNumberOf<T>>(),
-			min_long_block_length: 80u128.saturated_into::<BlockNumberOf<T>>(),
-		};
-		staking_time
-		// 6 sec (1 block)
-		// 3 days (43200), 10 days (144000)
-		// 15 mins (150)
-		// 5 mins (50)
-		// 8 mins (80)
-	}
+	// #[pallet::type_value]
+	// pub fn DefaultMinBlockTime<T: Config>() -> StakingTime<BlockNumberOf<T>> {
+	// 	let staking_time = StakingTime {
+	// 		min_short_block_length: 50u128.saturated_into::<BlockNumberOf<T>>(),
+	// 		min_long_block_length: 80u128.saturated_into::<BlockNumberOf<T>>(),
+	// 	};
+	// 	staking_time
+	// 	// 6 sec (1 block)
+	// 	// 3 days (43200), 10 days (144000)
+	// 	// 15 mins (150)
+	// 	// 5 mins (50)
+	// 	// 8 mins (80)
+	// }
 
 	///`StakingTime` `min_short_block_length` for changing `Period::Evidence` to `Period::Staking`   
 	///`StakingTime` `min_long_block_length` for changing other periods in `change_period`   
-	#[pallet::storage]
-	#[pallet::getter(fn min_block_time)]
-	pub type MinBlockTime<T> = StorageMap<
-		_,
-		Blake2_128Concat,
-		SchellingGameType,
-		StakingTime<BlockNumberOf<T>>,
-		ValueQuery,
-		DefaultMinBlockTime<T>,
-	>;
+	// #[pallet::storage]
+	// #[pallet::getter(fn min_block_time)]
+	// pub type MinBlockTime<T> = StorageMap<
+	// 	_,
+	// 	Blake2_128Concat,
+	// 	SchellingGameType,
+	// 	StakingTime<BlockNumberOf<T>>,
+	// 	ValueQuery,
+	// 	DefaultMinBlockTime<T>,
+	// >;
 
-	#[pallet::type_value]
-	pub fn DefaultMinStake<T: Config>() -> BalanceOf<T> {
-		100u128.saturated_into::<BalanceOf<T>>()
-	}
+	// #[pallet::type_value]
+	// pub fn DefaultMinStake<T: Config>() -> BalanceOf<T> {
+	// 	100u128.saturated_into::<BalanceOf<T>>()
+	// }
 
-	#[pallet::storage]
-	#[pallet::getter(fn min_juror_stake)]
-	pub type MinJurorStake<T> = StorageMap<
-		_,
-		Blake2_128Concat,
-		SchellingGameType,
-		BalanceOf<T>,
-		ValueQuery,
-		DefaultMinStake<T>,
-	>;
+	// #[pallet::storage]
+	// #[pallet::getter(fn min_juror_stake)]
+	// pub type MinJurorStake<T> = StorageMap<
+	// 	_,
+	// 	Blake2_128Concat,
+	// 	SchellingGameType,
+	// 	BalanceOf<T>,
+	// 	ValueQuery,
+	// 	DefaultMinStake<T>,
+	// >;
 
 	#[pallet::storage]
 	#[pallet::getter(fn draws_in_round)]
@@ -176,23 +178,23 @@ pub mod pallet {
 	pub type UnstakedJurors<T: Config> =
 		StorageMap<_, Blake2_128Concat, SumTreeNameType<T>, Vec<T::AccountId>, ValueQuery>;
 
-	#[pallet::type_value]
-	pub fn DefaultDrawJurorsLimitNum<T: Config>() -> DrawJurorsLimit {
-		let draw_juror_limit = DrawJurorsLimit { max_draws: 5, max_draws_appeal: 10 };
-		// change max draws more than 30 in production
-		draw_juror_limit
-	}
+	// #[pallet::type_value]
+	// pub fn DefaultDrawJurorsLimitNum<T: Config>() -> DrawJurorsLimit {
+	// 	let draw_juror_limit = DrawJurorsLimit { max_draws: 5, max_draws_appeal: 10 };
+	// 	// change max draws more than 30 in production
+	// 	draw_juror_limit
+	// }
 
-	#[pallet::storage]
-	#[pallet::getter(fn draw_jurors_for_profile_limit)]
-	pub type DrawJurorsLimitNum<T> = StorageMap<
-		_,
-		Blake2_128Concat,
-		SchellingGameType,
-		DrawJurorsLimit,
-		ValueQuery,
-		DefaultDrawJurorsLimitNum<T>,
-	>;
+	// #[pallet::storage]
+	// #[pallet::getter(fn draw_jurors_for_profile_limit)]
+	// pub type DrawJurorsLimitNum<T> = StorageMap<
+	// 	_,
+	// 	Blake2_128Concat,
+	// 	SchellingGameType,
+	// 	DrawJurorsLimit,
+	// 	ValueQuery,
+	// 	DefaultDrawJurorsLimitNum<T>,
+	// >;
 
 	/// VoteCommits for Yes or No voting
 	#[pallet::storage]
@@ -246,23 +248,23 @@ pub mod pallet {
 	#[pallet::getter(fn decision_count)]
 	pub type DecisionCount<T> =
 		StorageMap<_, Blake2_128Concat, SumTreeNameType<T>, (u64, u64), ValueQuery>; // Count for 0, Count for 1
-	#[pallet::type_value]
-	pub fn DefaultJurorIncentives<T: Config>() -> (u64, u64) {
-		(100, 100)
-	}
+	// #[pallet::type_value]
+	// pub fn DefaultJurorIncentives<T: Config>() -> (u64, u64) {
+	// 	(100, 100)
+	// }
     
-	/// Total amount of incentives distributed to jurors. 
-	/// Improvements: Increase incentives on appeal.
-	#[pallet::storage]
-	#[pallet::getter(fn juror_incentives)]
-	pub type JurorIncentives<T> = StorageMap<
-		_,
-		Blake2_128Concat,
-		SchellingGameType,
-		(u64, u64), // (looser burn, winner mint)
-		ValueQuery,
-		DefaultJurorIncentives<T>,
-	>;
+	// /// Total amount of incentives distributed to jurors. 
+	// /// Improvements: Increase incentives on appeal.
+	// #[pallet::storage]
+	// #[pallet::getter(fn juror_incentives)]
+	// pub type JurorIncentives<T> = StorageMap<
+	// 	_,
+	// 	Blake2_128Concat,
+	// 	SchellingGameType,
+	// 	(u64, u64), // (looser burn, winner mint)
+	// 	ValueQuery,
+	// 	DefaultJurorIncentives<T>,
+	// >;
 
 	#[pallet::storage]
 	#[pallet::getter(fn juror_incentive_distribution)]

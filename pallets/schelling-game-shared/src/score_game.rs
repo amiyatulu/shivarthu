@@ -75,7 +75,7 @@ impl<T: Config> Pallet<T> {
 	/// Distribute incentives to all jurors in execution period in score schelling game
 	pub(super) fn get_incentives_score_schelling_helper(
 		key: SumTreeNameType<T>,
-		game_type: SchellingGameType,
+		phase_data: PhaseDataOf<T>,
 		range_point: RangePoint,
 	) -> DispatchResult {
 		match <PeriodName<T>>::get(&key) {
@@ -131,7 +131,7 @@ impl<T: Config> Pallet<T> {
 
 		let winners_len = winners.len() as u64;
 		// println!("winners_len {}", winners_len);
-		let incentives_tuple = <JurorIncentives<T>>::get(&game_type);
+		let incentives_tuple = phase_data.juror_incentives;
 		let winning_incentives = incentives_tuple.1.checked_div(winners_len).expect("oveflow");
 		for winner in winners {
 			let total_incentives = winner.1.checked_add(winning_incentives).expect("overflow");

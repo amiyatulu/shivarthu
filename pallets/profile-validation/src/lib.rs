@@ -30,8 +30,8 @@ use pallet_support::{
 	ensure_content_is_valid, new_who_and_when, remove_from_vec, Content,
 	WhoAndWhen, WhoAndWhenOf,
 };
-pub use types::{CitizenDetailsPost, FIRST_CITIZEN_ID};
-use schelling_game_shared::types::{Period, RangePoint, SchellingGameType};
+pub use types::{CitizenDetailsPost, FIRST_CITIZEN_ID, FIRST_CHALLENGE_POST_ID};
+use schelling_game_shared::types::{Period, RangePoint, SchellingGameType, PhaseData};
 use schelling_game_shared_link::SchellingGameSharedLink;
 use sortition_sum_game::types::SumTreeName;
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -53,7 +53,7 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_timestamp::Config {
+	pub trait Config: frame_system::Config + pallet_timestamp::Config + schelling_game_shared::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type SchellingGameSharedSource: SchellingGameSharedLink<
@@ -64,6 +64,7 @@ pub mod pallet {
 			Balance = BalanceOf<Self>,
 			RangePoint = RangePoint,
 			Period = Period,
+			PhaseData = PhaseData<Self>,
 		>;
 		type Currency: ReservableCurrency<Self::AccountId>;
 	}
@@ -133,7 +134,7 @@ pub mod pallet {
 	
 		#[pallet::type_value]
 	pub fn DefaultForNextChallengePostId() -> CitizenId {
-		FIRST_CITIZEN_ID
+		FIRST_CHALLENGE_POST_ID
 	}
 	
 	#[pallet::storage]
@@ -285,14 +286,14 @@ pub mod pallet {
 			let deposit = <RegistrationFee<T>>::get();
 			let now = <frame_system::Pallet<T>>::block_number();
 
-			let imb = T::Currency::withdraw(
+			let imb = <T as pallet::Config>::Currency::withdraw(
 				&who,
 				deposit,
 				WithdrawReasons::TRANSFER,
 				ExistenceRequirement::AllowDeath,
 			)?;
 
-			T::Currency::resolve_creating(&Self::fund_profile_account(), imb);
+			<T as pallet::Config>::Currency::resolve_creating(&Self::fund_profile_account(), imb);
 
 			match <ProfileFundDetails<T>>::get(&profile_citizenid) {
 				// 📝 To write update stake for reapply when disapproved
@@ -406,7 +407,7 @@ pub mod pallet {
 				citizen_id: profile_citizenid,
 				name: "challengeprofile".as_bytes().to_vec(),
 			};
-			let game_type = SchellingGameType::ProfileApproval;
+			let phase_data = Self::get_phase_data();
 			let now = <frame_system::Pallet<T>>::block_number();
 			let _citizen_account_id = Self::get_citizen_accountid(profile_citizenid)?;
 			match <ProfileFundDetails<T>>::get(&profile_citizenid) {
@@ -416,11 +417,11 @@ pub mod pallet {
 					} else {
 						let _evidence_stake_block_number = profilefundinfo.start; // remove the profile fund info start
 
-						let _result = T::SchellingGameSharedSource::set_to_staking_period_link(
+				  T::SchellingGameSharedSource::set_to_staking_period_link(
 							key.clone(),
-							game_type,
+							phase_data,
 							now,
-						);
+						)?;
 					}
 				},
 				None => {
@@ -428,14 +429,14 @@ pub mod pallet {
 				},
 			}
 			let deposit = <RegistrationChallengeFee<T>>::get();
-			let imb = T::Currency::withdraw(
+			let imb = <T as pallet::Config>::Currency::withdraw(
 				&who,
 				deposit,
 				WithdrawReasons::TRANSFER,
 				ExistenceRequirement::AllowDeath,
 			)?;
 
-			T::Currency::resolve_creating(&Self::fund_profile_account(), imb);
+			<T as pallet::Config>::Currency::resolve_creating(&Self::fund_profile_account(), imb);
 
 			match <ChallengerFundDetails<T>>::get(&profile_citizenid) {
 				// 📝 To write update stake for reapply
@@ -466,9 +467,9 @@ pub mod pallet {
 			};
 
 			let now = <frame_system::Pallet<T>>::block_number();
-			let game_type = SchellingGameType::ProfileApproval;
+			let phase_data = Self::get_phase_data();
 
-			let result = T::SchellingGameSharedSource::change_period_link(key, game_type, now);
+			let result = T::SchellingGameSharedSource::change_period_link(key, phase_data, now);
 
 			result
 		}
@@ -501,10 +502,10 @@ pub mod pallet {
 				name: "challengeprofile".as_bytes().to_vec(),
 			};
 
-			let game_type = SchellingGameType::ProfileApproval;
+			let phase_data = Self::get_phase_data();
 
 			let result =
-				T::SchellingGameSharedSource::apply_jurors_helper_link(key, game_type, who, stake);
+				T::SchellingGameSharedSource::apply_jurors_helper_link(key, phase_data, who, stake);
 			result
 		}
 
@@ -526,10 +527,10 @@ pub mod pallet {
 				citizen_id: profile_citizenid,
 				name: "challengeprofile".as_bytes().to_vec(),
 			};
-			let game_type = SchellingGameType::ProfileApproval;
+			let phase_data = Self::get_phase_data();
 
 			let result =
-				T::SchellingGameSharedSource::draw_jurors_helper_link(key, game_type, iterations);
+				T::SchellingGameSharedSource::draw_jurors_helper_link(key, phase_data, iterations);
 			result
 		}
 
@@ -588,9 +589,9 @@ pub mod pallet {
 				citizen_id: profile_citizenid,
 				name: "challengeprofile".as_bytes().to_vec(),
 			};
-			let game_type = SchellingGameType::ProfileApproval;
+			let phase_data = Self::get_phase_data();
 			let result = T::SchellingGameSharedSource::get_incentives_two_choice_helper_link(
-				key, game_type, who,
+				key, phase_data, who,
 			);
 			result
 		}

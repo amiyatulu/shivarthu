@@ -1,6 +1,10 @@
 use crate::*;
 
 impl<T: Config> Pallet<T> {
+
+	pub(super) fn get_phase_data() -> PhaseData<T> {
+		T::SchellingGameSharedSource::create_phase_data(50, 5, 3, 100, (100, 100))
+	}
 	pub fn ensure_min_stake_deparment(department_id: DeparmentId) -> DispatchResult {
 		let stake = DepartmentStakeBalance::<T>::get(department_id);
 		let min_stake = MinimumDepartmentStake::<T>::get();

@@ -10,7 +10,15 @@ pub trait SchellingGameSharedLink {
 	type Balance;
 	type RangePoint;
 	type Period;
+	type PhaseData;
 
+	fn create_phase_data(
+		block_length: u64,
+		max_draws: u64,
+		min_number_juror_staked: u64,
+		min_juror_stake: u64,
+		juror_incentives: (u64, u64),
+	) -> Self::PhaseData;
 	fn get_period_link(key: Self::SumTreeName) -> Option<Self::Period>;
 
 	fn set_to_evidence_period_link(
@@ -21,7 +29,7 @@ pub trait SchellingGameSharedLink {
 
 	fn set_to_staking_period_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		now: Self::BlockNumber,
 	) -> DispatchResult;
 
@@ -31,18 +39,18 @@ pub trait SchellingGameSharedLink {
 	) -> DispatchResult;
 	fn change_period_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		now: Self::BlockNumber,
 	) -> DispatchResult;
 	fn apply_jurors_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		who: Self::AccountId,
 		stake: Self::Balance,
 	) -> DispatchResult;
 	fn draw_jurors_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		interations: u64,
 	) -> DispatchResult;
 	fn unstaking_helper_link(key: Self::SumTreeName, who: Self::AccountId) -> DispatchResult;
@@ -59,31 +67,31 @@ pub trait SchellingGameSharedLink {
 	) -> DispatchResult;
 	fn get_incentives_two_choice_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		who: Self::AccountId,
 	) -> DispatchResult;
 	fn get_evidence_period_end_block_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		now: Self::BlockNumber,
 	) -> Option<u32>;
 	fn get_staking_period_end_block_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		now: Self::BlockNumber,
 	) -> Option<u32>;
 	fn get_drawing_period_end_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 	) -> (u64, u64, bool);
 	fn get_commit_period_end_block_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		now: Self::BlockNumber,
 	) -> Option<u32>;
 	fn get_vote_period_end_block_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		now: Self::BlockNumber,
 	) -> Option<u32>;
 	fn selected_as_juror_helper_link(key: Self::SumTreeName, who: Self::AccountId) -> bool;
@@ -101,15 +109,15 @@ pub trait SchellingGameSharedLink {
 
 	fn get_incentives_score_schelling_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		range_point: Self::RangePoint,
 	) -> DispatchResult;
 
-	fn get_mean_value_link( key: Self::SumTreeName) -> i64;
+	fn get_mean_value_link(key: Self::SumTreeName) -> i64;
 
 	fn get_all_incentives_two_choice_helper(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 	) -> DispatchResult;
 
 	fn get_drawn_jurors(key: Self::SumTreeName) -> Vec<(Self::AccountId, u64)>;

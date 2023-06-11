@@ -1,6 +1,7 @@
 use frame_support::pallet_prelude::*;
 use frame_support::sp_std::prelude::*;
 use scale_info::TypeInfo;
+use super::*;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
@@ -25,19 +26,36 @@ pub enum SchellingGameType {
 	DepartmentScore,
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Debug))]
-pub struct StakingTime<BlockNumber> {
-	pub min_short_block_length: BlockNumber,
-	pub min_long_block_length: BlockNumber,
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub struct PhaseData<T: Config> {
+	pub evidence_length: T::BlockNumber,
+	pub staking_length: T::BlockNumber,
+	pub drawing_length: T::BlockNumber,
+	pub commit_length: T::BlockNumber,
+	pub vote_length: T::BlockNumber,
+	pub appeal_length: T::BlockNumber,
+	pub max_draws: u64,
+	pub min_number_juror_staked: u64,
+	pub min_juror_stake: BalanceOf<T>,
+	pub juror_incentives: (u64, u64), // (looser burn, winner mint)
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Debug))]
-pub struct DrawJurorsLimit {
-	pub max_draws: u64,
-	pub max_draws_appeal: u64,
-}
+
+// #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
+// #[cfg_attr(feature = "std", derive(Debug))]
+// pub struct StakingTime<BlockNumber> {
+// 	pub min_short_block_length: BlockNumber,
+// 	pub min_long_block_length: BlockNumber,
+// }
+
+// #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
+// #[cfg_attr(feature = "std", derive(Debug))]
+// pub struct DrawJurorsLimit {
+// 	pub max_draws: u64,
+// 	pub max_draws_appeal: u64,
+// }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]

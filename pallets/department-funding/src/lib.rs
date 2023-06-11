@@ -31,7 +31,7 @@ use pallet_support::{
 	ensure_content_is_valid, new_who_and_when, remove_from_vec, Content, PositiveExternalityPostId,
 	WhoAndWhen, WhoAndWhenOf,
 };
-use schelling_game_shared::types::{Period, RangePoint, SchellingGameType};
+use schelling_game_shared::types::{Period, RangePoint, SchellingGameType, PhaseData};
 use schelling_game_shared_link::SchellingGameSharedLink;
 use shared_storage_link::SharedStorageLink;
 use sortition_sum_game::types::SumTreeName;
@@ -49,7 +49,7 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config  + schelling_game_shared::Config{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type SharedStorageSource: SharedStorageLink<AccountId = AccountIdOf<Self>>;
@@ -61,6 +61,8 @@ pub mod pallet {
 			Balance = BalanceOf<Self>,
 			RangePoint = RangePoint,
 			Period = Period,
+			PhaseData = PhaseData<Self>,
+
 		>;
 		type Currency: ReservableCurrency<Self::AccountId>;
 	}
@@ -150,7 +152,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			// Check user has done kyc
-			let _ = T::Currency::withdraw(
+			let _ = <T as pallet::Config>::Currency::withdraw(
 				&who,
 				deposit,
 				WithdrawReasons::TRANSFER,
@@ -237,9 +239,9 @@ pub mod pallet {
 				block_number: pe_block_number.clone(),
 			};
 
-			let game_type = SchellingGameType::DepartmentScore;
+			let phase_data = Self::get_phase_data();
 
-			T::SchellingGameSharedSource::apply_jurors_helper_link(key, game_type, who, stake)?;
+			T::SchellingGameSharedSource::apply_jurors_helper_link(key, phase_data, who, stake)?;
 
 			Ok(())
 		}
@@ -256,8 +258,8 @@ pub mod pallet {
 			};
 
 			let now = <frame_system::Pallet<T>>::block_number();
-			let game_type = SchellingGameType::DepartmentScore;
-			T::SchellingGameSharedSource::change_period_link(key, game_type, now)?;
+			let phase_data = Self::get_phase_data();
+			T::SchellingGameSharedSource::change_period_link(key, phase_data, now)?;
 
 			Ok(())
 		}
@@ -277,9 +279,9 @@ pub mod pallet {
 				block_number: pe_block_number.clone(),
 			};
 
-			let game_type = SchellingGameType::DepartmentScore;
+			let phase_data = Self::get_phase_data();
 
-			T::SchellingGameSharedSource::draw_jurors_helper_link(key, game_type, iterations)?;
+			T::SchellingGameSharedSource::draw_jurors_helper_link(key, phase_data, iterations)?;
 
 			Ok(())
 		}
@@ -349,10 +351,10 @@ pub mod pallet {
 				block_number: pe_block_number.clone(),
 			};
 
-			let game_type = SchellingGameType::DepartmentScore;
+			let phase_data = Self::get_phase_data();
 			T::SchellingGameSharedSource::get_incentives_score_schelling_helper_link(
 				key.clone(),
-				game_type,
+				phase_data,
 				RangePoint::ZeroToFive,
 			)?;
 

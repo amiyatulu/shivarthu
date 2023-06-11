@@ -10,6 +10,23 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	type Balance = BalanceOf<T>;
 	type RangePoint = RangePoint;
 	type Period = Period;
+	type PhaseData = PhaseDataOf<T>;
+
+	fn create_phase_data(
+		block_length: u64,
+		max_draws: u64,
+		min_number_juror_staked: u64,
+		min_juror_stake: u64,
+		juror_incentives: (u64, u64),
+	) -> Self::PhaseData {
+		Self::create_phase_data(
+			block_length,
+			max_draws,
+			min_number_juror_staked,
+			min_juror_stake,
+			juror_incentives,
+		)
+	}
 
 	/// Get the Period
 	fn get_period_link(key: Self::SumTreeName) -> Option<Period> {
@@ -42,10 +59,10 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	/// ```
 	fn set_to_staking_period_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		now: Self::BlockNumber,
 	) -> DispatchResult {
-		Self::set_to_staking_period(key, game_type, now)
+		Self::set_to_staking_period(key, phase_data, now)
 	}
 
 	fn set_to_staking_period_pe_link(
@@ -83,10 +100,10 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	/// ```   
 	fn change_period_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		now: Self::BlockNumber,
 	) -> DispatchResult {
-		Self::change_period(key, game_type, now)
+		Self::change_period(key, phase_data, now)
 	}
 
 	/// Apply Jurors      
@@ -95,11 +112,11 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	/// Store the stake on sortition sum tree if doesn't exists.   
 	fn apply_jurors_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		who: Self::AccountId,
 		stake: Self::Balance,
 	) -> DispatchResult {
-		Self::apply_jurors_helper(key, game_type, who, stake)
+		Self::apply_jurors_helper(key, phase_data, who, stake)
 	}
 
 	/// Draw Jurors  
@@ -108,10 +125,10 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	/// Ensure total draws `draws_in_round` is less than `max_draws`
 	fn draw_jurors_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		iterations: u64,
 	) -> DispatchResult {
-		Self::draw_jurors_helper(key, game_type, iterations)
+		Self::draw_jurors_helper(key, phase_data, iterations)
 	}
 
 	/// Unstake those who are not drawn as jurors   
@@ -146,10 +163,10 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	/// When they receive their incentives, their accountid is stored in `JurorsIncentiveDistributedAccounts`        
 	fn get_incentives_two_choice_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		who: Self::AccountId,
 	) -> DispatchResult {
-		Self::get_incentives_two_choice_helper(key, game_type, who)
+		Self::get_incentives_two_choice_helper(key, phase_data, who)
 	}
 
 	/// Blocks left for ending evidence period
@@ -157,45 +174,45 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	/// `start_block_number` evidence start time which you will get from `EvidenceStartTime`    
 	fn get_evidence_period_end_block_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		now: Self::BlockNumber,
 	) -> Option<u32> {
-		Self::get_evidence_period_end_block_helper(key, game_type, now)
+		Self::get_evidence_period_end_block_helper(key, phase_data, now)
 	}
 
 	/// Blocks left for ending staking period  
 	fn get_staking_period_end_block_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		now: Self::BlockNumber,
 	) -> Option<u32> {
-		Self::get_staking_period_end_block_helper(key, game_type, now)
+		Self::get_staking_period_end_block_helper(key, phase_data, now)
 	}
 
 	/// Return true when drawing period is over, otherwise false   
 	fn get_drawing_period_end_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 	) -> (u64, u64, bool) {
-		Self::get_drawing_period_end_helper(key, game_type)
+		Self::get_drawing_period_end_helper(key, phase_data)
 	}
 
 	/// Blocks left for ending drawing period
 	fn get_commit_period_end_block_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		now: Self::BlockNumber,
 	) -> Option<u32> {
-		Self::get_commit_period_end_block_helper(key, game_type, now)
+		Self::get_commit_period_end_block_helper(key, phase_data, now)
 	}
 
 	/// Blocks left for ending vote period
 	fn get_vote_period_end_block_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		now: Self::BlockNumber,
 	) -> Option<u32> {
-		Self::get_vote_period_end_block_helper(key, game_type, now)
+		Self::get_vote_period_end_block_helper(key, phase_data, now)
 	}
 
 	/// Check if `AccountId` is selected as juror
@@ -225,25 +242,23 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	/// Distribute incentives to all score schelling game jurors
 	fn get_incentives_score_schelling_helper_link(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 		range_point: Self::RangePoint,
 	) -> DispatchResult {
-		Self::get_incentives_score_schelling_helper(key, game_type, range_point)
+		Self::get_incentives_score_schelling_helper(key, phase_data, range_point)
 	}
 
 	/// Get new mean in score schelling game
-	fn get_mean_value_link(
-		key: Self::SumTreeName
-	) -> i64 {
+	fn get_mean_value_link(key: Self::SumTreeName) -> i64 {
 		Self::get_mean_value(key)
 	}
 
 	/// Distribute incentives to all two choice shelling game jurors
 	fn get_all_incentives_two_choice_helper(
 		key: Self::SumTreeName,
-		game_type: Self::SchellingGameType,
+		phase_data: Self::PhaseData,
 	) -> DispatchResult {
-		Self::get_all_incentives_two_choice_helper(key, game_type)
+		Self::get_all_incentives_two_choice_helper(key, phase_data)
 	}
 
 	fn get_drawn_jurors(key: Self::SumTreeName) -> Vec<(Self::AccountId, u64)> {
