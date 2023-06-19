@@ -2,7 +2,7 @@
 
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
-/// <https://docs.substrate.io/v3/runtime/frame>
+/// <https://docs.substrate.io/reference/frame-pallets/>
 pub use pallet::*;
 
 #[cfg(test)]
@@ -13,8 +13,10 @@ mod tests;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
+pub mod weights;
+pub use weights::*;
+
 mod extras;
-mod permissions;
 mod types;
 
 use crate::types::{ChallengeEvidencePost, ChallengerFundInfo, ProfileFundInfo};
@@ -27,13 +29,12 @@ use frame_support::{
 	PalletId,
 };
 use pallet_support::{
-	ensure_content_is_valid, new_who_and_when, remove_from_vec, Content,
-	WhoAndWhen, WhoAndWhenOf,
+	ensure_content_is_valid, new_who_and_when, remove_from_vec, Content, WhoAndWhen, WhoAndWhenOf,
 };
-pub use types::{CitizenDetailsPost, FIRST_CITIZEN_ID, FIRST_CHALLENGE_POST_ID};
-use schelling_game_shared::types::{Period, RangePoint, SchellingGameType, PhaseData};
+use schelling_game_shared::types::{Period, PhaseData, RangePoint, SchellingGameType};
 use schelling_game_shared_link::SchellingGameSharedLink;
 use sortition_sum_game::types::SumTreeName;
+pub use types::{CitizenDetailsPost, FIRST_CHALLENGE_POST_ID, FIRST_CITIZEN_ID};
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
 type ProfileFundInfoOf<T> =
@@ -49,13 +50,23 @@ const PALLET_ID: PalletId = PalletId(*b"ex/cfund");
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
+	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
+
+	#[pallet::pallet]
+	#[pallet::without_storage_info]
+	pub struct Pallet<T>(_);
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_timestamp::Config + schelling_game_shared::Config {
+	pub trait Config:
+		frame_system::Config + pallet_timestamp::Config + schelling_game_shared::Config
+	{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		/// Type representing the weight of this pallet
+		type WeightInfo: WeightInfo;
+
 		type SchellingGameSharedSource: SchellingGameSharedLink<
 			SumTreeName = SumTreeName<Self::AccountId, Self::BlockNumber>,
 			SchellingGameType = SchellingGameType,
@@ -69,11 +80,13 @@ pub mod pallet {
 		type Currency: ReservableCurrency<Self::AccountId>;
 	}
 
-	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
-	#[pallet::without_storage_info]
-	pub struct Pallet<T>(_);
-
+	// The pallet's runtime storage items.
+	// https://docs.substrate.io/main-docs/build/runtime-storage/
+	#[pallet::storage]
+	#[pallet::getter(fn something)]
+	// Learn more about declaring storage items:
+	// https://docs.substrate.io/main-docs/build/runtime-storage/#declaring-storage-items
+	pub type Something<T> = StorageValue<_, u32>;
 
 	#[pallet::type_value]
 	pub fn DefaultForNextCitizenId() -> CitizenId {
@@ -82,10 +95,8 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_citizen_id)]
-	pub type NextCitizenId<T> = StorageValue<_, CitizenId, ValueQuery, DefaultForNextCitizenId>;
-
-
-
+	pub type NextCitizenId<T: Config> =
+		StorageValue<_, CitizenId, ValueQuery, DefaultForNextCitizenId>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_citizen_id)]
@@ -93,7 +104,8 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn citizen_profile)]
-	pub type CitizenProfile<T> = StorageMap<_, Blake2_128Concat, CitizenId, CitizenDetailsPost<T>>; // Peer account id => Peer Profile Hash
+	pub type CitizenProfile<T: Config> =
+		StorageMap<_, Blake2_128Concat, CitizenId, CitizenDetailsPost<T>>; // Peer account id => Peer Profile Hash
 
 	// Registration Fees
 
@@ -109,41 +121,48 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn profile_registration_fees)]
-	pub type RegistrationFee<T> =
+	pub type RegistrationFee<T: Config> =
 		StorageValue<_, BalanceOf<T>, ValueQuery, DefaultRegistrationFee<T>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn profile_registration_challenge_fees)]
-	pub type RegistrationChallengeFee<T> =
+	pub type RegistrationChallengeFee<T: Config> =
 		StorageValue<_, BalanceOf<T>, ValueQuery, DefaultRegistrationChallengeFee<T>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn profile_fund)]
-	pub type ProfileFundDetails<T> =
+	pub type ProfileFundDetails<T: Config> =
 		StorageMap<_, Blake2_128Concat, CitizenId, ProfileFundInfoOf<T>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn challenger_fund)]
-	pub type ChallengerFundDetails<T> =
+	pub type ChallengerFundDetails<T: Config> =
 		StorageMap<_, Blake2_128Concat, CitizenId, ChallengerFundInfoOf<T>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn challenger_evidence_query)]
-	pub type ChallengerEvidenceId<T: Config> =
-		StorageDoubleMap<_, Blake2_128Concat, CitizenId, Blake2_128Concat, T::AccountId, ChallengePostId>; // profile number, challenger accountid => Challenge post id
-	
-		#[pallet::type_value]
-	pub fn DefaultForNextChallengePostId() -> CitizenId {
+	pub type ChallengerEvidenceId<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		CitizenId,
+		Blake2_128Concat,
+		T::AccountId,
+		ChallengePostId,
+	>; // profile number, challenger accountid => Challenge post id
+
+	#[pallet::type_value]
+	pub fn DefaultForNextChallengePostId() -> ChallengePostId {
 		FIRST_CHALLENGE_POST_ID
 	}
-	
+
 	#[pallet::storage]
 	#[pallet::getter(fn next_challenge_post_count)]
-	pub type NextChallengePostId<T> = StorageValue<_, ChallengePostId, ValueQuery, DefaultForNextChallengePostId>;
+	pub type NextChallengePostId<T: Config> =
+		StorageValue<_, ChallengePostId, ValueQuery, DefaultForNextChallengePostId>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn challenge_post_comment)]
-	pub type ChallengePostCommentIds<T> =
+	pub type ChallengePostCommentIds<T: Config> =
 		StorageMap<_, Blake2_128Concat, ChallengePostId, Vec<ChallengePostId>, ValueQuery>; // challenge post id => Vec<Comment Post It>
 
 	#[pallet::storage]
@@ -151,15 +170,17 @@ pub mod pallet {
 	pub type ChallengePost<T: Config> =
 		StorageMap<_, Blake2_128Concat, ChallengePostId, ChallengeEvidencePost<T>>; // challenge post id => post
 
-
-
 	// Pallets use events to inform users when important changes are made.
-	// https://docs.substrate.io/v3/runtime/events-and-errors
+	// https://docs.substrate.io/main-docs/build/events-errors/
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
+		SomethingStored {
+			something: u32,
+			who: T::AccountId,
+		},
 		CreateCitizen(T::AccountId, CitizenId),
 	}
 
@@ -202,7 +223,8 @@ pub mod pallet {
 		///                   Increment citizen count and put the newcount to CitizenCount  
 		///                   Release CreateCitizen event
 		/// </pre>
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::call_index(0)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
 		pub fn add_citizen(origin: OriginFor<T>, content: Content) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let count = Self::next_citizen_id();
@@ -211,8 +233,9 @@ pub mod pallet {
 				None => {
 					<GetCitizenId<T>>::insert(&who, count);
 
-					let new_post: CitizenDetailsPost<T> = CitizenDetailsPost::new(count, who.clone(), content.clone());
-			
+					let new_post: CitizenDetailsPost<T> =
+						CitizenDetailsPost::new(count, who.clone(), content.clone());
+
 					<CitizenProfile<T>>::insert(&count, new_post);
 					NextCitizenId::<T>::mutate(|n| {
 						*n += 1;
@@ -279,8 +302,12 @@ pub mod pallet {
 		// 	Ok(())
 		// }
 
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn add_profile_fund(origin: OriginFor<T>, profile_citizenid: CitizenId) -> DispatchResult {
+		#[pallet::call_index(1)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		pub fn add_profile_fund(
+			origin: OriginFor<T>,
+			profile_citizenid: CitizenId,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let _citizen_account_id = Self::get_citizen_accountid(profile_citizenid)?;
 			let deposit = <RegistrationFee<T>>::get();
@@ -316,12 +343,13 @@ pub mod pallet {
 				name: "challengeprofile".as_bytes().to_vec(),
 			};
 
-			let result = T::SchellingGameSharedSource::set_to_evidence_period_link(key, now);
+			T::SchellingGameSharedSource::set_to_evidence_period_link(key, now)?;
 
-			result
+			Ok(())
 		}
 
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::call_index(2)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
 		pub fn challenge_evidence(
 			origin: OriginFor<T>,
 			profile_citizenid: CitizenId,
@@ -330,7 +358,8 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			let citizen_account_id = Self::get_citizen_accountid(profile_citizenid)?;
 			let count = Self::next_challenge_post_count();
-			let challenge_evidence_post = ChallengeEvidencePost::new(citizen_account_id, who.clone(), content, None); 
+			let challenge_evidence_post =
+				ChallengeEvidencePost::new(citizen_account_id, who.clone(), content, None);
 			match <ChallengerEvidenceId<T>>::get(&profile_citizenid, &who) {
 				None => {
 					<ChallengePost<T>>::insert(&count, challenge_evidence_post);
@@ -360,7 +389,8 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::call_index(3)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
 		pub fn challenge_comment_create(
 			origin: OriginFor<T>,
 			post_id: ChallengePostId,
@@ -369,7 +399,12 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			let count = Self::next_challenge_post_count();
 			let main_evidence_post = Self::challenge_post(post_id).unwrap();
-			let challenge_evidence_post = ChallengeEvidencePost::new(main_evidence_post.kyc_profile_id, who, content, Some(post_id)); 
+			let challenge_evidence_post = ChallengeEvidencePost::new(
+				main_evidence_post.kyc_profile_id,
+				who,
+				content,
+				Some(post_id),
+			);
 
 			match <ChallengePost<T>>::get(&post_id) {
 				None => Err(Error::<T>::ChallengeDoesNotExists)?,
@@ -400,8 +435,12 @@ pub mod pallet {
 		// Has the citizen added profile fund ✔️
 		// Create tree ✔️
 		// Check evidence has been submitted
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn challenge_profile(origin: OriginFor<T>, profile_citizenid: CitizenId) -> DispatchResult {
+		#[pallet::call_index(4)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		pub fn challenge_profile(
+			origin: OriginFor<T>,
+			profile_citizenid: CitizenId,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let key = SumTreeName::UniqueIdenfier1 {
 				citizen_id: profile_citizenid,
@@ -417,7 +456,7 @@ pub mod pallet {
 					} else {
 						let _evidence_stake_block_number = profilefundinfo.start; // remove the profile fund info start
 
-				  T::SchellingGameSharedSource::set_to_staking_period_link(
+						T::SchellingGameSharedSource::set_to_staking_period_link(
 							key.clone(),
 							phase_data,
 							now,
@@ -457,7 +496,8 @@ pub mod pallet {
 		}
 
 		// May be you need to check challeger fund details exists
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::call_index(5)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
 		pub fn pass_period(origin: OriginFor<T>, profile_citizenid: CitizenId) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
 
@@ -489,7 +529,8 @@ pub mod pallet {
 		// 2. Check period is Staking ✔️
 		// 3. Number of people staked
 
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::call_index(6)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
 		pub fn apply_jurors(
 			origin: OriginFor<T>,
 			profile_citizenid: CitizenId,
@@ -516,7 +557,8 @@ pub mod pallet {
 		// Set stake to zero so that they are not drawn again
 		// Store the drawn juror stake in hashmap storage
 		// Add min draws along with max draws
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::call_index(7)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
 		pub fn draw_jurors(
 			origin: OriginFor<T>,
 			profile_citizenid: CitizenId,
@@ -536,18 +578,20 @@ pub mod pallet {
 
 		// Unstaking
 		// Stop drawn juror to unstake ✔️
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::call_index(8)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
 		pub fn unstaking(origin: OriginFor<T>, profile_citizenid: CitizenId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let key = SumTreeName::UniqueIdenfier1 {
 				citizen_id: profile_citizenid,
 				name: "challengeprofile".as_bytes().to_vec(),
 			};
-			let result = T::SchellingGameSharedSource::unstaking_helper_link(key, who);
-			result
+			T::SchellingGameSharedSource::unstaking_helper_link(key, who)?;
+			Ok(())
 		}
 
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::call_index(9)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
 		pub fn commit_vote(
 			origin: OriginFor<T>,
 			profile_citizenid: CitizenId,
@@ -558,12 +602,12 @@ pub mod pallet {
 				citizen_id: profile_citizenid,
 				name: "challengeprofile".as_bytes().to_vec(),
 			};
-			let result =
-				T::SchellingGameSharedSource::commit_vote_helper_link(key, who, vote_commit);
-			result
+			T::SchellingGameSharedSource::commit_vote_helper_link(key, who, vote_commit)?;
+			Ok(())
 		}
 
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::call_index(10)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
 		pub fn reveal_vote(
 			origin: OriginFor<T>,
 			profile_citizenid: CitizenId,
@@ -576,26 +620,29 @@ pub mod pallet {
 				name: "challengeprofile".as_bytes().to_vec(),
 			};
 
-			let result = T::SchellingGameSharedSource::reveal_vote_two_choice_helper_link(
+			T::SchellingGameSharedSource::reveal_vote_two_choice_helper_link(
 				key, who, choice, salt,
-			);
-			result
+			)?;
+
+			Ok(())
 		}
 
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		pub fn get_incentives(origin: OriginFor<T>, profile_citizenid: CitizenId) -> DispatchResult {
+		#[pallet::call_index(11)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		pub fn get_incentives(
+			origin: OriginFor<T>,
+			profile_citizenid: CitizenId,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let key = SumTreeName::UniqueIdenfier1 {
 				citizen_id: profile_citizenid,
 				name: "challengeprofile".as_bytes().to_vec(),
 			};
 			let phase_data = Self::get_phase_data();
-			let result = T::SchellingGameSharedSource::get_incentives_two_choice_helper_link(
+			T::SchellingGameSharedSource::get_incentives_two_choice_helper_link(
 				key, phase_data, who,
-			);
-			result
+			)?;
+			Ok(())
 		}
-
-		// Write code for return profile incentives
 	}
 }

@@ -218,21 +218,12 @@ A FRAME pallet is compromised of a number of blockchain primitives:
 - Config: The `Config` configuration interface is used to define the types and parameters upon
   which a FRAME pallet depends.
 
-### Run in Docker
+### Run in Podman
+Install [Podman](https://podman.io/docs/installation) 
 
-First, install [Docker](https://docs.docker.com/get-docker/) and
-[Docker Compose](https://docs.docker.com/compose/install/).
-
-Then run the following command to start a single node development chain.
-
-Create a folder .local inside `shivarthu` folder
-
-And run `docker compose up` inside the `shivarthu` folder
 
 ```bash
-cd shivarthu
-mkdir .local
-docker compose up
+podman build .
 ```
 
 This command will firstly compile your code, and then start a local development network. You can

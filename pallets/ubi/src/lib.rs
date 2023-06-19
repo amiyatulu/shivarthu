@@ -2,7 +2,7 @@
 
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
-/// <https://docs.substrate.io/v3/runtime/frame>
+/// <https://docs.substrate.io/reference/frame-pallets/>
 pub use pallet::*;
 
 #[cfg(test)]
@@ -13,6 +13,8 @@ mod tests;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
+pub mod weights;
+pub use weights::*;
 
 mod extras;
 
@@ -36,14 +38,20 @@ type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::pallet_prelude::{DispatchResult, *};
+	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
+
+	#[pallet::pallet]
+	pub struct Pallet<T>(_);
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		/// Type representing the weight of this pallet
+		type WeightInfo: WeightInfo;
+
 		type SharedStorageSource: SharedStorageLink<AccountId = AccountIdOf<Self>>;
 		type Currency: ReservableCurrency<Self::AccountId>;
 		/// Handler for the unbalanced increment when rewarding (minting rewards)
@@ -53,36 +61,26 @@ pub mod pallet {
 		type Slash: OnUnbalanced<NegativeImbalanceOf<Self>>;
 	}
 
-	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
-	#[pallet::without_storage_info]
-	pub struct Pallet<T>(_);
-
 	// The pallet's runtime storage items.
-	// https://docs.substrate.io/v3/runtime/storage
+	// https://docs.substrate.io/main-docs/build/runtime-storage/
 	#[pallet::storage]
 	#[pallet::getter(fn something)]
 	// Learn more about declaring storage items:
-	// https://docs.substrate.io/v3/runtime/storage#declaring-storage-items
+	// https://docs.substrate.io/main-docs/build/runtime-storage/#declaring-storage-items
 	pub type Something<T> = StorageValue<_, u32>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn citizen_got_ubi_block_number)]
 	pub type CitizenUbiBlock<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, BlockNumberOf<T>, ValueQuery>;
-
-	// three_month_block = (3×30×24×60×60)/6 = 1296000
-	// modulus = block_number % three_month_block
-	// storage_main_block = block_number - modulus
-
 	// Pallets use events to inform users when important changes are made.
-	// https://docs.substrate.io/v3/runtime/events-and-errors
+	// https://docs.substrate.io/main-docs/build/events-errors/
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
-		SomethingStored(u32, T::AccountId),
+		SomethingStored { something: u32, who: T::AccountId },
 	}
 
 	// Errors inform users that something went wrong.
@@ -99,10 +97,9 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Fund fixed UBI every three month
-		/// Fund positive externality based on positive externality score
-		/// Give tranferable staking coins
-		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
+		
+		#[pallet::call_index(0)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
 		pub fn fun_ubi(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			T::SharedStorageSource::check_citizen_is_approved_link(who.clone())?;

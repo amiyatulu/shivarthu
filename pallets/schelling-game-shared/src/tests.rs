@@ -1,27 +1,15 @@
 use crate::{
 	mock::*,
-	types::{Period, SchellingGameType, RangePoint, PhaseData},
-	Error,
+	types::{Period, PhaseData, RangePoint, SchellingGameType},
+	Error, Event,
 };
-use frame_support::traits::{OnFinalize, OnInitialize};
 use frame_support::{assert_noop, assert_ok};
+
 use sortition_sum_game::types::SumTreeName;
 
 type CitizenId = u64;
 
-fn _run_to_block(n: u64) {
-	while System::block_number() < n {
-		TemplateModule::on_finalize(System::block_number());
-		Balances::on_finalize(System::block_number());
-		System::on_finalize(System::block_number());
-		System::set_block_number(System::block_number() + 1);
-		System::on_initialize(System::block_number());
-		Balances::on_initialize(System::block_number());
-		TemplateModule::on_initialize(System::block_number());
-	}
-}
-
-fn return_key_profile(citizen_id: CitizenId) -> SumTreeName<u64, u64>{
+fn return_key_profile(citizen_id: CitizenId) -> SumTreeName<u64, u64> {
 	let key =
 		SumTreeName::UniqueIdenfier1 { citizen_id, name: "challengeprofile".as_bytes().to_vec() };
 	key
@@ -32,10 +20,34 @@ fn return_game_type_profile_approval() -> SchellingGameType {
 }
 
 fn get_the_phase_data() -> PhaseData<Test> {
-	let data = PhaseData::create_with_data(50, 5,3,100, (100,100));
+	let data = PhaseData::create_with_data(50, 5, 3, 100, (100, 100));
 	data
 }
 
+#[test]
+fn it_works_for_default_value() {
+	new_test_ext().execute_with(|| {
+		// Go past genesis block so events get deposited
+		System::set_block_number(1);
+		// Dispatch a signed extrinsic.
+		assert_ok!(TemplateModule::do_something(RuntimeOrigin::signed(1), 42));
+		// Read pallet storage and assert an expected result.
+		assert_eq!(TemplateModule::something(), Some(42));
+		// Assert that the correct event was deposited
+		System::assert_last_event(Event::SomethingStored { something: 42, who: 1 }.into());
+	});
+}
+
+#[test]
+fn correct_error_for_none_value() {
+	new_test_ext().execute_with(|| {
+		// Ensure the expected error is thrown when no value is present.
+		assert_noop!(
+			TemplateModule::cause_error(RuntimeOrigin::signed(1)),
+			Error::<Test>::NoneValue
+		);
+	});
+}
 
 #[test]
 fn evidence_period_not_over_test() {
@@ -44,7 +56,6 @@ fn evidence_period_not_over_test() {
 		let now = 10;
 		assert_ok!(TemplateModule::set_to_evidence_period(key.clone(), now));
 		assert_eq!(TemplateModule::get_period(&key).unwrap(), Period::Evidence);
-		let game_type = return_game_type_profile_approval();
 		let phase_data = get_the_phase_data();
 		let now2 = now + phase_data.evidence_length - 1;
 		assert_noop!(
@@ -64,7 +75,6 @@ fn evidence_period_test() {
 		let now = 10;
 		assert_ok!(TemplateModule::set_to_evidence_period(key.clone(), now));
 		assert_eq!(TemplateModule::get_period(&key).unwrap(), Period::Evidence);
-		let game_type = return_game_type_profile_approval();
 		let phase_data = get_the_phase_data();
 		let now2 = now + phase_data.evidence_length;
 		assert_ok!(TemplateModule::set_to_staking_period(key.clone(), phase_data, now2));
@@ -80,7 +90,6 @@ fn apply_juror() {
 		let now = 10;
 		assert_ok!(TemplateModule::set_to_evidence_period(key.clone(), now));
 		assert_eq!(TemplateModule::get_period(&key).unwrap(), Period::Evidence);
-		let game_type = return_game_type_profile_approval();
 		let phase_data = get_the_phase_data();
 		let now2 = now + phase_data.evidence_length;
 		assert_ok!(TemplateModule::set_to_staking_period(key.clone(), phase_data.clone(), now2));
@@ -109,9 +118,6 @@ fn challenger_win_test() {
 		let now = 10;
 		assert_ok!(TemplateModule::set_to_evidence_period(key.clone(), now));
 		assert_eq!(TemplateModule::get_period(&key).unwrap(), Period::Evidence);
-		let game_type = return_game_type_profile_approval();
-		// let min_short_block_length = return_min_short_block_length();
-		// let min_long_block_length = return_min_long_block_length();
 		let phase_data = get_the_phase_data();
 
 		let staking_start_time = now + phase_data.evidence_length;
@@ -135,7 +141,7 @@ fn challenger_win_test() {
 				j * 100
 			));
 		}
-		let new_now = staking_start_time +  phase_data.staking_length;
+		let new_now = staking_start_time + phase_data.staking_length;
 		assert_ok!(TemplateModule::change_period(key.clone(), phase_data.clone(), new_now.clone()));
 		let period = TemplateModule::get_period(key.clone());
 		assert_eq!(Some(Period::Drawing), period);
@@ -201,37 +207,56 @@ fn challenger_win_test() {
 		let new_now = vote_start_time + phase_data.vote_length;
 		assert_ok!(TemplateModule::change_period(key.clone(), phase_data.clone(), new_now.clone()));
 		let period = TemplateModule::get_period(key.clone());
-	    assert_eq!(Some(Period::Execution), period);
+		assert_eq!(Some(Period::Execution), period);
 
 		let balance = Balances::free_balance(4);
 		assert_eq!(299600, balance);
-		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), phase_data.clone(), 4));
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(
+			key.clone(),
+			phase_data.clone(),
+			4
+		));
 		let balance = Balances::free_balance(4);
 		assert_eq!(300025, balance);
 		let balance = Balances::free_balance(7);
 		// println!("{:?}", balance);
 		assert_eq!(299300, balance);
-		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), phase_data.clone(), 7));
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(
+			key.clone(),
+			phase_data.clone(),
+			7
+		));
 		let balance = Balances::free_balance(7);
 		assert_eq!(300025, balance);
 		let balance = Balances::free_balance(13);
 		assert_eq!(298700, balance);
-		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), phase_data.clone(), 13));
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(
+			key.clone(),
+			phase_data.clone(),
+			13
+		));
 		let balance = Balances::free_balance(13);
 		assert_eq!(300025, balance);
 		let balance = Balances::free_balance(14);
 		assert_eq!(298600, balance);
-		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), phase_data.clone(), 14));
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(
+			key.clone(),
+			phase_data.clone(),
+			14
+		));
 		let balance = Balances::free_balance(14);
 		assert_eq!(300025, balance);
 		let balance = Balances::free_balance(15);
 		assert_eq!(298500, balance);
-		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), phase_data.clone(), 15));
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(
+			key.clone(),
+			phase_data.clone(),
+			15
+		));
 		let balance = Balances::free_balance(15);
 		assert_eq!(299625, balance);
 	});
 }
-
 
 #[test]
 fn challenger_win_test_jurors_incentive_in_one_go() {
@@ -334,7 +359,7 @@ fn challenger_win_test_jurors_incentive_in_one_go() {
 		let new_now = vote_start_time + phase_data.vote_length;
 		assert_ok!(TemplateModule::change_period(key.clone(), phase_data.clone(), new_now.clone()));
 		let period = TemplateModule::get_period(key.clone());
-	    assert_eq!(Some(Period::Execution), period);
+		assert_eq!(Some(Period::Execution), period);
 		let balance = Balances::free_balance(4);
 		assert_eq!(299600, balance);
 		let balance = Balances::free_balance(7);
@@ -346,8 +371,11 @@ fn challenger_win_test_jurors_incentive_in_one_go() {
 		assert_eq!(298600, balance);
 		let balance = Balances::free_balance(15);
 		assert_eq!(298500, balance);
-		assert_ok!(TemplateModule::get_all_incentives_two_choice_helper(key.clone(), phase_data.clone()));
-        let balance = Balances::free_balance(4);
+		assert_ok!(TemplateModule::get_all_incentives_two_choice_helper(
+			key.clone(),
+			phase_data.clone()
+		));
+		let balance = Balances::free_balance(4);
 		assert_eq!(300025, balance);
 		let balance = Balances::free_balance(7);
 		assert_eq!(300025, balance);
@@ -459,40 +487,59 @@ fn challenger_lost_test() {
 		let new_now = vote_start_time + phase_data.vote_length;
 		assert_ok!(TemplateModule::change_period(key.clone(), phase_data.clone(), new_now.clone()));
 		let period = TemplateModule::get_period(key.clone());
-	    assert_eq!(Some(Period::Execution), period);
+		assert_eq!(Some(Period::Execution), period);
 
 		let balance = Balances::free_balance(4);
 		assert_eq!(299600, balance);
-		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), phase_data.clone(), 4));
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(
+			key.clone(),
+			phase_data.clone(),
+			4
+		));
 		let balance = Balances::free_balance(4);
 		assert_eq!(300025, balance);
 		let balance = Balances::free_balance(7);
 		// println!("{:?}", balance);
 		assert_eq!(299300, balance);
-		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), phase_data.clone(), 7));
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(
+			key.clone(),
+			phase_data.clone(),
+			7
+		));
 		let balance = Balances::free_balance(7);
 		assert_eq!(300025, balance);
 		let balance = Balances::free_balance(13);
 		assert_eq!(298700, balance);
-		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), phase_data.clone(), 13));
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(
+			key.clone(),
+			phase_data.clone(),
+			13
+		));
 		let balance = Balances::free_balance(13);
 		assert_eq!(300025, balance);
 		let balance = Balances::free_balance(14);
 		assert_eq!(298600, balance);
-		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), phase_data.clone(), 14));
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(
+			key.clone(),
+			phase_data.clone(),
+			14
+		));
 		let balance = Balances::free_balance(14);
 		assert_eq!(300025, balance);
 		let balance = Balances::free_balance(15);
 		assert_eq!(298500, balance);
-		assert_ok!(TemplateModule::get_incentives_two_choice_helper(key.clone(), phase_data.clone(), 15));
+		assert_ok!(TemplateModule::get_incentives_two_choice_helper(
+			key.clone(),
+			phase_data.clone(),
+			15
+		));
 		let balance = Balances::free_balance(15);
 		assert_eq!(299625, balance);
 	});
 }
 
-
 #[test]
-fn score_schelling_game_test() { 
+fn score_schelling_game_test() {
 	new_test_ext().execute_with(|| {
 		let key = return_key_profile(0);
 		let now = 10;
@@ -578,12 +625,15 @@ fn score_schelling_game_test() {
 			1,
 			"salt4".as_bytes().to_vec()
 		));
-		assert_noop!(TemplateModule::reveal_vote_score_helper(
-			key.clone(),
-			15,
-			8,
-			"salt5".as_bytes().to_vec()
-		), Error::<Test>::CommitDoesNotMatch );
+		assert_noop!(
+			TemplateModule::reveal_vote_score_helper(
+				key.clone(),
+				15,
+				8,
+				"salt5".as_bytes().to_vec()
+			),
+			Error::<Test>::CommitDoesNotMatch
+		);
 		assert_ok!(TemplateModule::reveal_vote_score_helper(
 			key.clone(),
 			15,
@@ -594,7 +644,7 @@ fn score_schelling_game_test() {
 		let new_now = vote_start_time + phase_data.commit_length;
 		assert_ok!(TemplateModule::change_period(key.clone(), phase_data.clone(), new_now.clone()));
 		let period = TemplateModule::get_period(key.clone());
-	    assert_eq!(Some(Period::Execution), period);
+		assert_eq!(Some(Period::Execution), period);
 		let reveal_score = TemplateModule::reveal_score_values(key.clone());
 		assert_eq!(vec![1000, 1000, 5000, 1000, 7000], reveal_score);
 		let balance = Balances::free_balance(4);
@@ -608,7 +658,11 @@ fn score_schelling_game_test() {
 		assert_eq!(298600, balance);
 		let balance = Balances::free_balance(15);
 		assert_eq!(298500, balance);
-		assert_ok!(TemplateModule::get_incentives_score_schelling_helper(key.clone(), phase_data.clone(), RangePoint::ZeroToTen));
+		assert_ok!(TemplateModule::get_incentives_score_schelling_helper(
+			key.clone(),
+			phase_data.clone(),
+			RangePoint::ZeroToTen
+		));
 		let mean_values = TemplateModule::new_mean_reveal_score(key.clone());
 		assert_eq!(2000, mean_values);
 		let balance = Balances::free_balance(4);
@@ -622,10 +676,5 @@ fn score_schelling_game_test() {
 		assert_eq!(300033, balance);
 		let balance = Balances::free_balance(15); // Balance deducted as voted 7
 		assert_eq!(299625, balance);
-
-
-
-
 	});
 }
-

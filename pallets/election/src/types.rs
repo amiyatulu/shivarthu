@@ -1,6 +1,5 @@
 use frame_support::pallet_prelude::*;
 use scale_info::TypeInfo;
-use sp_std::{prelude::*};
 
 #[derive(
 	PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, RuntimeDebug, TypeInfo,

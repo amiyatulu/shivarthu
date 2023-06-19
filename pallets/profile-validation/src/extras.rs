@@ -64,7 +64,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn fund_profile_account() -> T::AccountId {
-		PALLET_ID.into_sub_account(1)
+		PALLET_ID.into_sub_account_truncating(1)
 	}
 
 	pub fn get_challengers_evidence(

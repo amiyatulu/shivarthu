@@ -2,14 +2,7 @@
 
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
-/// <https://docs.substrate.io/v3/runtime/frame>
-
-// To dos:
-
-// Unstake jurors in one go
-// Give incentives in one go 
-// Tests
-
+/// <https://docs.substrate.io/reference/frame-pallets/>
 pub use pallet::*;
 
 #[cfg(test)]
@@ -18,8 +11,12 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+
+
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
+pub mod weights;
+pub use weights::*;
 
 mod extras;
 mod functions;
@@ -28,20 +25,17 @@ mod score_game;
 mod share_link;
 
 use crate::types::{
-	PhaseData, CommitVote, Period, SchellingGameType,VoteStatus, RevealedVote, WinningDecision, ScoreCommitVote, RangePoint
+	CommitVote, Period, PhaseData, RangePoint, RevealedVote, SchellingGameType, ScoreCommitVote,
+	VoteStatus, WinningDecision,
 };
 use frame_support::pallet_prelude::*;
 use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
 use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::prelude::*;
 use frame_support::traits::Randomness;
-use frame_support::{
-	traits::{
-		Currency, OnUnbalanced, ReservableCurrency,
-	},
-};
-use scale_info::prelude::format;
+use frame_support::traits::{Currency, OnUnbalanced, ReservableCurrency};
 use num_integer::Roots;
+use scale_info::prelude::format;
 use sortition_sum_game::types::SumTreeName;
 use sortition_sum_game_link::SortitionSumGameLink;
 
@@ -60,12 +54,20 @@ type PhaseDataOf<T> = PhaseData<T>;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
+	use frame_support::pallet_prelude::*;
+	use frame_system::pallet_prelude::*;
+
+	#[pallet::pallet]
+	#[pallet::without_storage_info]
+	pub struct Pallet<T>(_);
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		/// Type representing the weight of this pallet
+		type WeightInfo: WeightInfo;
 
 		type SortitionSumGameSource: SortitionSumGameLink<
 			SumTreeName = SumTreeName<Self::AccountId, Self::BlockNumber>,
@@ -83,73 +85,30 @@ pub mod pallet {
 		type Slash: OnUnbalanced<NegativeImbalanceOf<Self>>;
 	}
 
-	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
-	#[pallet::without_storage_info]
-	pub struct Pallet<T>(_);
-
-	// Schelling Game Storage:
+	// The pallet's runtime storage items.
+	// https://docs.substrate.io/main-docs/build/runtime-storage/
+	#[pallet::storage]
+	#[pallet::getter(fn something)]
+	// Learn more about declaring storage items:
+	// https://docs.substrate.io/main-docs/build/runtime-storage/#declaring-storage-items
+	pub type Something<T> = StorageValue<_, u32>;
 
 	#[pallet::storage]
 	pub type Nonce<T> = StorageValue<_, u64, ValueQuery>;
+
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_period)]
 	pub type PeriodName<T> = StorageMap<_, Blake2_128Concat, SumTreeNameType<T>, Period>;
 
-	// #[pallet::type_value]
-	// pub fn DefaultMinBlockTime<T: Config>() -> StakingTime<BlockNumberOf<T>> {
-	// 	let staking_time = StakingTime {
-	// 		min_short_block_length: 50u128.saturated_into::<BlockNumberOf<T>>(),
-	// 		min_long_block_length: 80u128.saturated_into::<BlockNumberOf<T>>(),
-	// 	};
-	// 	staking_time
-	// 	// 6 sec (1 block)
-	// 	// 3 days (43200), 10 days (144000)
-	// 	// 15 mins (150)
-	// 	// 5 mins (50)
-	// 	// 8 mins (80)
-	// }
-
-	///`StakingTime` `min_short_block_length` for changing `Period::Evidence` to `Period::Staking`   
-	///`StakingTime` `min_long_block_length` for changing other periods in `change_period`   
-	// #[pallet::storage]
-	// #[pallet::getter(fn min_block_time)]
-	// pub type MinBlockTime<T> = StorageMap<
-	// 	_,
-	// 	Blake2_128Concat,
-	// 	SchellingGameType,
-	// 	StakingTime<BlockNumberOf<T>>,
-	// 	ValueQuery,
-	// 	DefaultMinBlockTime<T>,
-	// >;
-
-	// #[pallet::type_value]
-	// pub fn DefaultMinStake<T: Config>() -> BalanceOf<T> {
-	// 	100u128.saturated_into::<BalanceOf<T>>()
-	// }
-
-	// #[pallet::storage]
-	// #[pallet::getter(fn min_juror_stake)]
-	// pub type MinJurorStake<T> = StorageMap<
-	// 	_,
-	// 	Blake2_128Concat,
-	// 	SchellingGameType,
-	// 	BalanceOf<T>,
-	// 	ValueQuery,
-	// 	DefaultMinStake<T>,
-	// >;
-
 	#[pallet::storage]
 	#[pallet::getter(fn draws_in_round)]
 	pub type DrawsInRound<T> = StorageMap<_, Blake2_128Concat, SumTreeNameType<T>, u64, ValueQuery>; // A counter of draws made in the current round.
-
 
 	#[pallet::storage]
 	#[pallet::getter(fn evidence_start_time)]
 	pub type EvidenceStartTime<T> =
 		StorageMap<_, Blake2_128Concat, SumTreeNameType<T>, BlockNumberOf<T>, ValueQuery>;
-
 
 	#[pallet::storage]
 	#[pallet::getter(fn staking_start_time)]
@@ -166,35 +125,17 @@ pub mod pallet {
 	pub type VoteStartTime<T> =
 		StorageMap<_, Blake2_128Concat, SumTreeNameType<T>, BlockNumberOf<T>, ValueQuery>;
 
-	
 	/// Drawn jurors containing account id and stake Vec<(AccountId, Stake)>
 	/// Should be stored in sorted order by AccountId
 	#[pallet::storage]
 	#[pallet::getter(fn  drawn_jurors)]
 	pub type DrawnJurors<T: Config> =
 		StorageMap<_, Blake2_128Concat, SumTreeNameType<T>, Vec<(T::AccountId, u64)>, ValueQuery>;
+
 	#[pallet::storage]
 	#[pallet::getter(fn unstaked_jurors)]
 	pub type UnstakedJurors<T: Config> =
 		StorageMap<_, Blake2_128Concat, SumTreeNameType<T>, Vec<T::AccountId>, ValueQuery>;
-
-	// #[pallet::type_value]
-	// pub fn DefaultDrawJurorsLimitNum<T: Config>() -> DrawJurorsLimit {
-	// 	let draw_juror_limit = DrawJurorsLimit { max_draws: 5, max_draws_appeal: 10 };
-	// 	// change max draws more than 30 in production
-	// 	draw_juror_limit
-	// }
-
-	// #[pallet::storage]
-	// #[pallet::getter(fn draw_jurors_for_profile_limit)]
-	// pub type DrawJurorsLimitNum<T> = StorageMap<
-	// 	_,
-	// 	Blake2_128Concat,
-	// 	SchellingGameType,
-	// 	DrawJurorsLimit,
-	// 	ValueQuery,
-	// 	DefaultDrawJurorsLimitNum<T>,
-	// >;
 
 	/// VoteCommits for Yes or No voting
 	#[pallet::storage]
@@ -223,48 +164,21 @@ pub mod pallet {
 	/// Reveal values of score schelling game as Vec<i64>
 	#[pallet::storage]
 	#[pallet::getter(fn reveal_score_values)]
-	pub type RevealScoreValues<T: Config> = StorageMap<
-	_,
-	Blake2_128Concat,
-	SumTreeNameType<T>,
-	Vec<i64>,
-	ValueQuery,
-	>;
+	pub type RevealScoreValues<T: Config> =
+		StorageMap<_, Blake2_128Concat, SumTreeNameType<T>, Vec<i64>, ValueQuery>;
 
 	/// New mean from the reveal values in score schelling game
-	/// Improvement: This step will not be required if all jurors incentives are distributed at one time	
+	/// Improvement: This step will not be required if all jurors incentives are distributed at one time
 	#[pallet::storage]
 	#[pallet::getter(fn new_mean_reveal_score)]
-	pub type IncentiveMeanRevealScore<T: Config> = StorageMap<
-	_,
-	Blake2_128Concat,
-	SumTreeNameType<T>,
-	i64,
-	ValueQuery
-	>;
+	pub type IncentiveMeanRevealScore<T: Config> =
+		StorageMap<_, Blake2_128Concat, SumTreeNameType<T>, i64, ValueQuery>;
 
-    /// Decision count for two choices after reveal vote:  (count for 0, count for 1)
+	/// Decision count for two choices after reveal vote:  (count for 0, count for 1)
 	#[pallet::storage]
 	#[pallet::getter(fn decision_count)]
 	pub type DecisionCount<T> =
 		StorageMap<_, Blake2_128Concat, SumTreeNameType<T>, (u64, u64), ValueQuery>; // Count for 0, Count for 1
-	// #[pallet::type_value]
-	// pub fn DefaultJurorIncentives<T: Config>() -> (u64, u64) {
-	// 	(100, 100)
-	// }
-    
-	// /// Total amount of incentives distributed to jurors. 
-	// /// Improvements: Increase incentives on appeal.
-	// #[pallet::storage]
-	// #[pallet::getter(fn juror_incentives)]
-	// pub type JurorIncentives<T> = StorageMap<
-	// 	_,
-	// 	Blake2_128Concat,
-	// 	SchellingGameType,
-	// 	(u64, u64), // (looser burn, winner mint)
-	// 	ValueQuery,
-	// 	DefaultJurorIncentives<T>,
-	// >;
 
 	#[pallet::storage]
 	#[pallet::getter(fn juror_incentive_distribution)]
@@ -272,13 +186,13 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, SumTreeNameType<T>, Vec<T::AccountId>, ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
-	// https://docs.substrate.io/v3/runtime/events-and-errors
+	// https://docs.substrate.io/main-docs/build/events-errors/
 	#[pallet::event]
-	// #[pallet::generate_deposit(pub(super) fn deposit_event)]
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
-		SomethingStored(u32, T::AccountId),
+		SomethingStored { something: u32, who: T::AccountId },
 	}
 
 	// Errors inform users that something went wrong.
@@ -317,5 +231,44 @@ pub mod pallet {
 	// These functions materialize as "extrinsics", which are often compared to transactions.
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {}
+	impl<T: Config> Pallet<T> {
+		/// An example dispatchable that takes a singles value as a parameter, writes the value to
+		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
+		#[pallet::call_index(0)]
+		#[pallet::weight(T::WeightInfo::do_something())]
+		pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResult {
+			// Check that the extrinsic was signed and get the signer.
+			// This function will return an error if the extrinsic is not signed.
+			// https://docs.substrate.io/main-docs/build/origins/
+			let who = ensure_signed(origin)?;
+
+			// Update storage.
+			<Something<T>>::put(something);
+
+			// Emit an event.
+			Self::deposit_event(Event::SomethingStored { something, who });
+			// Return a successful DispatchResultWithPostInfo
+			Ok(())
+		}
+
+		/// An example dispatchable that may throw a custom error.
+		#[pallet::call_index(1)]
+		#[pallet::weight(T::WeightInfo::cause_error())]
+		pub fn cause_error(origin: OriginFor<T>) -> DispatchResult {
+			let _who = ensure_signed(origin)?;
+
+			// Read a value from storage.
+			match <Something<T>>::get() {
+				// Return an error if the value has not been set.
+				None => return Err(Error::<T>::NoneValue.into()),
+				Some(old) => {
+					// Increment the value read from storage; will error in the event of overflow.
+					let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
+					// Update the value in storage with the incremented result.
+					<Something<T>>::put(new);
+					Ok(())
+				},
+			}
+		}
+	}
 }

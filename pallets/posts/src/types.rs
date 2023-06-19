@@ -49,8 +49,6 @@ pub struct PostUpdate {
 /// Post extension provides specific information necessary for different kinds
 /// of posts such as regular posts, comments, and shared posts.
 #[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "std", serde(untagged))]
 pub enum PostExtension {
     RegularPost,
     Comment(Comment),
@@ -58,7 +56,6 @@ pub enum PostExtension {
 }
 
 #[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct Comment {
     pub root_post_id: PostId,
     pub parent_id: Option<PostId>,

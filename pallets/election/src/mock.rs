@@ -1,10 +1,5 @@
 use crate as pallet_template;
-use frame_support::parameter_types;
-use frame_support::{
-	dispatch::DispatchResultWithPostInfo,
-	traits::{ConstU16, ConstU64},
-};
-use frame_system as system;
+use frame_support::{parameter_types,dispatch::DispatchResultWithPostInfo, traits::{ConstU16, ConstU64}};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -21,19 +16,19 @@ frame_support::construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>}, // new code
-		Elections: pallet_template::{Pallet, Call, Storage, Event<T>},
+		System: frame_system,
+		Elections: pallet_template,
+		Balances: pallet_balances,
 	}
 );
 
-impl system::Config for Test {
+impl frame_system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockWeights = ();
 	type BlockLength = ();
 	type DbWeight = ();
-	type Origin = Origin;
-	type Call = Call;
+	type RuntimeOrigin = RuntimeOrigin;
+	type RuntimeCall = RuntimeCall;
 	type Index = u64;
 	type BlockNumber = u64;
 	type Hash = H256;
@@ -41,7 +36,7 @@ impl system::Config for Test {
 	type AccountId = u64;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ConstU64<250>;
 	type Version = ();
 	type PalletInfo = PalletInfo;
@@ -54,8 +49,14 @@ impl system::Config for Test {
 	type AccountData = pallet_balances::AccountData<u64>; // New code
 }
 
+parameter_types! {
+	pub const ExistentialDeposit: u64 = 1;
+	pub static CandidacyBond: u64 = 3;
+}
+
 impl pallet_template::Config for Test {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = ();
 	type Currency = Balances; // New code
 	type Slash = ();
 	type Reward = ();
@@ -70,21 +71,20 @@ impl pallet_balances::Config for Test {
 	type MaxReserves = ();
 	type ReserveIdentifier = [u8; 8];
 	type Balance = u64;
-	type Event = Event;
 	type DustRemoval = ();
-	type ExistentialDeposit = ExistentialDeposit;
-	type AccountStore = System;
+	type RuntimeEvent = RuntimeEvent;
+	type ExistentialDeposit = ConstU64<1>;
 	type WeightInfo = ();
-}
-
-parameter_types! {
-	pub const ExistentialDeposit: u64 = 1;
-	pub static CandidacyBond: u64 = 3;
+	type FreezeIdentifier = ();
+	type MaxFreezes = ();
+	type MaxHolds = ();
+	type HoldIdentifier = ();
+	type AccountStore = System;
 }
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
+	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	pallet_balances::GenesisConfig::<Test> {
 		balances: vec![
 			(1, 100000),
@@ -129,6 +129,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	t.into()
 }
 
+
 pub(super) fn candidate_ids(departmentid: u128) -> Vec<u64> {
 	Elections::candidates(departmentid)
 		.into_iter()
@@ -140,7 +141,7 @@ pub(super) fn balances(who: &u64) -> (u64, u64) {
 	(Balances::free_balance(who), Balances::reserved_balance(who))
 }
 
-pub(super) fn submit_candidacy(origin: Origin, departmentid: u128) -> DispatchResultWithPostInfo {
+pub(super) fn submit_candidacy(origin: RuntimeOrigin, departmentid: u128) -> DispatchResultWithPostInfo {
 	Elections::submit_candidacy(
 		origin,
 		departmentid,
@@ -156,7 +157,7 @@ pub(super) fn candidate_deposit(who: &u64, departmentid: u128) -> u64 {
 }
 
 pub(super) fn vote(
-	origin: Origin,
+	origin: RuntimeOrigin,
 	departmentid: u128,
 	votes: Vec<u64>,
 	score: u64,

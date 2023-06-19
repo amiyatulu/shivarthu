@@ -1,4 +1,5 @@
 use crate::*;
+use scale_info::prelude::vec;
 
 impl<T: Config> Pallet<T> {
 	/// Commit your score vote
