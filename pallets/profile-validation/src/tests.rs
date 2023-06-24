@@ -32,7 +32,21 @@ fn check_fund_addition() {
 		assert_ok!(ProfileValidation::add_profile_stake(RuntimeOrigin::signed(3),1, 100 ));
 		let balance = Balances::free_balance(3);
 		assert_eq!(300000 - 100, balance);
+		let data = ProfileValidation::profile_fund_details(1, 3).unwrap();
+		assert_eq!(100, data.deposit);
 		let total_fund = ProfileValidation::total_fund_for_profile_collected(1);
 		assert_eq!(100, total_fund);
+		assert_ok!(ProfileValidation::add_profile_stake(RuntimeOrigin::signed(3),1, 100 ));
+		let balance = Balances::free_balance(3);
+		assert_eq!(300000 - 200, balance);
+		let data = ProfileValidation::profile_fund_details(1, 3).unwrap();
+		assert_eq!(200, data.deposit);
+		assert_ok!(ProfileValidation::add_profile_stake(RuntimeOrigin::signed(4),1, 500 ));
+		let balance = Balances::free_balance(4);
+		assert_eq!(300000 - 500, balance);
+		let data = ProfileValidation::profile_fund_details(1, 4).unwrap();
+		assert_eq!(500, data.deposit);
+		assert_noop!(ProfileValidation::add_profile_stake(RuntimeOrigin::signed(5),1, 1000 ), Error::<Test>::AmountFundedGreaterThanRequried);
+		assert_ok!(ProfileValidation::add_profile_stake(RuntimeOrigin::signed(5),1, 300 ));
 	})
 }
