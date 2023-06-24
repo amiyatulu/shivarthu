@@ -325,7 +325,7 @@ pub mod pallet {
 
 		#[pallet::call_index(1)]
 		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
-		pub fn add_profile_fund(
+		pub fn add_profile_stake(
 			origin: OriginFor<T>,
 			profile_user_account: T::AccountId,
 			amount_to_fund: BalanceOf<T>,
@@ -333,12 +333,10 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			Self::ensure_account_id_has_profile(profile_user_account.clone())?;
 
-			let deposit = <RegistrationFee<T>>::get();
+			let registration_fee = <RegistrationFee<T>>::get();
 			let total_funded = <ProfileTotalFundCollected<T>>::get(profile_user_account.clone());
 
-			let required_fund = total_funded.checked_sub(&deposit).expect("Overflow");
-
-			if amount_to_fund <= required_fund {
+			let required_fund = registration_fee.checked_sub(&total_funded).expect("Overflow");			if amount_to_fund <= required_fund {
 				let _ = <T as pallet::Config>::Currency::withdraw(
 					&who,
 					amount_to_fund.clone(),
