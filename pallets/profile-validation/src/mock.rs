@@ -19,7 +19,7 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system,
-		TemplateModule: pallet_template,
+		ProfileValidation: pallet_template,
 		Balances: pallet_balances,
 		Timestamp: pallet_timestamp,
 		SchellingGameShared: schelling_game_shared,

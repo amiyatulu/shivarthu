@@ -24,12 +24,10 @@ pub struct CitizenDetailsPost<T: Config> {
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Default, Clone, Encode, Decode, MaxEncodedLen, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
-pub struct ProfileFundInfo<Balance, BlockNumber, AccountId> {
+pub struct ProfileFundInfo<Balance, AccountId> {
     pub funder_account_id: AccountId,
+    pub validation_account_id: AccountId,
     pub deposit: Balance,
-    pub start: BlockNumber,
-    pub validated: bool,
-    pub reapply: bool,
     pub deposit_returned:bool,
 }
 
