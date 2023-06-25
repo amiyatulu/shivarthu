@@ -152,6 +152,11 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn profile_validation_blocknumber)]
+	pub type ProfileValidationBlock<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, BlockNumberOf<T>, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn challenger_fund)]
 	pub type ChallengerFundDetails<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, ChallengerFundInfoOf<T>>; // Profile account id and challenger fund info
@@ -200,6 +205,10 @@ pub mod pallet {
 			who: T::AccountId,
 		},
 		CreateCitizen(T::AccountId, CitizenId),
+		ProfileFund {
+			profile: T::AccountId,
+			funder: T::AccountId,
+		},
 	}
 
 	// Errors inform users that something went wrong.
@@ -223,7 +232,7 @@ pub mod pallet {
 		NotEvidencePeriod,
 		CitizenNotApproved,
 		NotAPostOwner,
-		AmountFundedGreaterThanRequried,
+		AmountFundedGreaterThanRequired,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -336,7 +345,17 @@ pub mod pallet {
 			let registration_fee = <RegistrationFee<T>>::get();
 			let total_funded = <ProfileTotalFundCollected<T>>::get(profile_user_account.clone());
 
-			let required_fund = registration_fee.checked_sub(&total_funded).expect("Overflow");			if amount_to_fund <= required_fund {
+			let required_fund = registration_fee.checked_sub(&total_funded).expect("Overflow");
+			if amount_to_fund <= required_fund {
+				if amount_to_fund == required_fund {
+					let now = <frame_system::Pallet<T>>::block_number();
+					let key = SumTreeName::ProfileValidation {
+						citizen_address: profile_user_account.clone(),
+						block_number: now.clone(),
+					};
+
+					T::SchellingGameSharedSource::set_to_evidence_period_link(key, now)?;
+				}
 				let _ = <T as pallet::Config>::Currency::withdraw(
 					&who,
 					amount_to_fund.clone(),
@@ -375,8 +394,13 @@ pub mod pallet {
 					profile_user_account.clone(),
 					next_total_fund,
 				);
+
+				Self::deposit_event(Event::ProfileFund {
+					profile: profile_user_account,
+					funder: who,
+				});
 			} else {
-				Err(Error::<T>::AmountFundedGreaterThanRequried)?
+				Err(Error::<T>::AmountFundedGreaterThanRequired)?
 			}
 
 			Ok(())
@@ -427,6 +451,10 @@ pub mod pallet {
 
 		// 	Ok(())
 		// }
+
+		// #[pallet::call_index(2)]
+		// #[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		// pub fn challenge_evidence
 
 		// #[pallet::call_index(2)]
 		// #[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]

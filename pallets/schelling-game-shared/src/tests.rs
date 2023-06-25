@@ -10,8 +10,7 @@ use sortition_sum_game::types::SumTreeName;
 type CitizenId = u64;
 
 fn return_key_profile(citizen_id: CitizenId) -> SumTreeName<u64, u64> {
-	let key =
-		SumTreeName::UniqueIdenfier1 { citizen_id, name: "challengeprofile".as_bytes().to_vec() };
+	let key = SumTreeName::ProfileValidation { citizen_address: citizen_id, block_number: 10 };
 	key
 }
 

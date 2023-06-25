@@ -7,7 +7,7 @@ type CitizenId = u64;
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub enum SumTreeName<AccountId, BlockNumber> {
-    UniqueIdenfier1 { citizen_id: CitizenId, name: Vec<u8>},
+    ProfileValidation { citizen_address: AccountId, block_number: BlockNumber},
     PositiveExternality {user_address: AccountId, block_number: BlockNumber },
     DepartmentScore {department_id: u128, block_number: BlockNumber}
 }

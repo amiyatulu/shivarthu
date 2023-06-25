@@ -6,7 +6,7 @@ fn it_works_for_default_value() {
 	new_test_ext().execute_with(|| {
 		System::set_block_number(1);
 
-		let key = SumTreeName::UniqueIdenfier1 { citizen_id: 1, name: "key1".as_bytes().to_vec() };
+		let key = SumTreeName::ProfileValidation { citizen_address: 1, block_number: 10 };
 		assert_ok!(TemplateModule::create_tree(key.clone(), 5));
 		assert_ok!(TemplateModule::set(key.clone(), 10, 1));
 		assert_ok!(TemplateModule::set(key.clone(), 20, 1));
@@ -22,7 +22,7 @@ fn it_works_for_default_value() {
 fn correct_error_for_none_value() {
 	new_test_ext().execute_with(|| {
 		System::set_block_number(1);
-		let key = SumTreeName::UniqueIdenfier1 { citizen_id: 1, name: "key1".as_bytes().to_vec() };
+		let key = SumTreeName::ProfileValidation { citizen_address: 1, block_number: 10 };
 		assert_ok!(TemplateModule::create_tree(key.clone(), 2));
 		assert_ok!(TemplateModule::set(key.clone(), 10, 1));
 		assert_ok!(TemplateModule::set(key.clone(), 20, 1));
