@@ -5,9 +5,10 @@
 /// <https://docs.substrate.io/reference/frame-pallets/>
 ///
 /// To Do:
-/// Change the citizenId to T::AccountId
-/// Crowdfund user fund
-/// Check periods
+/// Add profile ✅
+/// Crowdfund for profile stake ✅
+/// Add another account in case you loose account access
+/// Appeal in case of fradulent account
 pub use pallet::*;
 
 #[cfg(test)]
@@ -218,7 +219,7 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
-		ProfileExists,
+		NoMoreUpdates,
 		CitizenDoNotExists,
 		ProfileFundExists,
 		PostAlreadyExists,
@@ -242,14 +243,9 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Add citizen
 		/// <pre>
-		/// Get the count  
-		/// Check that if who in exists in the GetCitizenId  
-		///    if exists: ProfileExists error  
-		///    if not exists: Insert the count in GetCitizenId  
-		///                   Initialized CitizenDetails with who, count and ipfs profile_hash that contains profile data  
-		///                   Insert count and citizen_details into CitizenProfile  
-		///                   Increment citizen count and put the newcount to CitizenCount  
-		///                   Release CreateCitizen event
+		/// Get the count from NextCitizenId
+		/// If CitizenId exists update the content, only if `ProfileTotalFundCollected` is zero
+		/// If CitizenId doesn't exists insert the content, and increment the `NextCitizenId`
 		/// </pre>
 		#[pallet::call_index(0)]
 		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
@@ -257,7 +253,17 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			let count = Self::next_citizen_id();
 			match <GetCitizenId<T>>::get(&who) {
-				Some(_citizen_id) => Err(Error::<T>::ProfileExists)?,
+				Some(citizen_id) => {
+					let total_funded = <ProfileTotalFundCollected<T>>::get(who.clone());
+					if total_funded == 0u128.saturated_into::<BalanceOf<T>>() {
+						let new_post: CitizenDetailsPost<T> =
+							CitizenDetailsPost::new(citizen_id, who.clone(), content.clone());
+						<CitizenProfile<T>>::insert(who.clone(), new_post);
+						Ok(())
+					} else {
+						Err(Error::<T>::NoMoreUpdates)?
+					}
+				},
 				None => {
 					<GetCitizenId<T>>::insert(&who, count);
 
@@ -274,62 +280,7 @@ pub mod pallet {
 			}
 		}
 
-		// /// Add profile fund
-		// /// <pre>
-		// /// Check profile exists for profile_citizenid, if not throw error CitizenDoNotExists inside the function get_citizen_accountid
-		// /// Get the RegistrationFee and store in deposit variable
-		// /// Get the current block number
-		// /// Withdraw the deposit or RegistrationFee
-		// /// Check the profile_citizenid exists in ProfileFundDetails:
-		// ///        if exists: ProfileFundExists error
-		// ///        if doesnot exits:
-		// ///                          create profile fund info with who, deposit, block_time,
-		// ///                          Insert profile_fund_info into ProfileFundDetails
-		// /// Create sortition sum tree
-		// /// Set the evidence period to now
-		// /// Enhancement:
-		// /// How to stake for profile?
-		// /// For profile validation should one person submit the staking fee, or allow crowdfunding. What will be better?
-		// /// </pre>
-
-		// /// Update profile
-		// /// Can update profile if evidence period is not over
-
-		// // #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2,2))]
-		// // pub fn update_profile(
-		// // 	origin: OriginFor<T>,
-		// // 	profile_citizenid: u128,
-		// // 	profile_hash: Vec<u8>,
-		// // ) -> DispatchResult {
-		// // 	let who = ensure_signed(origin)?;
-		// // 	let citizen_account_id = Self::get_citizen_accountid(profile_citizenid)?;
-		// // 	ensure!(who == citizen_account_id, Error::<T>::NotProfileUser);
-
-		// // 	let citizen_details = CitizenDetails {
-		// // 		profile_hash: profile_hash.clone(),
-		// // 		citizenid: profile_citizenid,
-		// // 		accountid: who.clone(),
-		// // 	};
-
-		// // 	let key = SumTreeName::UniqueIdenfier1 {
-		// // 		citizen_id: profile_citizenid,
-		// // 		name: "challengeprofile".as_bytes().to_vec(),
-		// // 	};
-
-		// // 	let period = T::SchellingGameSharedSource::get_period_link(key);
-		// // 	match period {
-		// // 		None => {
-		// // 			<CitizenProfile<T>>::insert(&profile_citizenid, citizen_details);
-		// // 		},
-		// // 		Some(periodname) => {
-		// // 			ensure!(periodname == Period::Evidence, Error::<T>::NotEvidencePeriod);
-		// // 			<CitizenProfile<T>>::insert(&profile_citizenid, citizen_details);
-		// // 		},
-		// // 	}
-
-		// // 	Ok(())
-		// // }
-
+		
 		/// Crowdfunding of profile
 
 		#[pallet::call_index(1)]
@@ -406,51 +357,6 @@ pub mod pallet {
 			Ok(())
 		}
 
-		// #[pallet::call_index(1)]
-		// #[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
-		// pub fn add_profile_fund(
-		// 	origin: OriginFor<T>,
-		// 	profile_citizenid: CitizenId,
-		// ) -> DispatchResult {
-		// 	let who = ensure_signed(origin)?;
-		// 	let _citizen_account_id = Self::get_citizen_accountid(profile_citizenid)?;
-		// 	let deposit = <RegistrationFee<T>>::get();
-		// 	let now = <frame_system::Pallet<T>>::block_number();
-
-		// 	let imb = <T as pallet::Config>::Currency::withdraw(
-		// 		&who,
-		// 		deposit,
-		// 		WithdrawReasons::TRANSFER,
-		// 		ExistenceRequirement::AllowDeath,
-		// 	)?;
-
-		// 	<T as pallet::Config>::Currency::resolve_creating(&Self::fund_profile_account(), imb);
-
-		// 	match <ProfileFundDetails<T>>::get(&profile_citizenid) {
-		// 		// 📝 To write update stake for reapply when disapproved
-		// 		Some(_profilefundinfo) => Err(Error::<T>::ProfileFundExists)?,
-		// 		None => {
-		// 			let profile_fund_info = ProfileFundInfo {
-		// 				funder_account_id: who,
-		// 				deposit,
-		// 				start: now.clone(),
-		// 				validated: false,
-		// 				reapply: false,
-		// 				deposit_returned: false,
-		// 			};
-		// 			<ProfileFundDetails<T>>::insert(&profile_citizenid, profile_fund_info);
-		// 		},
-		// 	}
-
-		// 	let key = SumTreeName::UniqueIdenfier1 {
-		// 		citizen_id: profile_citizenid,
-		// 		name: "challengeprofile".as_bytes().to_vec(),
-		// 	};
-
-		// 	T::SchellingGameSharedSource::set_to_evidence_period_link(key, now)?;
-
-		// 	Ok(())
-		// }
 
 		// #[pallet::call_index(2)]
 		// #[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]

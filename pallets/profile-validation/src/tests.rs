@@ -29,6 +29,25 @@ fn add_citizen_profile_check() {
 			downvotes_count: 0,
 		});
 		assert_eq!(data, profile);
+		System::set_block_number(5);
+		let content: Content = Content::IPFS(
+			"bafkreiaiq24be2iioasr6ftyaum3icmj7amtjkom2jeokov5k5ojwzhvqz"
+				.as_bytes()
+				.to_vec(),
+		);
+		assert_ok!(ProfileValidation::add_citizen(RuntimeOrigin::signed(1), content.clone()));
+		let data = ProfileValidation::citizen_profile(1);
+		let profile = Some(CitizenDetailsPost::<Test> {
+			created: WhoAndWhen { account: 1, block: 5, time: 0 },
+			content,
+			citizen_id: 1,
+			owner: 1,
+			edited: false,
+			hidden: false,
+			upvotes_count: 0,
+			downvotes_count: 0,
+		});
+		assert_eq!(data, profile);
 	});
 }
 
@@ -60,6 +79,15 @@ fn check_fund_addition() {
 		assert_ok!(ProfileValidation::add_profile_stake(RuntimeOrigin::signed(3), 1, 100));
 		let balance = Balances::free_balance(3);
 		assert_eq!(300000 - 100, balance);
+		let content: Content = Content::IPFS(
+			"bafkreiaiq24be2iioasr6ftyaum3icmj7amtjkom2jeokov5k5ojwzhvqz"
+				.as_bytes()
+				.to_vec(),
+		);
+		assert_noop!(
+			ProfileValidation::add_citizen(RuntimeOrigin::signed(1), content.clone()),
+			Error::<Test>::NoMoreUpdates
+		);
 		let data = ProfileValidation::profile_fund_details(1, 3).unwrap();
 		assert_eq!(100, data.deposit);
 		let total_fund = ProfileValidation::total_fund_for_profile_collected(1);
@@ -81,11 +109,8 @@ fn check_fund_addition() {
 		assert_ok!(ProfileValidation::add_profile_stake(RuntimeOrigin::signed(5), 1, 300));
 		System::assert_last_event(Event::ProfileFund { profile: 1, funder: 5 }.into());
 
-		let key = SumTreeName::ProfileValidation {
-			citizen_address: 1,
-			block_number: 10,
-		};
+		let key = SumTreeName::ProfileValidation { citizen_address: 1, block_number: 10 };
 		let period = SchellingGameShared::get_period(key);
-		assert_eq!(Some(Period::Evidence),  period);
+		assert_eq!(Some(Period::Evidence), period);
 	})
 }
