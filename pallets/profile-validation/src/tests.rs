@@ -1,5 +1,8 @@
 use crate::types::CitizenDetailsPost;
-use crate::{mock::*, Error, Event};
+use crate::{
+	mock::{self, *},
+	Error, Event,
+};
 use frame_support::{assert_noop, assert_ok};
 use pallet_support::Content;
 use pallet_support::WhoAndWhen;
@@ -112,5 +115,48 @@ fn check_fund_addition() {
 		let key = SumTreeName::ProfileValidation { citizen_address: 1, block_number: 10 };
 		let period = SchellingGameShared::get_period(key);
 		assert_eq!(Some(Period::Evidence), period);
+	})
+}
+
+#[test]
+fn challenge_evidence() {
+	new_test_ext().execute_with(|| {
+		System::set_block_number(1);
+		let content: Content = Content::IPFS(
+			"bafkreiaiq24be2iioasr6ftyaum3icmj7amtjkom2jeokov5k5ojwzhvqy"
+				.as_bytes()
+				.to_vec(),
+		);
+		assert_ok!(ProfileValidation::add_citizen(RuntimeOrigin::signed(1), content.clone()));
+		assert_ok!(ProfileValidation::add_profile_stake(RuntimeOrigin::signed(3), 1, 1000));
+		let key = SumTreeName::ProfileValidation { citizen_address: 1, block_number: 1 };
+		let period = SchellingGameShared::get_period(key.clone());
+		assert_eq!(Some(Period::Evidence), period);
+
+		let challenge_content: Content = Content::IPFS(
+			"bafkreiaiq24be2iioasr6ftyaum3icmj7amtjkom2jeokov5k5ojwzhabc"
+				.as_bytes()
+				.to_vec(),
+		);
+
+		let phase_data = ProfileValidation::get_phase_data();
+
+		System::set_block_number(phase_data.evidence_length + 1);
+		assert_ok!(ProfileValidation::challenge_profile(
+			RuntimeOrigin::signed(4),
+			1,
+			challenge_content.clone()
+		));
+		let period = SchellingGameShared::get_period(key.clone());
+		assert_eq!(Some(Period::Staking), period);
+
+		assert_noop!(
+			ProfileValidation::challenge_profile(
+				RuntimeOrigin::signed(4),
+				2,
+				challenge_content.clone()
+			),
+			Error::<Test>::CitizenDoNotExists
+		);
 	})
 }

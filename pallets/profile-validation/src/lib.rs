@@ -165,13 +165,13 @@ pub mod pallet {
 	/// There is a single challenger, but they can have multiple posts
 	#[pallet::storage]
 	#[pallet::getter(fn challenger_evidence_query)]
-	pub type ChallengerEvidenceIds<T: Config> = StorageDoubleMap<
+	pub type ChallengerEvidenceId<T: Config> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
 		T::AccountId,
 		Blake2_128Concat,
 		T::AccountId,
-		Vec<ChallengePostId>,
+		ChallengePostId,
 	>; // profile accountid, challenger accountid => Challenge post id
 
 	#[pallet::type_value]
@@ -280,8 +280,8 @@ pub mod pallet {
 			}
 		}
 
-		
 		/// Crowdfunding of profile
+		/// Add time 3 days before staking, to get feedback on upload
 
 		#[pallet::call_index(1)]
 		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
@@ -304,6 +304,7 @@ pub mod pallet {
 						citizen_address: profile_user_account.clone(),
 						block_number: now.clone(),
 					};
+					<ProfileValidationBlock<T>>::insert(&profile_user_account, now);
 
 					T::SchellingGameSharedSource::set_to_evidence_period_link(key, now)?;
 				}
@@ -357,10 +358,50 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(2)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		pub fn challenge_profile(
+			origin: OriginFor<T>,
+			profile_user_account: T::AccountId,
+			content: Content,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			Self::ensure_account_id_has_profile(profile_user_account.clone())?;
 
-		// #[pallet::call_index(2)]
-		// #[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
-		// pub fn challenge_evidence
+			let block_number = <ProfileValidationBlock<T>>::get(&profile_user_account);
+
+			let key = SumTreeName::ProfileValidation {
+				citizen_address: profile_user_account.clone(),
+				block_number,
+			};
+
+			let phase_data = Self::get_phase_data();
+			let now = <frame_system::Pallet<T>>::block_number();
+
+			T::SchellingGameSharedSource::set_to_staking_period_link(key.clone(), phase_data, now)?;
+
+			let count = Self::next_challenge_post_count();
+
+			let challenge_evidence_post: ChallengeEvidencePost<T> = ChallengeEvidencePost::new(
+				profile_user_account.clone(),
+				who.clone(),
+				content,
+				None,
+			);
+
+			match <ChallengerEvidenceId<T>>::get(&profile_user_account, &who) {
+				None => {
+					<ChallengePost<T>>::insert(&count, challenge_evidence_post);
+					NextChallengePostId::<T>::mutate(|n| {
+						*n += 1;
+					});
+
+					<ChallengerEvidenceId<T>>::insert(&profile_user_account, &who, count);
+				},
+				Some(_hash) => Err(Error::<T>::PostAlreadyExists)?,
+			}
+			Ok(())
+		}
 
 		// #[pallet::call_index(2)]
 		// #[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
@@ -403,47 +444,47 @@ pub mod pallet {
 		// 	Ok(())
 		// }
 
-		// #[pallet::call_index(3)]
-		// #[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
-		// pub fn challenge_comment_create(
-		// 	origin: OriginFor<T>,
-		// 	post_id: ChallengePostId,
-		// 	content: Content,
-		// ) -> DispatchResult {
-		// 	let who = ensure_signed(origin)?;
-		// 	let count = Self::next_challenge_post_count();
-		// 	let main_evidence_post = Self::challenge_post(post_id).unwrap();
-		// 	let challenge_evidence_post = ChallengeEvidencePost::new(
-		// 		main_evidence_post.kyc_profile_id,
-		// 		who,
-		// 		content,
-		// 		Some(post_id),
-		// 	);
+		#[pallet::call_index(3)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		pub fn challenge_comment_create(
+			origin: OriginFor<T>,
+			post_id: ChallengePostId,
+			content: Content,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let count = Self::next_challenge_post_count();
+			let main_evidence_post = Self::challenge_post(post_id).unwrap();
+			let challenge_evidence_post = ChallengeEvidencePost::new(
+				main_evidence_post.kyc_profile_id,
+				who,
+				content,
+				Some(post_id),
+			);
 
-		// 	match <ChallengePost<T>>::get(&post_id) {
-		// 		None => Err(Error::<T>::ChallengeDoesNotExists)?,
-		// 		Some(challenge_evidence_post_c) => {
-		// 			if challenge_evidence_post_c.is_comment == false {
-		// 				<ChallengePost<T>>::insert(&count, challenge_evidence_post);
-		// 				NextChallengePostId::<T>::mutate(|n| {
-		// 					*n += 1;
-		// 				});
-		// 				let mut comment_ids = <ChallengePostCommentIds<T>>::get(&post_id);
-		// 				match comment_ids.binary_search(&count) {
-		// 					Ok(_) => Err(Error::<T>::CommentExists)?,
-		// 					Err(index) => {
-		// 						comment_ids.insert(index, count.clone());
-		// 						<ChallengePostCommentIds<T>>::insert(&post_id, &comment_ids);
-		// 					},
-		// 				}
-		// 			} else {
-		// 				Err(Error::<T>::IsComment)?
-		// 			}
-		// 		},
-		// 	}
+			match <ChallengePost<T>>::get(&post_id) {
+				None => Err(Error::<T>::ChallengeDoesNotExists)?,
+				Some(challenge_evidence_post_c) => {
+					if challenge_evidence_post_c.is_comment == false {
+						<ChallengePost<T>>::insert(&count, challenge_evidence_post);
+						NextChallengePostId::<T>::mutate(|n| {
+							*n += 1;
+						});
+						let mut comment_ids = <ChallengePostCommentIds<T>>::get(&post_id);
+						match comment_ids.binary_search(&count) {
+							Ok(_) => Err(Error::<T>::CommentExists)?,
+							Err(index) => {
+								comment_ids.insert(index, count.clone());
+								<ChallengePostCommentIds<T>>::insert(&post_id, &comment_ids);
+							},
+						}
+					} else {
+						Err(Error::<T>::IsComment)?
+					}
+				},
+			}
 
-		// 	Ok(())
-		// }
+			Ok(())
+		}
 
 		// // Does citizen exists ✔️
 		// // Has the citizen added profile fund ✔️
@@ -509,157 +550,172 @@ pub mod pallet {
 		// 	 Ok(())
 		// }
 
-		// // May be you need to check challeger fund details exists
-		// #[pallet::call_index(5)]
-		// #[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
-		// pub fn pass_period(origin: OriginFor<T>, profile_citizenid: CitizenId) -> DispatchResult {
-		// 	let _who = ensure_signed(origin)?;
+		// May be you need to check challeger fund details exists
+		#[pallet::call_index(5)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		pub fn pass_period(origin: OriginFor<T>, profile_user_account: T::AccountId) -> DispatchResult {
+			let _who = ensure_signed(origin)?;
 
-		// 	let key = SumTreeName::UniqueIdenfier1 {
-		// 		citizen_id: profile_citizenid,
-		// 		name: "challengeprofile".as_bytes().to_vec(),
-		// 	};
+			
+			let block_number = <ProfileValidationBlock<T>>::get(&profile_user_account);
 
-		// 	let now = <frame_system::Pallet<T>>::block_number();
-		// 	let phase_data = Self::get_phase_data();
+			let key = SumTreeName::ProfileValidation {
+				citizen_address: profile_user_account.clone(),
+				block_number,
+			};
 
-		// 	T::SchellingGameSharedSource::change_period_link(key, phase_data, now)?;
+			let now = <frame_system::Pallet<T>>::block_number();
+			let phase_data = Self::get_phase_data();
 
-		// 	Ok(())
+			T::SchellingGameSharedSource::change_period_link(key, phase_data, now)?;
 
-		// }
+			Ok(())
 
-		// // To Do
-		// // Apply jurors or stake ✔️
-		// // Update stake
-		// // Draw jurors ✔️
-		// // Unstaking non selected jurors ✔️
-		// // Commit vote ✔️
-		// // Reveal vote ✔️
-		// // Get winning decision ✔️
-		// // Incentive distribution ✔️
+		}
 
-		// // Staking
-		// // 1. Check for minimum stake ✔️
-		// // 2. Check period is Staking ✔️
-		// // 3. Number of people staked
+		// To Do
+		// Apply jurors or stake ✔️
+		// Update stake
+		// Draw jurors ✔️
+		// Unstaking non selected jurors ✔️
+		// Commit vote ✔️
+		// Reveal vote ✔️
+		// Get winning decision ✔️
+		// Incentive distribution ✔️
 
-		// #[pallet::call_index(6)]
-		// #[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
-		// pub fn apply_jurors(
-		// 	origin: OriginFor<T>,
-		// 	profile_citizenid: CitizenId,
-		// 	stake: BalanceOf<T>,
-		// ) -> DispatchResult {
-		// 	let who = ensure_signed(origin)?;
+		// Staking
+		// 1. Check for minimum stake ✔️
+		// 2. Check period is Staking ✔️
+		// 3. Number of people staked
 
-		// 	let key = SumTreeName::UniqueIdenfier1 {
-		// 		citizen_id: profile_citizenid,
-		// 		name: "challengeprofile".as_bytes().to_vec(),
-		// 	};
+		#[pallet::call_index(6)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		pub fn apply_jurors(
+			origin: OriginFor<T>,
+			profile_user_account: T::AccountId,
+			stake: BalanceOf<T>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
 
-		// 	let phase_data = Self::get_phase_data();
+			let block_number = <ProfileValidationBlock<T>>::get(&profile_user_account);
 
-		// 	T::SchellingGameSharedSource::apply_jurors_helper_link(key, phase_data, who, stake)?;
+			let key = SumTreeName::ProfileValidation {
+				citizen_address: profile_user_account.clone(),
+				block_number,
+			};
 
-		// 	Ok(())
+			let phase_data = Self::get_phase_data();
 
-		// }
+			T::SchellingGameSharedSource::apply_jurors_helper_link(key, phase_data, who, stake)?;
 
-		// // Draw jurors
-		// // Check period is drawing ✔️
-		// // Check mininum number of juror staked ✔️
-		// // Improvements
-		// // Set stake to zero so that they are not drawn again
-		// // Store the drawn juror stake in hashmap storage
-		// // Add min draws along with max draws
-		// #[pallet::call_index(7)]
-		// #[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
-		// pub fn draw_jurors(
-		// 	origin: OriginFor<T>,
-		// 	profile_citizenid: CitizenId,
-		// 	iterations: u64,
-		// ) -> DispatchResult {
-		// 	let _who = ensure_signed(origin)?;
-		// 	let key = SumTreeName::UniqueIdenfier1 {
-		// 		citizen_id: profile_citizenid,
-		// 		name: "challengeprofile".as_bytes().to_vec(),
-		// 	};
-		// 	let phase_data = Self::get_phase_data();
+			Ok(())
 
-		// 	T::SchellingGameSharedSource::draw_jurors_helper_link(key, phase_data, iterations)?;
+		}
 
-		// 	Ok(())
+		// Draw jurors
+		// Check period is drawing ✔️
+		// Check mininum number of juror staked ✔️
+		// Improvements
+		// Set stake to zero so that they are not drawn again
+		// Store the drawn juror stake in hashmap storage
+		// Add min draws along with max draws
+		#[pallet::call_index(7)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		pub fn draw_jurors(
+			origin: OriginFor<T>,
+			profile_user_account: T::AccountId,
+			iterations: u64,
+		) -> DispatchResult {
+			let _who = ensure_signed(origin)?;
+			let block_number = <ProfileValidationBlock<T>>::get(&profile_user_account);
 
-		// }
+			let key = SumTreeName::ProfileValidation {
+				citizen_address: profile_user_account.clone(),
+				block_number,
+			};
+			let phase_data = Self::get_phase_data();
 
-		// // Unstaking
-		// // Stop drawn juror to unstake ✔️
-		// #[pallet::call_index(8)]
-		// #[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
-		// pub fn unstaking(origin: OriginFor<T>, profile_citizenid: CitizenId) -> DispatchResult {
-		// 	let who = ensure_signed(origin)?;
-		// 	let key = SumTreeName::UniqueIdenfier1 {
-		// 		citizen_id: profile_citizenid,
-		// 		name: "challengeprofile".as_bytes().to_vec(),
-		// 	};
-		// 	T::SchellingGameSharedSource::unstaking_helper_link(key, who)?;
-		// 	Ok(())
-		// }
+			T::SchellingGameSharedSource::draw_jurors_helper_link(key, phase_data, iterations)?;
 
-		// #[pallet::call_index(9)]
-		// #[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
-		// pub fn commit_vote(
-		// 	origin: OriginFor<T>,
-		// 	profile_citizenid: CitizenId,
-		// 	vote_commit: [u8; 32],
-		// ) -> DispatchResult {
-		// 	let who = ensure_signed(origin)?;
-		// 	let key = SumTreeName::UniqueIdenfier1 {
-		// 		citizen_id: profile_citizenid,
-		// 		name: "challengeprofile".as_bytes().to_vec(),
-		// 	};
-		// 	T::SchellingGameSharedSource::commit_vote_helper_link(key, who, vote_commit)?;
-		// 	Ok(())
-		// }
+			Ok(())
 
-		// #[pallet::call_index(10)]
-		// #[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
-		// pub fn reveal_vote(
-		// 	origin: OriginFor<T>,
-		// 	profile_citizenid: CitizenId,
-		// 	choice: u128,
-		// 	salt: Vec<u8>,
-		// ) -> DispatchResult {
-		// 	let who = ensure_signed(origin)?;
-		// 	let key = SumTreeName::UniqueIdenfier1 {
-		// 		citizen_id: profile_citizenid,
-		// 		name: "challengeprofile".as_bytes().to_vec(),
-		// 	};
+		}
 
-		// 	T::SchellingGameSharedSource::reveal_vote_two_choice_helper_link(
-		// 		key, who, choice, salt,
-		// 	)?;
+		// Unstaking
+		// Stop drawn juror to unstake ✔️
+		#[pallet::call_index(8)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		pub fn unstaking(origin: OriginFor<T>, profile_user_account: T::AccountId) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let block_number = <ProfileValidationBlock<T>>::get(&profile_user_account);
 
-		// 	Ok(())
-		// }
+			let key = SumTreeName::ProfileValidation {
+				citizen_address: profile_user_account.clone(),
+				block_number,
+			};
+			T::SchellingGameSharedSource::unstaking_helper_link(key, who)?;
+			Ok(())
+		}
 
-		// #[pallet::call_index(11)]
-		// #[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
-		// pub fn get_incentives(
-		// 	origin: OriginFor<T>,
-		// 	profile_citizenid: CitizenId,
-		// ) -> DispatchResult {
-		// 	let who = ensure_signed(origin)?;
-		// 	let key = SumTreeName::UniqueIdenfier1 {
-		// 		citizen_id: profile_citizenid,
-		// 		name: "challengeprofile".as_bytes().to_vec(),
-		// 	};
-		// 	let phase_data = Self::get_phase_data();
-		// 	T::SchellingGameSharedSource::get_incentives_two_choice_helper_link(
-		// 		key, phase_data, who,
-		// 	)?;
-		// 	Ok(())
-		// }
+		#[pallet::call_index(9)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		pub fn commit_vote(
+			origin: OriginFor<T>,
+			profile_user_account: T::AccountId,
+			vote_commit: [u8; 32],
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let block_number = <ProfileValidationBlock<T>>::get(&profile_user_account);
+
+			let key = SumTreeName::ProfileValidation {
+				citizen_address: profile_user_account.clone(),
+				block_number,
+			};
+			T::SchellingGameSharedSource::commit_vote_helper_link(key, who, vote_commit)?;
+			Ok(())
+		}
+
+		#[pallet::call_index(10)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		pub fn reveal_vote(
+			origin: OriginFor<T>,
+			profile_user_account: T::AccountId,
+			choice: u128,
+			salt: Vec<u8>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let block_number = <ProfileValidationBlock<T>>::get(&profile_user_account);
+
+			let key = SumTreeName::ProfileValidation {
+				citizen_address: profile_user_account.clone(),
+				block_number,
+			};
+
+			T::SchellingGameSharedSource::reveal_vote_two_choice_helper_link(
+				key, who, choice, salt,
+			)?;
+
+			Ok(())
+		}
+
+		#[pallet::call_index(11)]
+		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		pub fn get_incentives(
+			origin: OriginFor<T>,
+			profile_user_account: T::AccountId
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let block_number = <ProfileValidationBlock<T>>::get(&profile_user_account);
+
+			let key = SumTreeName::ProfileValidation {
+				citizen_address: profile_user_account.clone(),
+				block_number,
+			};
+			let phase_data = Self::get_phase_data();
+			T::SchellingGameSharedSource::get_incentives_two_choice_helper_link(
+				key, phase_data, who,
+			)?;
+			Ok(())
+		}
 	}
 }
