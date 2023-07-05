@@ -1,8 +1,5 @@
 use crate::types::CitizenDetailsPost;
-use crate::{
-	mock::{self, *},
-	Error, Event,
-};
+use crate::{mock::*, Error, Event};
 use frame_support::{assert_noop, assert_ok};
 use pallet_support::Content;
 use pallet_support::WhoAndWhen;
@@ -141,6 +138,15 @@ fn challenge_evidence() {
 
 		let phase_data = ProfileValidation::get_phase_data();
 
+		assert_noop!(
+			ProfileValidation::challenge_profile(
+				RuntimeOrigin::signed(4),
+				1,
+				challenge_content.clone()
+			),
+			<schelling_game_shared::Error<Test>>::EvidencePeriodNotOver
+		);
+
 		System::set_block_number(phase_data.evidence_length + 1);
 		assert_ok!(ProfileValidation::challenge_profile(
 			RuntimeOrigin::signed(4),
@@ -158,5 +164,70 @@ fn challenge_evidence() {
 			),
 			Error::<Test>::CitizenDoNotExists
 		);
+	})
+}
+
+#[test]
+fn schelling_game_test() {
+	new_test_ext().execute_with(|| {
+		System::set_block_number(1);
+		let content: Content = Content::IPFS(
+			"bafkreiaiq24be2iioasr6ftyaum3icmj7amtjkom2jeokov5k5ojwzhvqy"
+				.as_bytes()
+				.to_vec(),
+		);
+		assert_ok!(ProfileValidation::add_citizen(RuntimeOrigin::signed(1), content.clone()));
+		assert_ok!(ProfileValidation::add_profile_stake(RuntimeOrigin::signed(3), 1, 1000));
+		let challenge_content: Content = Content::IPFS(
+			"bafkreiaiq24be2iioasr6ftyaum3icmj7amtjkom2jeokov5k5ojwzhabc"
+				.as_bytes()
+				.to_vec(),
+		);
+		let phase_data = ProfileValidation::get_phase_data();
+		System::set_block_number(phase_data.evidence_length + 1);
+		assert_ok!(ProfileValidation::challenge_profile(
+			RuntimeOrigin::signed(4),
+			1,
+			challenge_content.clone()
+		));
+
+		let balance = Balances::free_balance(29);
+		assert_eq!(300000, balance);
+		for j in 4..30 {
+			assert_ok!(ProfileValidation::apply_jurors(RuntimeOrigin::signed(j), 1, j * 100));
+		}
+
+		let balance = Balances::free_balance(29);
+		assert_eq!(300000 - 29 * 100, balance);
+
+		assert_noop!(
+			ProfileValidation::draw_jurors(RuntimeOrigin::signed(5), 1, 5),
+			<schelling_game_shared::Error<Test>>::PeriodDontMatch
+		);
+
+		assert_noop!(
+			ProfileValidation::pass_period(RuntimeOrigin::signed(5), 1),
+			<schelling_game_shared::Error<Test>>::StakingPeriodNotOver
+		);
+
+		System::set_block_number(phase_data.evidence_length + 1 + phase_data.staking_length);
+
+		assert_ok!(ProfileValidation::pass_period(RuntimeOrigin::signed(5), 1));
+
+		assert_ok!(ProfileValidation::draw_jurors(RuntimeOrigin::signed(5), 1, 5));
+
+		let key = SumTreeName::ProfileValidation { citizen_address: 1, block_number: 1 };
+
+		let draws_in_round = SchellingGameShared::draws_in_round(key.clone());
+		assert_eq!(5, draws_in_round);
+
+		let drawn_jurors = SchellingGameShared::drawn_jurors(key.clone());
+		assert_eq!(vec![(4, 400), (7, 700), (13, 1300), (14, 1400), (15, 1500)], drawn_jurors);
+
+		assert_ok!(ProfileValidation::pass_period(RuntimeOrigin::signed(5), 1));
+
+		let period = SchellingGameShared::get_period(key.clone());
+
+		assert_eq!(Some(Period::Commit), period);
 	})
 }

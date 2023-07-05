@@ -379,6 +379,7 @@ pub mod pallet {
 			let now = <frame_system::Pallet<T>>::block_number();
 
 			T::SchellingGameSharedSource::set_to_staking_period_link(key.clone(), phase_data, now)?;
+			T::SchellingGameSharedSource::create_tree_helper_link(key.clone(),3)?;
 
 			let count = Self::next_challenge_post_count();
 

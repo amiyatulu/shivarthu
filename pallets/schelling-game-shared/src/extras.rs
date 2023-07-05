@@ -83,8 +83,9 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn create_tree_link_helper(key: SumTreeNameType<T>, k: u64) -> DispatchResult {
-		let result = T::SortitionSumGameSource::create_tree_link(key.clone(), k);
-		result
+		 T::SortitionSumGameSource::create_tree_link(key.clone(), k)?;
+		 Ok(())
+		
 	}
 
 	/// Change the `Period`
