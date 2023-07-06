@@ -229,5 +229,104 @@ fn schelling_game_test() {
 		let period = SchellingGameShared::get_period(key.clone());
 
 		assert_eq!(Some(Period::Commit), period);
+
+		let balance: u64 = Balances::free_balance(5);
+		assert_eq!(300000 - 5 * 100, balance);
+		assert_ok!(ProfileValidation::unstaking(RuntimeOrigin::signed(5), 1));
+		let balance = Balances::free_balance(5);
+		assert_eq!(300000, balance);
+
+		let hash = sp_io::hashing::keccak_256("1salt".as_bytes());
+		assert_noop!(
+			ProfileValidation::commit_vote(RuntimeOrigin::signed(6), 1, hash),
+			<schelling_game_shared::Error<Test>>::JurorDoesNotExists
+		);
+		let hash = sp_io::hashing::keccak_256("1salt".as_bytes());
+		assert_ok!(ProfileValidation::commit_vote(RuntimeOrigin::signed(4), 1, hash));
+
+		// You can replace vote within the commit period.
+		let hash = sp_io::hashing::keccak_256("1salt2".as_bytes());
+		assert_ok!(ProfileValidation::commit_vote(RuntimeOrigin::signed(4), 1, hash));
+
+		let hash = sp_io::hashing::keccak_256("1salt3".as_bytes());
+		assert_ok!(ProfileValidation::commit_vote(RuntimeOrigin::signed(7), 1, hash));
+
+		let hash = sp_io::hashing::keccak_256("1salt4".as_bytes());
+		assert_ok!(ProfileValidation::commit_vote(RuntimeOrigin::signed(13), 1, hash));
+
+		let hash = sp_io::hashing::keccak_256("1salt5".as_bytes());
+		assert_ok!(ProfileValidation::commit_vote(RuntimeOrigin::signed(14), 1, hash));
+
+		let hash = sp_io::hashing::keccak_256("0salt6".as_bytes());
+		assert_ok!(ProfileValidation::commit_vote(RuntimeOrigin::signed(15), 1, hash));
+
+		assert_noop!(
+			ProfileValidation::pass_period(RuntimeOrigin::signed(5), 1),
+			<schelling_game_shared::Error<Test>>::CommitPeriodNotOver
+		);
+		System::set_block_number(
+			phase_data.evidence_length + 1 + phase_data.staking_length + phase_data.commit_length,
+		);
+		assert_ok!(ProfileValidation::pass_period(RuntimeOrigin::signed(5), 1));
+
+		assert_noop!(
+			ProfileValidation::reveal_vote(
+				RuntimeOrigin::signed(4),
+				1,
+				2,
+				"salt2".as_bytes().to_vec()
+			),
+			<schelling_game_shared::Error<Test>>::CommitDoesNotMatch
+		);
+
+		assert_ok!(ProfileValidation::reveal_vote(
+			RuntimeOrigin::signed(4),
+			1,
+			1,
+			"salt2".as_bytes().to_vec()
+		));
+
+		assert_ok!(ProfileValidation::reveal_vote(
+			RuntimeOrigin::signed(7),
+			1,
+			1,
+			"salt3".as_bytes().to_vec()
+		));
+
+		assert_ok!(ProfileValidation::reveal_vote(
+			RuntimeOrigin::signed(13),
+			1,
+			1,
+			"salt4".as_bytes().to_vec()
+		));
+
+		assert_ok!(ProfileValidation::reveal_vote(
+			RuntimeOrigin::signed(14),
+			1,
+			1,
+			"salt5".as_bytes().to_vec()
+		));
+
+		assert_noop!(
+			ProfileValidation::pass_period(RuntimeOrigin::signed(5), 1),
+			<schelling_game_shared::Error<Test>>::VotePeriodNotOver
+		);
+		System::set_block_number(
+			phase_data.evidence_length
+				+ 1 + phase_data.staking_length
+				+ phase_data.commit_length
+				+ phase_data.vote_length,
+		);
+		assert_ok!(ProfileValidation::pass_period(RuntimeOrigin::signed(5), 1));
+
+		assert_noop!(
+			ProfileValidation::get_incentives(RuntimeOrigin::signed(15), 1),
+			<schelling_game_shared::Error<Test>>::VoteNotRevealed
+		);
+		let balance: u64 = Balances::free_balance(14);
+		assert_eq!(300000 - 14 * 100, balance);
+		assert_ok!(ProfileValidation::get_incentives(RuntimeOrigin::signed(14), 1));
+		let balance: u64 = Balances::free_balance(14);
+		assert_eq!(300025, balance);
 	})
 }
