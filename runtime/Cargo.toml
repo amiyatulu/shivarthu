@@ -38,6 +38,8 @@ sp-session = { version = "4.0.0-dev", default-features = false, git = "https://g
 sp-std = { version = "5.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
 sp-transaction-pool = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
 sp-version = { version = "5.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
+pallet-insecure-randomness-collective-flip = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
+
 
 # Used for the node template's RPCs
 frame-system-rpc-runtime-api = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
@@ -49,6 +51,17 @@ frame-system-benchmarking = { version = "4.0.0-dev", default-features = false, g
 
 # Local Dependencies
 pallet-template = { version = "4.0.0-dev", default-features = false, path = "../pallets/template" }
+
+sortition-sum-game = {default-features = false, path ="../pallets/sortition-sum-game"}
+# pallet-election={ default-features = false, path="../pallets/election"}
+# # election-runtime-api={default-features=false, path="../pallets/election/election-runtime-api"}
+# pallet-posts = {default-features=false, path="../pallets/posts"}
+# pallet-spaces = {default-features=false, path="../pallets/spaces"}
+schelling-game-shared = {default-features=false, path="../pallets/schelling-game-shared"}
+profile-validation = {default-features=false, path="../pallets/profile-validation"}
+# # profile-validation-runtime-api = {default-features=false, path="../pallets/profile-validation/profile-validation-runtime-api"}
+# shared-storage = {default-features=false, path="../pallets/shared-storage"}
+
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate.git", optional = true , branch = "polkadot-v0.9.42" }
@@ -87,6 +100,14 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-version/std",
 	"substrate-wasm-builder",
+	#Local dependencies
+	"sortition-sum-game/std",
+	# "pallet-election/std",
+	# "pallet-posts/std",
+	# "pallet-spaces/std",
+	"schelling-game-shared/std",
+	"profile-validation/std",
+	# "shared-storage/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",

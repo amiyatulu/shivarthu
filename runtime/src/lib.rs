@@ -273,6 +273,34 @@ impl pallet_template::Config for Runtime {
 	type WeightInfo = pallet_template::weights::SubstrateWeight<Runtime>;
 }
 
+impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
+
+
+impl sortition_sum_game::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = sortition_sum_game::weights::SubstrateWeight<Runtime>;
+}
+
+impl schelling_game_shared::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = schelling_game_shared::weights::SubstrateWeight<Runtime>;	
+	type Currency = Balances;
+	type RandomnessSource = RandomnessCollectiveFlip;
+	type Slash = ();
+	type Reward = ();
+	type SortitionSumGameSource = SortitionSumGame;
+}
+
+impl profile_validation::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = profile_validation::weights::SubstrateWeight<Runtime>;	
+	type Currency = Balances;
+	type SchellingGameSharedSource = SchellingGameShared;
+}
+
+
+
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub struct Runtime
@@ -282,6 +310,7 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system,
+		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip,
 		Timestamp: pallet_timestamp,
 		Aura: pallet_aura,
 		Grandpa: pallet_grandpa,
@@ -290,6 +319,10 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
+		SortitionSumGame: sortition_sum_game,
+		SchellingGameShared: schelling_game_shared,
+		ProfileValidation: profile_validation,
+
 	}
 );
 
