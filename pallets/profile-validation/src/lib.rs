@@ -54,7 +54,7 @@ type ChallengePostId = u64;
 
 const PALLET_ID: PalletId = PalletId(*b"ex/cfund");
 
-#[frame_support::pallet]
+#[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
@@ -247,8 +247,9 @@ pub mod pallet {
 		/// If CitizenId exists update the content, only if `ProfileTotalFundCollected` is zero
 		/// If CitizenId doesn't exists insert the content, and increment the `NextCitizenId`
 		/// </pre>
+		/// #[pallet::weight(<T as pallet::Config>::WeightInfo::add_citizen())]
 		#[pallet::call_index(0)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::weight(0)]
 		pub fn add_citizen(origin: OriginFor<T>, content: Content) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let count = Self::next_citizen_id();
@@ -284,7 +285,7 @@ pub mod pallet {
 		/// Add time 3 days before staking, to get feedback on upload
 
 		#[pallet::call_index(1)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::weight(0)]
 		pub fn add_profile_stake(
 			origin: OriginFor<T>,
 			profile_user_account: T::AccountId,
@@ -359,7 +360,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(2)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::weight(0)]
 		pub fn challenge_profile(
 			origin: OriginFor<T>,
 			profile_user_account: T::AccountId,
@@ -446,7 +447,7 @@ pub mod pallet {
 		// }
 
 		#[pallet::call_index(3)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::weight(0)]
 		pub fn challenge_comment_create(
 			origin: OriginFor<T>,
 			post_id: ChallengePostId,
@@ -553,7 +554,7 @@ pub mod pallet {
 
 		// May be you need to check challeger fund details exists
 		#[pallet::call_index(5)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::weight(0)]
 		pub fn pass_period(origin: OriginFor<T>, profile_user_account: T::AccountId) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
 
@@ -590,7 +591,7 @@ pub mod pallet {
 		// 3. Number of people staked
 
 		#[pallet::call_index(6)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::weight(0)]
 		pub fn apply_jurors(
 			origin: OriginFor<T>,
 			profile_user_account: T::AccountId,
@@ -621,7 +622,7 @@ pub mod pallet {
 		// Store the drawn juror stake in hashmap storage
 		// Add min draws along with max draws
 		#[pallet::call_index(7)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::weight(0)]
 		pub fn draw_jurors(
 			origin: OriginFor<T>,
 			profile_user_account: T::AccountId,
@@ -645,7 +646,7 @@ pub mod pallet {
 		// Unstaking
 		// Stop drawn juror to unstake ✔️
 		#[pallet::call_index(8)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::weight(0)]
 		pub fn unstaking(origin: OriginFor<T>, profile_user_account: T::AccountId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let block_number = <ProfileValidationBlock<T>>::get(&profile_user_account);
@@ -659,7 +660,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(9)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::weight(0)]
 		pub fn commit_vote(
 			origin: OriginFor<T>,
 			profile_user_account: T::AccountId,
@@ -677,7 +678,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(10)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::weight(0)]
 		pub fn reveal_vote(
 			origin: OriginFor<T>,
 			profile_user_account: T::AccountId,
@@ -700,7 +701,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(11)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().reads_writes(2,2))]
+		#[pallet::weight(0)]
 		pub fn get_incentives(
 			origin: OriginFor<T>,
 			profile_user_account: T::AccountId
