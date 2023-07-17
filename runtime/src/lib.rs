@@ -67,6 +67,9 @@ pub type Index = u32;
 /// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
 
+
+pub type ChallengePostId = u64;
+
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
@@ -603,6 +606,31 @@ impl_runtime_apis! {
 			Executive::try_execute_block(block, state_root_check, signature_check, select).expect("execute-block failed")
 		}
 	}
+
+	impl profile_validation_runtime_api::ProfileValidationApi<Block, AccountId> for Runtime {
+
+		fn get_challengers_evidence(profile_user_account: AccountId, offset: u64, limit: u16) -> Vec<ChallengePostId> {
+			ProfileValidation::get_challengers_evidence(profile_user_account, offset, limit)
+		}
+		
+		fn get_staking_period_end_block(profile_user_account: AccountId) -> Option<u32> {
+			ProfileValidation::get_staking_period_end_block(profile_user_account)
+		}
+		fn get_drawing_period_end(profile_user_account: AccountId) -> (u64, u64, bool) {
+			ProfileValidation::get_drawing_period_end(profile_user_account)
+		}
+		fn get_commit_period_end_block(profile_user_account: AccountId) -> Option<u32> {
+			ProfileValidation::get_commit_period_end_block(profile_user_account)
+		}
+	
+		fn get_vote_period_end_block(profile_user_account: AccountId) -> Option<u32> {
+			ProfileValidation::get_vote_period_end_block(profile_user_account)
+		}
+		fn selected_as_juror(profile_user_account: AccountId, who: AccountId) -> bool {
+			ProfileValidation::selected_as_juror(profile_user_account, who)
+		}
+	}
+	
 }
 
 #[cfg(test)]

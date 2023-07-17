@@ -64,6 +64,11 @@ node-template-runtime = { version = "4.0.0-dev", path = "../runtime" }
 # CLI-specific dependencies
 try-runtime-cli = { version = "0.10.0-dev", optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
 
+# New rpc
+profile-validation-runtime-api = {path="../pallets/profile-validation/profile-validation-runtime-api", default-features = false}
+profile-validation-rpc = { path="../pallets/profile-validation/profile-validation-rpc", default-features = false}
+
+
 [build-dependencies]
 substrate-build-script-utils = { version = "3.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
 

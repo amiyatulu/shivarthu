@@ -4490,6 +4490,8 @@ dependencies = [
  "node-template-runtime",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
+ "profile-validation-rpc",
+ "profile-validation-runtime-api",
  "sc-basic-authorship",
  "sc-cli",
  "sc-client-api",
@@ -4543,6 +4545,7 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "parity-scale-codec",
  "profile-validation",
+ "profile-validation-runtime-api",
  "scale-info",
  "schelling-game-shared",
  "sortition-sum-game",
@@ -5582,6 +5585,27 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-runtime",
+]
+
+[[package]]
+name = "profile-validation-rpc"
+version = "0.1.0"
+dependencies = [
+ "jsonrpsee",
+ "profile-validation-runtime-api",
+ "sc-rpc",
+ "sc-rpc-api",
+ "sp-api",
+ "sp-blockchain",
+ "sp-runtime",
+]
+
+[[package]]
+name = "profile-validation-runtime-api"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "sp-api",
 ]
 
 [[package]]

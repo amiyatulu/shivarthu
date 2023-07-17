@@ -1,60 +1,57 @@
-use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
-use jsonrpc_derive::rpc;
+use jsonrpsee::{
+	core::{Error as JsonRpseeError, RpcResult},
+	proc_macros::rpc,
+	types::error::{CallError, ErrorCode, ErrorObject},
+};
 use profile_validation_runtime_api::ProfileValidationApi as ProfileValidationRuntimeApi;
 use sp_api::codec::Codec;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 use std::sync::Arc;
-type CitizenId = u64;
 type ChallengePostId = u64;
-#[rpc]
+
+#[rpc(client, server)]
 pub trait ProfileValidationApi<BlockHash, AccountId> {
-	#[rpc(name = "profilevalidation_challengerevidence")]
+	#[method(name = "profilevalidation_challengerevidence")]
 	fn get_challengers_evidence(
 		&self,
-		profile_citizenid: CitizenId,
+		profile_user_account: AccountId,
 		offset: u64,
 		limit: u16,
 		at: Option<BlockHash>,
-	) -> Result<Vec<ChallengePostId>>;
-	#[rpc(name = "profilevalidation_evidenceperiodendblock")]
-	fn get_evidence_period_end_block(
-		&self,
-		profile_citizenid: CitizenId,
-		at: Option<BlockHash>,
-	) -> Result<Option<u32>>;
-	#[rpc(name = "profilevalidation_stakingperiodendblock")]
+	) -> RpcResult<Vec<ChallengePostId>>;
+	#[method(name = "profilevalidation_stakingperiodendblock")]
 	fn get_staking_period_end_block(
 		&self,
-		profile_citizenid: CitizenId,
+		profile_user_account: AccountId,
 		at: Option<BlockHash>,
-	) -> Result<Option<u32>>;
-	#[rpc(name = "profilevalidation_drawingperiodend")]
+	) -> RpcResult<Option<u32>>;
+	#[method(name = "profilevalidation_drawingperiodend")]
 	fn get_drawing_period_end(
 		&self,
-		profile_citizenid: CitizenId,
+		profile_user_account: AccountId,
 		at: Option<BlockHash>,
-	) -> Result<(u64, u64, bool)>;
-	#[rpc(name = "profilevalidation_commitendblock")]
+	) -> RpcResult<(u64, u64, bool)>;
+	#[method(name = "profilevalidation_commitendblock")]
 	fn get_commit_period_end_block(
 		&self,
-		profile_citizenid: CitizenId,
+		profile_user_account: AccountId,
 		at: Option<BlockHash>,
-	) -> Result<Option<u32>>;
-	#[rpc(name = "profilevalidation_voteendblock")]
+	) -> RpcResult<Option<u32>>;
+	#[method(name = "profilevalidation_voteendblock")]
 	fn get_vote_period_end_block(
 		&self,
-		profile_citizenid: CitizenId,
+		profile_user_account: AccountId,
 		at: Option<BlockHash>,
-	) -> Result<Option<u32>>;
-	#[rpc(name = "profilevalidation_selectedjuror")]
+	) -> RpcResult<Option<u32>>;
+	#[method(name = "profilevalidation_selectedjuror")]
 	fn selected_as_juror(
 		&self,
-		profile_citizenid: CitizenId,
+		profile_user_account: AccountId,
 		who: AccountId,
 		at: Option<BlockHash>,
-	) -> Result<bool>;
+	) -> RpcResult<bool>;
 }
 
 /// A struct that implements the `SumStorageApi`.
@@ -72,7 +69,26 @@ impl<C, M> ProfileValidation<C, M> {
 	}
 }
 
-impl<C, Block, AccountId> ProfileValidationApi<<Block as BlockT>::Hash, AccountId> for ProfileValidation<C, Block>
+
+/// Error type of this RPC api.
+pub enum Error {
+	/// The transaction was not decodable.
+	DecodeError,
+	/// The call to runtime failed.
+	RuntimeError,
+}
+
+impl From<Error> for i32 {
+	fn from(e: Error) -> i32 {
+		match e {
+			Error::RuntimeError => 1,
+			Error::DecodeError => 2,
+		}
+	}
+}
+
+
+impl<C, Block, AccountId> ProfileValidationApiServer<<Block as BlockT>::Hash, AccountId> for ProfileValidation<C, Block>
 where
 	Block: BlockT,
 	AccountId: Codec,
@@ -83,128 +99,135 @@ where
 {
 	fn get_challengers_evidence(
 		&self,
-		profile_citizenid: CitizenId,
+		profile_user_account: AccountId,
 		offset: u64,
 		limit: u16,
-		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Vec<ChallengePostId>> {
+		at: Option<Block::Hash>,
+	) -> RpcResult<Vec<ChallengePostId>> {
 		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
+		let at = at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
+			self.client.info().best_hash);
 
 		let runtime_api_result =
-			api.get_challengers_evidence(&at, profile_citizenid, offset, limit);
-		runtime_api_result.map_err(|e| RpcError {
-			code: ErrorCode::ServerError(9876), // No real reason for this value
-			message: "Something wrong".into(),
-			data: Some(format!("{:?}", e).into()),
-		})
-	}
-	fn get_evidence_period_end_block(
-		&self,
-		profile_citizenid: CitizenId,
-		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Option<u32>> {
-		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
-			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
-
-		let runtime_api_result = api.get_evidence_period_end_block(&at, profile_citizenid);
-		runtime_api_result.map_err(|e| RpcError {
-			code: ErrorCode::ServerError(9876), // No real reason for this value
-			message: "Something wrong".into(),
-			data: Some(format!("{:?}", e).into()),
-		})
+			api.get_challengers_evidence(at, profile_user_account, offset, limit);
+			fn map_err(error: impl ToString, desc: &'static str) -> CallError {
+				CallError::Custom(ErrorObject::owned(
+					Error::RuntimeError.into(),
+					desc,
+					Some(error.to_string()),
+				))
+			}
+			let res = runtime_api_result.map_err(|e| map_err(e, "Unable to query dispatch info."))?;
+			Ok(res)
 	}
 	fn get_staking_period_end_block(
 		&self,
-		profile_citizenid: CitizenId,
-		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Option<u32>> {
+		profile_user_account: AccountId,
+		at: Option<Block::Hash>,
+	) -> RpcResult<Option<u32>> {
 		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
+		let at = at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
+			self.client.info().best_hash);
 
-		let runtime_api_result = api.get_staking_period_end_block(&at, profile_citizenid);
-		runtime_api_result.map_err(|e| RpcError {
-			code: ErrorCode::ServerError(9876), // No real reason for this value
-			message: "Something wrong".into(),
-			data: Some(format!("{:?}", e).into()),
-		})
+		let runtime_api_result = api.get_staking_period_end_block(at, profile_user_account);
+		fn map_err(error: impl ToString, desc: &'static str) -> CallError {
+			CallError::Custom(ErrorObject::owned(
+				Error::RuntimeError.into(),
+				desc,
+				Some(error.to_string()),
+			))
+		}
+		let res = runtime_api_result.map_err(|e| map_err(e, "Unable to query dispatch info."))?;
+			Ok(res)
 	}
 	fn get_drawing_period_end(
 		&self,
-		profile_citizenid: CitizenId,
-		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<(u64, u64, bool)> {
+		profile_user_account: AccountId,
+		at: Option<Block::Hash>,
+	) -> RpcResult<(u64, u64, bool)> {
 		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
+		let at = at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
+			self.client.info().best_hash);
 
-		let runtime_api_result = api.get_drawing_period_end(&at, profile_citizenid);
-		runtime_api_result.map_err(|e| RpcError {
-			code: ErrorCode::ServerError(9876), // No real reason for this value
-			message: "Something wrong".into(),
-			data: Some(format!("{:?}", e).into()),
-		})
+		let runtime_api_result = api.get_drawing_period_end(at, profile_user_account);
+		fn map_err(error: impl ToString, desc: &'static str) -> CallError {
+			CallError::Custom(ErrorObject::owned(
+				Error::RuntimeError.into(),
+				desc,
+				Some(error.to_string()),
+			))
+		}
+		let res = runtime_api_result.map_err(|e| map_err(e, "Unable to query dispatch info."))?;
+			Ok(res)
 	}
 
 	fn get_commit_period_end_block(
 		&self,
-		profile_citizenid: CitizenId,
-		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Option<u32>> {
+		profile_user_account: AccountId,
+		at: Option<Block::Hash>,
+	) -> RpcResult<Option<u32>> {
 		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
+		let at = at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
+			self.client.info().best_hash);
 
-		let runtime_api_result = api.get_commit_period_end_block(&at, profile_citizenid);
-		runtime_api_result.map_err(|e| RpcError {
-			code: ErrorCode::ServerError(9876), // No real reason for this value
-			message: "Something wrong".into(),
-			data: Some(format!("{:?}", e).into()),
-		})
+		let runtime_api_result = api.get_commit_period_end_block(at, profile_user_account);
+		fn map_err(error: impl ToString, desc: &'static str) -> CallError {
+			CallError::Custom(ErrorObject::owned(
+				Error::RuntimeError.into(),
+				desc,
+				Some(error.to_string()),
+			))
+		}
+		let res = runtime_api_result.map_err(|e| map_err(e, "Unable to query dispatch info."))?;
+			Ok(res)
 	}
 
 	fn get_vote_period_end_block(
 		&self,
-		profile_citizenid: CitizenId,
-		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<Option<u32>> {
+		profile_user_account: AccountId,
+		at: Option<Block::Hash>,
+	) -> RpcResult<Option<u32>> {
 		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
+		let at = at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
+			self.client.info().best_hash);
 
-		let runtime_api_result = api.get_vote_period_end_block(&at, profile_citizenid);
-		runtime_api_result.map_err(|e| RpcError {
-			code: ErrorCode::ServerError(9876), // No real reason for this value
-			message: "Something wrong".into(),
-			data: Some(format!("{:?}", e).into()),
-		})
+		let runtime_api_result = api.get_vote_period_end_block(at, profile_user_account);
+		fn map_err(error: impl ToString, desc: &'static str) -> CallError {
+			CallError::Custom(ErrorObject::owned(
+				Error::RuntimeError.into(),
+				desc,
+				Some(error.to_string()),
+			))
+		}
+		let res = runtime_api_result.map_err(|e| map_err(e, "Unable to query dispatch info."))?;
+			Ok(res)
 	}
 
 	fn selected_as_juror(
 		&self,
-		profile_citizenid: CitizenId,
+		profile_user_account: AccountId,
 		who: AccountId,
-		at: Option<<Block as BlockT>::Hash>,
-	) -> Result<bool> {
+		at: Option<Block::Hash>,
+	) -> RpcResult<bool> {
 		let api = self.client.runtime_api();
-		let at = BlockId::hash(at.unwrap_or_else(||
+		let at = at.unwrap_or_else(||
 			// If the block hash is not supplied assume the best block.
-			self.client.info().best_hash));
+			self.client.info().best_hash);
 
-		let runtime_api_result = api.selected_as_juror(&at, profile_citizenid, who);
-		runtime_api_result.map_err(|e| RpcError {
-			code: ErrorCode::ServerError(9876), // No real reason for this value
-			message: "Something wrong".into(),
-			data: Some(format!("{:?}", e).into()),
-		})
+		let runtime_api_result = api.selected_as_juror(at, profile_user_account, who);
+		fn map_err(error: impl ToString, desc: &'static str) -> CallError {
+			CallError::Custom(ErrorObject::owned(
+				Error::RuntimeError.into(),
+				desc,
+				Some(error.to_string()),
+			))
+		}
+		let res = runtime_api_result.map_err(|e| map_err(e, "Unable to query dispatch info."))?;
+			Ok(res)
 	}
 }
