@@ -67,6 +67,18 @@ impl<T: Config> Pallet<T> {
 		PALLET_ID.into_sub_account_truncating(1)
 	}
 
+	pub(super) fn u64_to_balance_saturated(input: u64) -> BalanceOf<T> {
+		input.saturated_into::<BalanceOf<T>>()
+	}
+
+	pub(super) fn balance_to_u64_saturated(input:  BalanceOf<T>) -> u64 {
+		input.saturated_into::<u64>()
+	}
+
+	pub(super) fn u64_to_block_saturated(input: u64) -> BlockNumberOf<T> {
+		input.saturated_into::<BlockNumberOf<T>>()
+	}
+
 	pub fn get_challengers_evidence(
 		profile_user_account: T::AccountId,
 		offset: u64,
@@ -155,5 +167,14 @@ impl<T: Config> Pallet<T> {
 
 		let result = T::SchellingGameSharedSource::selected_as_juror_helper_link(key, who);
 		result
+	}
+
+	pub fn profile_fund_required(profile_user_account: T::AccountId) ->  Option<u64> {
+		let registration_fee = Self::profile_registration_challenge_fees();
+		let total_funded = Self::total_fund_for_profile_collected(profile_user_account);
+		let registration_fee_u64 = Self::balance_to_u64_saturated(registration_fee);
+		let total_fund_u64 = Self::balance_to_u64_saturated(total_funded);
+		let fund_required = registration_fee_u64.checked_sub(total_fund_u64);
+		fund_required
 	}
 }

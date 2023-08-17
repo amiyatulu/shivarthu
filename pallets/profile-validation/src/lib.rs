@@ -9,6 +9,7 @@
 /// Crowdfund for profile stake ✅
 /// Add another account in case you loose account access
 /// Appeal in case of fradulent account
+/// Clean the storage after are incentives are given
 pub use pallet::*;
 
 #[cfg(test)]
@@ -224,6 +225,7 @@ pub mod pallet {
 		ProfileFundExists,
 		PostAlreadyExists,
 		ProfileIsAlreadyValidated,
+		ChallengeExits,
 		ChallengeDoesNotExists,
 		CommentExists,
 		IsComment,
@@ -359,6 +361,9 @@ pub mod pallet {
 			Ok(())
 		}
 
+
+
+		// Add fees for challenge profile ✔️
 		#[pallet::call_index(2)]
 		#[pallet::weight(0)]
 		pub fn challenge_profile(
@@ -368,6 +373,34 @@ pub mod pallet {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			Self::ensure_account_id_has_profile(profile_user_account.clone())?;
+			let now = <frame_system::Pallet<T>>::block_number();
+
+			let fees = Self::profile_registration_challenge_fees();
+
+			let challenger_fund_info = ChallengerFundInfo{
+				challengerid: who.clone(),
+				deposit: fees,
+				start: now.clone(),
+				challenge_completed: false,
+			};
+
+			let challenger_fund_details = <ChallengerFundDetails<T>>::get(&profile_user_account);
+			match challenger_fund_details {
+				Some(_value) => {
+					Err(Error::<T>::ChallengeExits)?
+				},
+				None => {
+					let _ = <T as pallet::Config>::Currency::withdraw(
+						&who,
+						fees.clone(),
+						WithdrawReasons::TRANSFER,
+						ExistenceRequirement::AllowDeath,
+					)?;
+					<ChallengerFundDetails<T>>::insert(&profile_user_account, challenger_fund_info);
+				},
+			}
+
+
 
 			let block_number = <ProfileValidationBlock<T>>::get(&profile_user_account);
 
@@ -377,7 +410,7 @@ pub mod pallet {
 			};
 
 			let phase_data = Self::get_phase_data();
-			let now = <frame_system::Pallet<T>>::block_number();
+			
 
 			T::SchellingGameSharedSource::set_to_staking_period_link(key.clone(), phase_data, now)?;
 			T::SchellingGameSharedSource::create_tree_helper_link(key.clone(),3)?;

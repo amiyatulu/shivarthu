@@ -148,11 +148,16 @@ fn challenge_evidence() {
 		);
 
 		System::set_block_number(phase_data.evidence_length + 1);
+		let fees = ProfileValidation::profile_registration_challenge_fees();
+		let balance = Balances::free_balance(4);
+		assert_eq!(300000, balance);
 		assert_ok!(ProfileValidation::challenge_profile(
 			RuntimeOrigin::signed(4),
 			1,
 			challenge_content.clone()
 		));
+		let balance = Balances::free_balance(4);
+		assert_eq!(300000-fees, balance);
 		let period = SchellingGameShared::get_period(key.clone());
 		assert_eq!(Some(Period::Staking), period);
 
