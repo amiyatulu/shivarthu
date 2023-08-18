@@ -9,6 +9,7 @@ type ChallengePostId = u64;
 sp_api::decl_runtime_apis! {
 	pub trait ProfileValidationApi<AccountId> where AccountId: Codec {
 		fn get_challengers_evidence(profile_user_account: AccountId, offset: u64, limit: u16) -> Vec<ChallengePostId>;
+		fn get_evidence_period_end_block(profile_user_account: AccountId) -> Option<u32>;
 		fn get_staking_period_end_block(profile_user_account: AccountId) -> Option<u32>;
 		fn get_drawing_period_end(profile_user_account: AccountId) -> (u64, u64, bool);
 		fn get_commit_period_end_block(profile_user_account: AccountId) -> Option<u32>;

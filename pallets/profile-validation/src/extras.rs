@@ -93,6 +93,25 @@ impl<T: Config> Pallet<T> {
 		data
 	}
 
+	pub fn get_evidence_period_end_block(profile_user_account: T::AccountId) -> Option<u32> {
+		let now = <frame_system::Pallet<T>>::block_number();
+		let block_number = <ProfileValidationBlock<T>>::get(&profile_user_account);
+
+		let key = SumTreeName::ProfileValidation {
+			citizen_address: profile_user_account.clone(),
+			block_number,
+		};
+
+		let phase_data = Self::get_phase_data();
+
+		let result = T::SchellingGameSharedSource::get_evidence_period_end_block_helper_link(
+			key, phase_data, now,
+		);
+		result
+
+
+	}
+
 	
 	pub fn get_staking_period_end_block(profile_user_account: T::AccountId) -> Option<u32> {
 		let now = <frame_system::Pallet<T>>::block_number();

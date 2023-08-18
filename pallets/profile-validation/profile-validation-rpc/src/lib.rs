@@ -7,7 +7,7 @@ use profile_validation_runtime_api::ProfileValidationApi as ProfileValidationRun
 use sp_api::codec::Codec;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
-use sp_runtime::{generic::BlockId, traits::Block as BlockT};
+use sp_runtime::traits::Block as BlockT;
 use std::sync::Arc;
 type ChallengePostId = u64;
 
@@ -21,6 +21,12 @@ pub trait ProfileValidationApi<BlockHash, AccountId> {
 		limit: u16,
 		at: Option<BlockHash>,
 	) -> RpcResult<Vec<ChallengePostId>>;
+	#[method(name = "profilevalidation_evidenceperiodendblock")]
+	fn get_evidence_period_end_block(
+		&self,
+		profile_user_account: AccountId,
+		at: Option<BlockHash>,
+	) -> RpcResult<Option<u32>>;
 	#[method(name = "profilevalidation_stakingperiodendblock")]
 	fn get_staking_period_end_block(
 		&self,
@@ -119,6 +125,27 @@ where
 				))
 			}
 			let res = runtime_api_result.map_err(|e| map_err(e, "Unable to query dispatch info."))?;
+			Ok(res)
+	}
+	fn get_evidence_period_end_block(
+		&self,
+		profile_user_account: AccountId,
+		at: Option<Block::Hash>,
+	) -> RpcResult<Option<u32>> {
+		let api = self.client.runtime_api();
+		let at = at.unwrap_or_else(||
+			// If the block hash is not supplied assume the best block.
+			self.client.info().best_hash);
+
+		let runtime_api_result = api.get_evidence_period_end_block(at, profile_user_account);
+		fn map_err(error: impl ToString, desc: &'static str) -> CallError {
+			CallError::Custom(ErrorObject::owned(
+				Error::RuntimeError.into(),
+				desc,
+				Some(error.to_string()),
+			))
+		}
+		let res = runtime_api_result.map_err(|e| map_err(e, "Unable to query dispatch info."))?;
 			Ok(res)
 	}
 	fn get_staking_period_end_block(

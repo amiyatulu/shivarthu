@@ -612,6 +612,10 @@ impl_runtime_apis! {
 		fn get_challengers_evidence(profile_user_account: AccountId, offset: u64, limit: u16) -> Vec<ChallengePostId> {
 			ProfileValidation::get_challengers_evidence(profile_user_account, offset, limit)
 		}
+
+		fn get_evidence_period_end_block(profile_user_account: AccountId) -> Option<u32> {
+			ProfileValidation::get_evidence_period_end_block(profile_user_account)
+		}
 		
 		fn get_staking_period_end_block(profile_user_account: AccountId) -> Option<u32> {
 			ProfileValidation::get_staking_period_end_block(profile_user_account)
