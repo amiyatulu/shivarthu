@@ -301,6 +301,20 @@ impl profile_validation::Config for Runtime {
 	type SchellingGameSharedSource = SchellingGameShared;
 }
 
+impl shared_storage::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = shared_storage::weights::SubstrateWeight<Runtime>;
+}
+
+impl positive_externality_validation::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = positive_externality_validation::weights::SubstrateWeight<Runtime>;
+	type SharedStorageSource = SharedStorage;
+	type Currency = Balances; 
+	type SchellingGameSharedSource = SchellingGameShared;
+}
+
+
 
 
 
@@ -325,6 +339,8 @@ construct_runtime!(
 		SortitionSumGame: sortition_sum_game,
 		SchellingGameShared: schelling_game_shared,
 		ProfileValidation: profile_validation,
+		SharedStorage: shared_storage,
+		PositiveExternalityValidation: positive_externality_validation,
 
 	}
 );

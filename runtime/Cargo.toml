@@ -59,9 +59,10 @@ sortition-sum-game = {default-features = false, path ="../pallets/sortition-sum-
 # pallet-spaces = {default-features=false, path="../pallets/spaces"}
 schelling-game-shared = {default-features=false, path="../pallets/schelling-game-shared"}
 profile-validation = {default-features=false, path="../pallets/profile-validation"}
-# # profile-validation-runtime-api = {default-features=false, path="../pallets/profile-validation/profile-validation-runtime-api"}
-# shared-storage = {default-features=false, path="../pallets/shared-storage"}
+# profile-validation-runtime-api = {default-features=false, path="../pallets/profile-validation/profile-validation-runtime-api"}
+shared-storage = {default-features=false, path="../pallets/shared-storage"}
 profile-validation-runtime-api = {default-features=false, path="../pallets/profile-validation/profile-validation-runtime-api"}
+positive-externality-validation = {default-features = false, path="../pallets/positive-externality-validation"}
 
 
 [build-dependencies]
@@ -110,6 +111,8 @@ std = [
 	"profile-validation/std",
 	# "shared-storage/std",
 	"profile-validation-runtime-api/std",
+	"positive-externality-validation/std",
+	"shared-storage/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
