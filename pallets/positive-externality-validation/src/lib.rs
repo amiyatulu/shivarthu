@@ -45,7 +45,7 @@ pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
 pub type SumTreeNameType<T> = SumTreeName<AccountIdOf<T>, BlockNumberOf<T>>;
 
 
-#[frame_support::pallet]
+#[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
@@ -163,7 +163,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 
 		#[pallet::call_index(0)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn create_positive_externality_post(
 			origin: OriginFor<T>,
 			content: Content,
@@ -191,7 +191,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(1)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn add_positive_externality_stake(
 			origin: OriginFor<T>,
 			deposit: BalanceOf<T>,
@@ -213,7 +213,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(2)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn set_validate_positive_externality(
 			origin: OriginFor<T>,
 			value: bool,
@@ -227,7 +227,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(3)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn apply_staking_period(
 			origin: OriginFor<T>,
 			user_to_calculate: T::AccountId,
@@ -274,7 +274,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(4)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn apply_jurors_positive_externality(
 			origin: OriginFor<T>,
 			user_to_calculate: T::AccountId,
@@ -301,7 +301,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(5)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn pass_period(
 			origin: OriginFor<T>,
 			user_to_calculate: T::AccountId,
@@ -324,7 +324,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(6)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn draw_jurors_positive_externality(
 			origin: OriginFor<T>,
 			user_to_calculate: T::AccountId,
@@ -350,7 +350,7 @@ pub mod pallet {
 		// Unstaking
 		// Stop drawn juror to unstake ✔️
 		#[pallet::call_index(7)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn unstaking(origin: OriginFor<T>, user_to_calculate: T::AccountId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let pe_block_number =
@@ -366,7 +366,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(8)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn commit_vote(
 			origin: OriginFor<T>,
 			user_to_calculate: T::AccountId,
@@ -386,7 +386,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(9)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn reveal_vote(
 			origin: OriginFor<T>,
 			user_to_calculate: T::AccountId,
@@ -411,7 +411,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(10)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn get_incentives(
 			origin: OriginFor<T>,
 			user_to_calculate: T::AccountId,
