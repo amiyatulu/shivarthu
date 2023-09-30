@@ -11,6 +11,7 @@ pub trait SchellingGameSharedLink {
 	type RangePoint;
 	type Period;
 	type PhaseData;
+	type WinningDecision;
 
 	fn create_phase_data(
 		block_length: u64,
@@ -121,4 +122,8 @@ pub trait SchellingGameSharedLink {
 	) -> DispatchResult;
 
 	fn get_drawn_jurors(key: Self::SumTreeName) -> Vec<(Self::AccountId, u64)>;
+
+	fn get_winning_decision_value_link(key: Self::SumTreeName) -> Self::WinningDecision;
+
+
 }

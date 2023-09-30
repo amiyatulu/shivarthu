@@ -504,7 +504,7 @@ impl<T: Config> Pallet<T> {
 				let vote_option = commit_struct.revealed_vote;
 				match vote_option {
 					Some(vote) => {
-						let decision_count = <DecisionCount<T>>::get(&key);
+						let decision_count: (u64, u64) = <DecisionCount<T>>::get(&key);
 						let incentives = phase_data.juror_incentives;
 						let (winning_decision, winning_incentives) =
 							Self::get_winning_incentives(decision_count, incentives);
@@ -671,6 +671,12 @@ impl<T: Config> Pallet<T> {
 			WinningDecision::Draw // draw
 		}
 	}
+
+	pub(super) fn get_winning_decision_value(key: SumTreeNameType<T>) -> WinningDecision {
+		let decision_tuple: (u64, u64) = <DecisionCount<T>>::get(&key);
+		Self::get_winning_decision(decision_tuple)
+	}
+
 
 	pub(super) fn get_winning_incentives(
 		decision_tuple: (u64, u64),

@@ -40,7 +40,9 @@ use frame_support::{
 use pallet_support::{
 	ensure_content_is_valid, new_who_and_when, remove_from_vec, Content, WhoAndWhen, WhoAndWhenOf,
 };
-use schelling_game_shared::types::{Period, PhaseData, RangePoint, SchellingGameType};
+use schelling_game_shared::types::{
+	Period, PhaseData, RangePoint, SchellingGameType, WinningDecision,
+};
 use schelling_game_shared_link::SchellingGameSharedLink;
 use sortition_sum_game::types::SumTreeName;
 pub use types::{CitizenDetailsPost, FIRST_CHALLENGE_POST_ID, FIRST_CITIZEN_ID};
@@ -83,6 +85,7 @@ pub mod pallet {
 			Balance = BalanceOf<Self>,
 			RangePoint = RangePoint,
 			Period = Period,
+			WinningDecision = WinningDecision,
 			PhaseData = PhaseData<Self>,
 		>;
 		type Currency: ReservableCurrency<Self::AccountId>;
@@ -361,8 +364,6 @@ pub mod pallet {
 			Ok(())
 		}
 
-
-
 		// Add fees for challenge profile ✔️
 		#[pallet::call_index(2)]
 		#[pallet::weight(0)]
@@ -377,7 +378,7 @@ pub mod pallet {
 
 			let fees = Self::profile_registration_challenge_fees();
 
-			let challenger_fund_info = ChallengerFundInfo{
+			let challenger_fund_info = ChallengerFundInfo {
 				challengerid: who.clone(),
 				deposit: fees,
 				start: now.clone(),
@@ -386,9 +387,7 @@ pub mod pallet {
 
 			let challenger_fund_details = <ChallengerFundDetails<T>>::get(&profile_user_account);
 			match challenger_fund_details {
-				Some(_value) => {
-					Err(Error::<T>::ChallengeExits)?
-				},
+				Some(_value) => Err(Error::<T>::ChallengeExits)?,
 				None => {
 					let _ = <T as pallet::Config>::Currency::withdraw(
 						&who,
@@ -400,8 +399,6 @@ pub mod pallet {
 				},
 			}
 
-
-
 			let block_number = <ProfileValidationBlock<T>>::get(&profile_user_account);
 
 			let key = SumTreeName::ProfileValidation {
@@ -410,10 +407,9 @@ pub mod pallet {
 			};
 
 			let phase_data = Self::get_phase_data();
-			
 
 			T::SchellingGameSharedSource::set_to_staking_period_link(key.clone(), phase_data, now)?;
-			T::SchellingGameSharedSource::create_tree_helper_link(key.clone(),3)?;
+			T::SchellingGameSharedSource::create_tree_helper_link(key.clone(), 3)?;
 
 			let count = Self::next_challenge_post_count();
 
@@ -588,10 +584,12 @@ pub mod pallet {
 		// May be you need to check challeger fund details exists
 		#[pallet::call_index(5)]
 		#[pallet::weight(0)]
-		pub fn pass_period(origin: OriginFor<T>, profile_user_account: T::AccountId) -> DispatchResult {
+		pub fn pass_period(
+			origin: OriginFor<T>,
+			profile_user_account: T::AccountId,
+		) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
 
-			
 			let block_number = <ProfileValidationBlock<T>>::get(&profile_user_account);
 
 			let key = SumTreeName::ProfileValidation {
@@ -605,7 +603,6 @@ pub mod pallet {
 			T::SchellingGameSharedSource::change_period_link(key, phase_data, now)?;
 
 			Ok(())
-
 		}
 
 		// To Do
@@ -644,7 +641,6 @@ pub mod pallet {
 			T::SchellingGameSharedSource::apply_jurors_helper_link(key, phase_data, who, stake)?;
 
 			Ok(())
-
 		}
 
 		// Draw jurors
@@ -673,14 +669,16 @@ pub mod pallet {
 			T::SchellingGameSharedSource::draw_jurors_helper_link(key, phase_data, iterations)?;
 
 			Ok(())
-
 		}
 
 		// Unstaking
 		// Stop drawn juror to unstake ✔️
 		#[pallet::call_index(8)]
 		#[pallet::weight(0)]
-		pub fn unstaking(origin: OriginFor<T>, profile_user_account: T::AccountId) -> DispatchResult {
+		pub fn unstaking(
+			origin: OriginFor<T>,
+			profile_user_account: T::AccountId,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let block_number = <ProfileValidationBlock<T>>::get(&profile_user_account);
 
@@ -737,7 +735,7 @@ pub mod pallet {
 		#[pallet::weight(0)]
 		pub fn get_incentives(
 			origin: OriginFor<T>,
-			profile_user_account: T::AccountId
+			profile_user_account: T::AccountId,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let block_number = <ProfileValidationBlock<T>>::get(&profile_user_account);
@@ -750,6 +748,28 @@ pub mod pallet {
 			T::SchellingGameSharedSource::get_incentives_two_choice_helper_link(
 				key, phase_data, who,
 			)?;
+			Ok(())
+		}
+
+		#[pallet::call_index(12)]
+		#[pallet::weight(0)]
+		pub fn return_profile_stake(
+			origin: OriginFor<T>,
+			profile_user_account: T::AccountId,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let block_number = <ProfileValidationBlock<T>>::get(&profile_user_account);
+			let key = SumTreeName::ProfileValidation {
+				citizen_address: profile_user_account.clone(),
+				block_number,
+			};
+
+			let decision = T::SchellingGameSharedSource::get_winning_decision_value_link(key);
+			match <ProfileFundDetails<T>>::get(profile_user_account.clone(), who.clone()) {
+				Some(profile_fund_info) => {},
+				None => {},
+			}
+
 			Ok(())
 		}
 	}

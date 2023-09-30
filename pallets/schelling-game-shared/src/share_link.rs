@@ -11,6 +11,7 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 	type RangePoint = RangePoint;
 	type Period = Period;
 	type PhaseData = PhaseDataOf<T>;
+	type WinningDecision = WinningDecision;
 
 	fn create_phase_data(
 		block_length: u64,
@@ -263,5 +264,9 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 
 	fn get_drawn_jurors(key: Self::SumTreeName) -> Vec<(Self::AccountId, u64)> {
 		Self::drawn_jurors(key)
+	}
+
+	fn get_winning_decision_value_link(key: Self::SumTreeName) -> WinningDecision {
+		Self::get_winning_decision_value(key)
 	}
 }
