@@ -31,6 +31,7 @@ pub enum SchellingGameType {
 #[scale_info(skip_type_params(T))]
 pub struct PhaseData<T: Config> {
 	pub evidence_length: T::BlockNumber,
+	pub end_of_staking_time: T::BlockNumber,
 	pub staking_length: T::BlockNumber,
 	pub drawing_length: T::BlockNumber,
 	pub commit_length: T::BlockNumber,

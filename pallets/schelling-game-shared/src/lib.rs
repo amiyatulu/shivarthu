@@ -225,6 +225,7 @@ pub mod pallet {
 		CommitDoesNotExists,
 		AlreadyGotIncentives,
 		VoteNotRevealed,
+		TimeForStakingOver,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.

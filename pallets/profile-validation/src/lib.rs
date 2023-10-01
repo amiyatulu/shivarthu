@@ -763,10 +763,11 @@ pub mod pallet {
 				citizen_address: profile_user_account.clone(),
 				block_number,
 			};
-
-			let decision = T::SchellingGameSharedSource::get_winning_decision_value_link(key);
+			let decision: WinningDecision = T::SchellingGameSharedSource::get_winning_decision_value_link(key);
 			match <ProfileFundDetails<T>>::get(profile_user_account.clone(), who.clone()) {
-				Some(profile_fund_info) => {},
+				Some(profile_fund_info) => {
+					
+				},
 				None => {},
 			}
 

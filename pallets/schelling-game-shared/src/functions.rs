@@ -9,6 +9,7 @@ use super::*;
 impl<T: Config> PhaseData<T> {
 	pub fn new(
 		evidence_length: T::BlockNumber,
+		end_of_staking_time: T::BlockNumber,
 		staking_length: T::BlockNumber,
 		drawing_length: T::BlockNumber,
 		commit_length: T::BlockNumber,
@@ -21,6 +22,7 @@ impl<T: Config> PhaseData<T> {
 	) -> Self {
 		PhaseData {
 			evidence_length,
+			end_of_staking_time,
 			staking_length,
 			drawing_length,
 			commit_length,
@@ -36,6 +38,7 @@ impl<T: Config> PhaseData<T> {
 	pub fn default() -> Self {
 		PhaseData {
 			evidence_length: 144000u64.saturated_into::<BlockNumberOf<T>>(),
+			end_of_staking_time: 144000u64.saturated_into::<BlockNumberOf<T>>(),
 			staking_length: 144000u64.saturated_into::<BlockNumberOf<T>>(),
 			drawing_length: 144000u64.saturated_into::<BlockNumberOf<T>>(),
 			commit_length: 144000u64.saturated_into::<BlockNumberOf<T>>(),
@@ -59,6 +62,7 @@ impl<T: Config> PhaseData<T> {
 		let min_juror_stake = min_juror_stake.saturated_into::<BalanceOf<T>>();
 		PhaseData {
 			evidence_length: block_length,
+			end_of_staking_time: block_length,
 			staking_length: block_length,
 			drawing_length: block_length,
 			commit_length: block_length,

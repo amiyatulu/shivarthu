@@ -1,5 +1,3 @@
-use core::cmp::min;
-
 use crate::*;
 
 impl<T: Config> Pallet<T> {
@@ -52,10 +50,14 @@ impl<T: Config> Pallet<T> {
 			let evidence_stake_block_number = <EvidenceStartTime<T>>::get(&key);
 			let time = now.checked_sub(&evidence_stake_block_number).expect("Overflow");
 			let evidence_length = phase_data.evidence_length;
-			if time >= evidence_length {
+			let end_length_for_staking = phase_data.end_of_staking_time;
+			let total_length = evidence_length.checked_add(&end_length_for_staking).expect("overflow");
+			if time >= evidence_length &&  time < total_length {
 				let new_period = Period::Staking;
 				<PeriodName<T>>::insert(&key, new_period);
 				<StakingStartTime<T>>::insert(&key, now);
+			} else if time >= total_length{
+				Err(Error::<T>::TimeForStakingOver)?
 			} else {
 				Err(Error::<T>::EvidencePeriodNotOver)?
 			}
@@ -66,7 +68,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	/// Set staking period for no evidence period
+	/// Set staking period when evidence period is not required
 	pub(super) fn set_to_staking_period_pe(
 		key: SumTreeNameType<T>,
 		now: BlockNumberOf<T>,
