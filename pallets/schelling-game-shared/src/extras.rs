@@ -51,12 +51,13 @@ impl<T: Config> Pallet<T> {
 			let time = now.checked_sub(&evidence_stake_block_number).expect("Overflow");
 			let evidence_length = phase_data.evidence_length;
 			let end_length_for_staking = phase_data.end_of_staking_time;
-			let total_length = evidence_length.checked_add(&end_length_for_staking).expect("overflow");
-			if time >= evidence_length &&  time < total_length {
+			let total_length =
+				evidence_length.checked_add(&end_length_for_staking).expect("overflow");
+			if time >= evidence_length && time < total_length {
 				let new_period = Period::Staking;
 				<PeriodName<T>>::insert(&key, new_period);
 				<StakingStartTime<T>>::insert(&key, now);
-			} else if time >= total_length{
+			} else if time >= total_length {
 				Err(Error::<T>::TimeForStakingOver)?
 			} else {
 				Err(Error::<T>::EvidencePeriodNotOver)?
@@ -65,6 +66,21 @@ impl<T: Config> Pallet<T> {
 			Err(Error::<T>::PeriodIsNotEvidence)?
 		}
 
+		Ok(())
+	}
+
+	/// Check time for staking over
+	pub(super) fn check_time_for_staking_not_over(
+		key: SumTreeNameType<T>,
+		phase_data: PhaseDataOf<T>,
+		now: BlockNumberOf<T>,
+	) -> DispatchResult {
+		let evidence_stake_block_number = <EvidenceStartTime<T>>::get(&key);
+		let time = now.checked_sub(&evidence_stake_block_number).expect("Overflow");
+		let evidence_length = phase_data.evidence_length;
+		let end_length_for_staking = phase_data.end_of_staking_time;
+		let total_length = evidence_length.checked_add(&end_length_for_staking).expect("overflow");
+		ensure!(time >= total_length, Error::<T>::TimeForStakingNotOver);
 		Ok(())
 	}
 
@@ -85,9 +101,8 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub(super) fn create_tree_link_helper(key: SumTreeNameType<T>, k: u64) -> DispatchResult {
-		 T::SortitionSumGameSource::create_tree_link(key.clone(), k)?;
-		 Ok(())
-		
+		T::SortitionSumGameSource::create_tree_link(key.clone(), k)?;
+		Ok(())
 	}
 
 	/// Change the `Period`
@@ -678,7 +693,6 @@ impl<T: Config> Pallet<T> {
 		let decision_tuple: (u64, u64) = <DecisionCount<T>>::get(&key);
 		Self::get_winning_decision(decision_tuple)
 	}
-
 
 	pub(super) fn get_winning_incentives(
 		decision_tuple: (u64, u64),

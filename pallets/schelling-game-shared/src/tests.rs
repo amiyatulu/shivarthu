@@ -103,6 +103,26 @@ fn end_of_time_staking_period() {
 	});
 }
 
+/// Check time for staking over
+#[test]
+fn check_time_for_staking_not_over_test() {
+	new_test_ext().execute_with(|| {
+		let key = return_key_profile(0);
+		let now = 10;
+		assert_ok!(TemplateModule::set_to_evidence_period(key.clone(), now));
+		assert_eq!(TemplateModule::get_period(&key).unwrap(), Period::Evidence);
+		let phase_data = get_the_phase_data();
+		let now2 = now + phase_data.evidence_length + phase_data.end_of_staking_time - 1;
+		assert_noop!(
+			TemplateModule::check_time_for_staking_not_over(key.clone(), phase_data, now2),
+			Error::<Test>::TimeForStakingNotOver
+		);
+		let phase_data = get_the_phase_data();
+		let now = now + phase_data.evidence_length + phase_data.end_of_staking_time;
+		assert_ok!(TemplateModule::check_time_for_staking_not_over(key.clone(), phase_data, now));
+	});
+}
+
 #[test]
 fn apply_juror() {
 	new_test_ext().execute_with(|| {

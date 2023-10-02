@@ -226,6 +226,7 @@ pub mod pallet {
 		AlreadyGotIncentives,
 		VoteNotRevealed,
 		TimeForStakingOver,
+		TimeForStakingNotOver,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
