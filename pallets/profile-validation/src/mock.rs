@@ -88,6 +88,8 @@ impl pallet_template::Config for Test {
 	type WeightInfo = ();
 	type Currency = Balances; // New code
 	type SchellingGameSharedSource = SchellingGameShared;
+	type Slash = ();
+	type Reward = ();
 }
 
 impl schelling_game_shared::Config for Test {

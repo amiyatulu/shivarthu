@@ -34,9 +34,12 @@ use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::prelude::*;
 use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 use frame_support::{
-	traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
+	traits::{
+		Currency, ExistenceRequirement, Get, OnUnbalanced, ReservableCurrency, WithdrawReasons,
+	},
 	PalletId,
 };
+
 use pallet_support::{
 	ensure_content_is_valid, new_who_and_when, remove_from_vec, Content, WhoAndWhen, WhoAndWhenOf,
 };
@@ -54,6 +57,12 @@ type ChallengerFundInfoOf<T> =
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
 type CitizenId = u64;
 type ChallengePostId = u64;
+type PositiveImbalanceOf<T> = <<T as Config>::Currency as Currency<
+	<T as frame_system::Config>::AccountId,
+>>::PositiveImbalance;
+type NegativeImbalanceOf<T> = <<T as Config>::Currency as Currency<
+	<T as frame_system::Config>::AccountId,
+>>::NegativeImbalance;
 
 const PALLET_ID: PalletId = PalletId(*b"ex/cfund");
 
@@ -89,6 +98,11 @@ pub mod pallet {
 			PhaseData = PhaseData<Self>,
 		>;
 		type Currency: ReservableCurrency<Self::AccountId>;
+		/// Handler for the unbalanced increment when rewarding (minting rewards)
+		type Reward: OnUnbalanced<PositiveImbalanceOf<Self>>;
+
+		/// Handler for the unbalanced decrement when slashing (burning collateral)
+		type Slash: OnUnbalanced<NegativeImbalanceOf<Self>>;
 	}
 
 	// The pallet's runtime storage items.
@@ -762,13 +776,64 @@ pub mod pallet {
 			let key = SumTreeName::ProfileValidation {
 				citizen_address: profile_user_account.clone(),
 				block_number,
-			};			
-			let decision: WinningDecision = T::SchellingGameSharedSource::get_winning_decision_value_link(key);
-			match <ProfileFundDetails<T>>::get(profile_user_account.clone(), who.clone()) {
-				Some(profile_fund_info) => {
-					
-				},
-				None => {},
+			};
+			let now = <frame_system::Pallet<T>>::block_number();
+			let phase_data = Self::get_phase_data();
+
+			let period = T::SchellingGameSharedSource::get_period_link(key.clone()).unwrap();
+			if period == Period::Execution {
+				let decision: WinningDecision =
+					T::SchellingGameSharedSource::get_winning_decision_value_link(key.clone());
+				if decision == WinningDecision::WinnerNo {
+					match <ProfileFundDetails<T>>::get(profile_user_account.clone(), who.clone()) {
+						Some(mut profile_fund_info) => {
+							if profile_fund_info.deposit_returned == false {
+								let r = <T as pallet::Config>::Currency::deposit_into_existing(
+									&who,
+									profile_fund_info.deposit,
+								)
+								.ok()
+								.unwrap();
+								<T as pallet::Config>::Reward::on_unbalanced(r);
+								profile_fund_info.deposit_returned = true;
+								<ProfileFundDetails<T>>::insert(
+									profile_user_account.clone(),
+									who.clone(),
+									profile_fund_info,
+								);
+							}
+						},
+						None => {
+							Err(Error::<T>::ProfileFundNotExists)?;
+						},
+					}
+				}
+			} else if period == Period::Evidence {
+				T::SchellingGameSharedSource::ensure_time_for_staking_not_over_link(
+					key, phase_data, now,
+				)?;
+				match <ProfileFundDetails<T>>::get(profile_user_account.clone(), who.clone()) {
+					Some(mut profile_fund_info) => {
+						if profile_fund_info.deposit_returned == false {
+							let r = <T as pallet::Config>::Currency::deposit_into_existing(
+								&who,
+								profile_fund_info.deposit,
+							)
+							.ok()
+							.unwrap();
+							<T as pallet::Config>::Reward::on_unbalanced(r);
+							profile_fund_info.deposit_returned = true;
+							<ProfileFundDetails<T>>::insert(
+								profile_user_account.clone(),
+								who.clone(),
+								profile_fund_info,
+							);
+						}
+					},
+					None => {
+						Err(Error::<T>::ProfileFundNotExists)?;
+					},
+				}
 			}
 
 			Ok(())

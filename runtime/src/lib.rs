@@ -299,6 +299,8 @@ impl profile_validation::Config for Runtime {
 	type WeightInfo = profile_validation::weights::SubstrateWeight<Runtime>;	
 	type Currency = Balances;
 	type SchellingGameSharedSource = SchellingGameShared;
+	type Slash = ();
+	type Reward = ();
 }
 
 impl shared_storage::Config for Runtime {
