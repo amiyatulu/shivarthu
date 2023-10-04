@@ -66,12 +66,12 @@ impl<T: Config> SchellingGameSharedLink for Pallet<T> {
 		Self::set_to_staking_period(key, phase_data, now)
 	}
 
-	fn ensure_time_for_staking_not_over_link(
+	fn ensure_time_for_staking_over_link(
 		key: Self::SumTreeName,
 		phase_data: Self::PhaseData,
 		now: Self::BlockNumber,
 	) -> DispatchResult {
-		Self::ensure_time_for_staking_not_over(key, phase_data, now)
+		Self::ensure_time_for_staking_over(key, phase_data, now)
 	}
 
 	fn set_to_staking_period_pe_link(

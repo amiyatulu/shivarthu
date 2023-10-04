@@ -253,6 +253,7 @@ pub mod pallet {
 		CitizenNotApproved,
 		NotAPostOwner,
 		AmountFundedGreaterThanRequired,
+		ProfileFundAlreadyReturned,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -801,6 +802,8 @@ pub mod pallet {
 									who.clone(),
 									profile_fund_info,
 								);
+							} else {
+								Err(Error::<T>::ProfileFundAlreadyReturned)?;
 							}
 						},
 						None => {
@@ -809,7 +812,7 @@ pub mod pallet {
 					}
 				}
 			} else if period == Period::Evidence {
-				T::SchellingGameSharedSource::ensure_time_for_staking_not_over_link(
+				T::SchellingGameSharedSource::ensure_time_for_staking_over_link(
 					key, phase_data, now,
 				)?;
 				match <ProfileFundDetails<T>>::get(profile_user_account.clone(), who.clone()) {
@@ -828,6 +831,8 @@ pub mod pallet {
 								who.clone(),
 								profile_fund_info,
 							);
+						} else {
+							Err(Error::<T>::ProfileFundAlreadyReturned)?;
 						}
 					},
 					None => {

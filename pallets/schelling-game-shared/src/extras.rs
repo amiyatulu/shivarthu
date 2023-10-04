@@ -70,7 +70,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Check time for staking over
-	pub(super) fn ensure_time_for_staking_not_over(
+	pub(super) fn ensure_time_for_staking_over(
 		key: SumTreeNameType<T>,
 		phase_data: PhaseDataOf<T>,
 		now: BlockNumberOf<T>,

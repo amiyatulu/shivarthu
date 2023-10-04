@@ -34,7 +34,7 @@ pub trait SchellingGameSharedLink {
 		now: Self::BlockNumber,
 	) -> DispatchResult;
 
-	fn ensure_time_for_staking_not_over_link(
+	fn ensure_time_for_staking_over_link(
 		key: Self::SumTreeName,
 		phase_data: Self::PhaseData,
 		now: Self::BlockNumber,

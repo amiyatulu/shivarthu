@@ -114,12 +114,12 @@ fn check_time_for_staking_not_over_test() {
 		let phase_data = get_the_phase_data();
 		let now2 = now + phase_data.evidence_length + phase_data.end_of_staking_time - 1;
 		assert_noop!(
-			TemplateModule::ensure_time_for_staking_not_over(key.clone(), phase_data, now2),
+			TemplateModule::ensure_time_for_staking_over(key.clone(), phase_data, now2),
 			Error::<Test>::TimeForStakingNotOver
 		);
 		let phase_data = get_the_phase_data();
 		let now = now + phase_data.evidence_length + phase_data.end_of_staking_time;
-		assert_ok!(TemplateModule::ensure_time_for_staking_not_over(key.clone(), phase_data, now));
+		assert_ok!(TemplateModule::ensure_time_for_staking_over(key.clone(), phase_data, now));
 	});
 }
 

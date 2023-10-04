@@ -157,7 +157,7 @@ fn challenge_evidence() {
 			challenge_content.clone()
 		));
 		let balance = Balances::free_balance(4);
-		assert_eq!(300000-fees, balance);
+		assert_eq!(300000 - fees, balance);
 		let period = SchellingGameShared::get_period(key.clone());
 		assert_eq!(Some(Period::Staking), period);
 
@@ -170,6 +170,96 @@ fn challenge_evidence() {
 			Error::<Test>::CitizenDoNotExists
 		);
 	})
+}
+
+#[test]
+fn challenge_profile_after_time_for_staking_over_test() {
+	new_test_ext().execute_with(|| {
+		System::set_block_number(1);
+		let content: Content = Content::IPFS(
+			"bafkreiaiq24be2iioasr6ftyaum3icmj7amtjkom2jeokov5k5ojwzhvqy"
+				.as_bytes()
+				.to_vec(),
+		);
+		assert_ok!(ProfileValidation::add_citizen(RuntimeOrigin::signed(1), content.clone()));
+		assert_ok!(ProfileValidation::add_profile_stake(RuntimeOrigin::signed(3), 1, 1000));
+		let key = SumTreeName::ProfileValidation { citizen_address: 1, block_number: 1 };
+		let period = SchellingGameShared::get_period(key.clone());
+		assert_eq!(Some(Period::Evidence), period);
+
+		let challenge_content: Content = Content::IPFS(
+			"bafkreiaiq24be2iioasr6ftyaum3icmj7amtjkom2jeokov5k5ojwzhabc"
+				.as_bytes()
+				.to_vec(),
+		);
+
+		let phase_data = ProfileValidation::get_phase_data();
+
+		assert_noop!(
+			ProfileValidation::challenge_profile(
+				RuntimeOrigin::signed(4),
+				1,
+				challenge_content.clone()
+			),
+			<schelling_game_shared::Error<Test>>::EvidencePeriodNotOver
+		);
+
+		System::set_block_number(phase_data.evidence_length + phase_data.end_of_staking_time + 1);
+		assert_noop!(
+			ProfileValidation::challenge_profile(
+				RuntimeOrigin::signed(4),
+				1,
+				challenge_content.clone()
+			),
+			<schelling_game_shared::Error<Test>>::TimeForStakingOver
+		);
+	});
+}
+
+#[test]
+fn return_profile_stake_test() {
+	new_test_ext().execute_with(|| {
+		System::set_block_number(1);
+		let content: Content = Content::IPFS(
+			"bafkreiaiq24be2iioasr6ftyaum3icmj7amtjkom2jeokov5k5ojwzhvqy"
+				.as_bytes()
+				.to_vec(),
+		);
+		assert_ok!(ProfileValidation::add_citizen(RuntimeOrigin::signed(1), content.clone()));
+		let balance = Balances::free_balance(3);
+		assert_eq!(300000, balance);
+		assert_ok!(ProfileValidation::add_profile_stake(RuntimeOrigin::signed(3), 1, 400));
+		let balance = Balances::free_balance(3);
+		assert_eq!(300000 - 400, balance);
+		assert_ok!(ProfileValidation::add_profile_stake(RuntimeOrigin::signed(4), 1, 600));
+		let balance = Balances::free_balance(4);
+		assert_eq!(300000 - 600, balance);
+		let key = SumTreeName::ProfileValidation { citizen_address: 1, block_number: 1 };
+		let period = SchellingGameShared::get_period(key.clone());
+		assert_eq!(Some(Period::Evidence), period);
+		let phase_data = ProfileValidation::get_phase_data();
+		System::set_block_number(phase_data.evidence_length + phase_data.end_of_staking_time);
+		assert_noop!(
+			ProfileValidation::return_profile_stake(RuntimeOrigin::signed(3), 1),
+			<schelling_game_shared::Error<Test>>::TimeForStakingNotOver
+		);
+		System::set_block_number(phase_data.evidence_length + phase_data.end_of_staking_time + 1);
+		assert_ok!(ProfileValidation::return_profile_stake(RuntimeOrigin::signed(3), 1));
+		let balance = Balances::free_balance(3);
+		assert_eq!(300000, balance);
+		assert_noop!(
+			ProfileValidation::return_profile_stake(RuntimeOrigin::signed(3), 1),
+			Error::<Test>::ProfileFundAlreadyReturned
+		);
+
+		assert_ok!(ProfileValidation::return_profile_stake(RuntimeOrigin::signed(4), 1));
+		let balance = Balances::free_balance(4);
+		assert_eq!(300000, balance);
+		assert_noop!(
+			ProfileValidation::return_profile_stake(RuntimeOrigin::signed(5), 1),
+			Error::<Test>::ProfileFundNotExists
+		);
+	});
 }
 
 #[test]
