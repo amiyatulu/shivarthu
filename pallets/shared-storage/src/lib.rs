@@ -59,6 +59,9 @@ pub mod pallet {
 	#[pallet::getter(fn positive_externality_score)]
 	pub type PositiveExternalityScore<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, Score, ValueQuery>;
 
+	// Keep winning representatives of department in shared storage
+
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub approved_citizen_address: Vec<T::AccountId>,

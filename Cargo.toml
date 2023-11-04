@@ -11,12 +11,13 @@ members = [
     "pallets/support",
     "pallets/election",
     "pallets/department-funding",
+    "pallets/project-tips",
     "pallets/posts",
     "pallets/ubi",
     "pallets/tags",
     "traits/sortition-sum-game-link",
     "traits/schelling-game-shared-link",
-    "runtime",
+    "runtime/node-runtime",
 ]
 [profile.release]
 panic = "unwind"

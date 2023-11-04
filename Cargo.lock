@@ -5611,6 +5611,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "project-tips"
+version = "4.0.0-dev"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-support-test",
+ "frame-system",
+ "pallet-balances",
+ "pallet-support",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "scale-info",
+ "schelling-game-shared",
+ "schelling-game-shared-link",
+ "shared-storage",
+ "shared-storage-link",
+ "sortition-sum-game",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
 name = "prometheus"
 version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
