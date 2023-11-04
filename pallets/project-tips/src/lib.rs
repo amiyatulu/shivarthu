@@ -38,6 +38,7 @@ use schelling_game_shared::types::{Period, RangePoint, SchellingGameType, PhaseD
 use schelling_game_shared_link::SchellingGameSharedLink;
 use shared_storage_link::SharedStorageLink;
 use sortition_sum_game::types::SumTreeName;
+use types::TippingName;
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
@@ -77,6 +78,7 @@ pub mod pallet {
 		type Currency: ReservableCurrency<Self::AccountId>;
 	}
 
+	
 	// The pallet's runtime storage items.
 	// https://docs.substrate.io/main-docs/build/runtime-storage/
 	#[pallet::storage]
