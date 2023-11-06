@@ -24,7 +24,7 @@ use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::prelude::*;
 use frame_support::{
 	dispatch::{DispatchError, DispatchResult},
-	ensure, fail,
+	ensure
 };
 use frame_support::{
 	traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
@@ -45,7 +45,7 @@ pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
 pub type SumTreeNameType<T> = SumTreeName<AccountIdOf<T>, BlockNumberOf<T>>;
 type DeparmentId = u128;
 
-#[frame_support::pallet]
+#[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
@@ -133,23 +133,29 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 
 		#[pallet::call_index(0)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
-		pub fn add_department_stake(
+		#[pallet::weight(0)]
+		pub fn add_project_stake(
 			origin: OriginFor<T>,
 			department_id: DeparmentId,
-			deposit: BalanceOf<T>,
+			tipping_name: TippingName,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+
+			let tipping_value = Self::value_of_tipping_name(tipping_name);
+
+
+
+
 			// Check user has done kyc
 			let _ = <T as pallet::Config>::Currency::withdraw(
 				&who,
-				deposit,
+				tipping_value.stake_required,
 				WithdrawReasons::TRANSFER,
 				ExistenceRequirement::AllowDeath,
 			)?;
-			let stake = DepartmentStakeBalance::<T>::get(department_id);
-			let total_balance = stake.saturating_add(deposit);
-			DepartmentStakeBalance::<T>::insert(department_id, total_balance);
+			// let stake = DepartmentStakeBalance::<T>::get(department_id);
+			// let total_balance = stake.saturating_add(deposit);
+			// DepartmentStakeBalance::<T>::insert(department_id, total_balance);
 
 			// emit event
 			Ok(())
@@ -169,10 +175,11 @@ pub mod pallet {
 		// }
 
 		#[pallet::call_index(1)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn apply_staking_period(
 			origin: OriginFor<T>,
 			department_id: DeparmentId,
+
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
@@ -212,7 +219,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(2)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn apply_jurors_positive_externality(
 			origin: OriginFor<T>,
 			department_id: DeparmentId,
@@ -238,7 +245,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(3)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn pass_period(origin: OriginFor<T>, department_id: DeparmentId) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
 
@@ -257,7 +264,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(4)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn draw_jurors_positive_externality(
 			origin: OriginFor<T>,
 			department_id: DeparmentId,
@@ -282,7 +289,7 @@ pub mod pallet {
 		// Unstaking
 		// Stop drawn juror to unstake ✔️
 		#[pallet::call_index(5)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn unstaking(origin: OriginFor<T>, department_id: DeparmentId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
@@ -297,7 +304,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(6)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn commit_vote(
 			origin: OriginFor<T>,
 			department_id: DeparmentId,
@@ -316,7 +323,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(7)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn reveal_vote(
 			origin: OriginFor<T>,
 			department_id: DeparmentId,
@@ -339,7 +346,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(8)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn get_incentives(origin: OriginFor<T>, department_id: DeparmentId) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
 			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);

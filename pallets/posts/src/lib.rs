@@ -33,7 +33,7 @@ use pallet_support::{
 	WhoAndWhen, WhoAndWhenOf,
 };
 
-#[frame_support::pallet]
+#[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
@@ -188,7 +188,7 @@ pub mod pallet {
 		/// Create post
 		///  Who can post, does kyc validation required??
 		#[pallet::call_index(0)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn create_post(
 			origin: OriginFor<T>,
 			space_id_opt: Option<SpaceId>,
@@ -221,7 +221,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(1)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn update_post(
 			origin: OriginFor<T>,
 			post_id: PostId,
