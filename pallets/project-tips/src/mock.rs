@@ -1,5 +1,5 @@
 use crate as pallet_template;
-use frame_support::{traits::{ConstU16, ConstU64, GenesisBuild}};
+use frame_support::{parameter_types, traits::{ConstU16, ConstU64, GenesisBuild}};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -21,6 +21,7 @@ frame_support::construct_runtime!(
 		System: frame_system,
 		TemplateModule: pallet_template,
 		Balances: pallet_balances,
+		Timestamp: pallet_timestamp,
 		SharedStorage:shared_storage,
 		SchellingGameShared: schelling_game_shared,
 		SortitionSumGame: sortition_sum_game,
@@ -52,6 +53,17 @@ impl frame_system::Config for Test {
 	type OnSetCode = ();
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 	type AccountData = pallet_balances::AccountData<u64>; // New code
+}
+
+parameter_types! {
+    pub const MinimumPeriod: u64 = 5;
+}
+
+impl pallet_timestamp::Config for Test {
+    type Moment = u64;
+    type OnTimestampSet = ();
+    type MinimumPeriod = MinimumPeriod;
+    type WeightInfo = ();
 }
 
 

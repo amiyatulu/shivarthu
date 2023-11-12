@@ -9,8 +9,8 @@ type CitizenId = u64;
 pub enum SumTreeName<AccountId, BlockNumber> {
     ProfileValidation { citizen_address: AccountId, block_number: BlockNumber},
     PositiveExternality {user_address: AccountId, block_number: BlockNumber },
-    DepartmentScore {department_id: u128, block_number: BlockNumber},
-    ProjectTips { project_id: u128,  block_number: BlockNumber },
+    DepartmentScore {department_id: u64, block_number: BlockNumber},
+    ProjectTips { project_id: u64,  block_number: BlockNumber },
 }
 
 

@@ -1,11 +1,30 @@
 use crate::*;
-use types::{TippingName, TippingValue};
+use types::{Project, TippingName, TippingValue};
+
+impl<T: Config> Project<T> {
+	pub fn new(
+		project_id: ProjectId,
+		department_id: DepartmentId,
+		tipping_name: TippingName,
+		funding_needed: BalanceOf<T>,
+		project_leader: T::AccountId,
+	) -> Self {
+		Project {
+			created: new_who_and_when::<T>(project_leader.clone()),
+			project_id,
+			department_id,
+			tipping_name,
+			funding_needed,
+			project_leader,
+		}
+	}
+}
 
 impl<T: Config> Pallet<T> {
 	pub(super) fn get_phase_data() -> PhaseData<T> {
 		T::SchellingGameSharedSource::create_phase_data(50, 5, 3, 100, (100, 100))
 	}
-	pub fn ensure_min_stake_deparment(department_id: DeparmentId) -> DispatchResult {
+	pub fn ensure_min_stake_deparment(department_id: DepartmentId) -> DispatchResult {
 		let stake = DepartmentStakeBalance::<T>::get(department_id);
 		let min_stake = MinimumDepartmentStake::<T>::get();
 		// println!("stake {:?}", stake);

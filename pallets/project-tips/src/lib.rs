@@ -24,7 +24,7 @@ use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::prelude::*;
 use frame_support::{
 	dispatch::{DispatchError, DispatchResult},
-	ensure
+	ensure,
 };
 use frame_support::{
 	traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
@@ -34,16 +34,19 @@ use pallet_support::{
 	ensure_content_is_valid, new_who_and_when, remove_from_vec, Content, PositiveExternalityPostId,
 	WhoAndWhen, WhoAndWhenOf,
 };
-use schelling_game_shared::types::{Period, RangePoint, SchellingGameType, PhaseData};
+use schelling_game_shared::types::{Period, PhaseData, RangePoint, SchellingGameType};
 use schelling_game_shared_link::SchellingGameSharedLink;
 use shared_storage_link::SharedStorageLink;
 use sortition_sum_game::types::SumTreeName;
-use types::TippingName;
+use types::{Project, TippingName, TippingValue};
+pub use types::PROJECT_ID;
+
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
 pub type SumTreeNameType<T> = SumTreeName<AccountIdOf<T>, BlockNumberOf<T>>;
-type DeparmentId = u128;
+type DepartmentId = u64;
+type ProjectId = u64;
 
 #[frame_support::pallet(dev_mode)]
 pub mod pallet {
@@ -57,7 +60,7 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config + schelling_game_shared::Config {
+	pub trait Config: frame_system::Config + schelling_game_shared::Config + pallet_timestamp::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Type representing the weight of this pallet
@@ -73,12 +76,10 @@ pub mod pallet {
 			RangePoint = RangePoint,
 			Period = Period,
 			PhaseData = PhaseData<Self>,
-
 		>;
 		type Currency: ReservableCurrency<Self::AccountId>;
 	}
 
-	
 	// The pallet's runtime storage items.
 	// https://docs.substrate.io/main-docs/build/runtime-storage/
 	#[pallet::storage]
@@ -87,22 +88,30 @@ pub mod pallet {
 	// https://docs.substrate.io/main-docs/build/runtime-storage/#declaring-storage-items
 	pub type Something<T> = StorageValue<_, u32>;
 
-	
-
 	#[pallet::type_value]
 	pub fn MinimumDepartmentStake<T: Config>() -> BalanceOf<T> {
 		10000u128.saturated_into::<BalanceOf<T>>()
 	}
 
+	#[pallet::type_value]
+	pub fn DefaultForNextProjectId() -> ProjectId {
+		PROJECT_ID
+	}
+
+	#[pallet::storage]
+	#[pallet::getter(fn next_project_id)]
+	pub type NextProjectId<T: Config> =
+		StorageValue<_, ProjectId, ValueQuery, DefaultForNextProjectId>;
+
 	#[pallet::storage]
 	#[pallet::getter(fn department_stake)]
 	pub type DepartmentStakeBalance<T: Config> =
-		StorageMap<_, Twox64Concat, DeparmentId, BalanceOf<T>, ValueQuery>;
+		StorageMap<_, Twox64Concat, DepartmentId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn validation_department_block_number)]
 	pub type ValidationDepartmentBlock<T: Config> =
-		StorageMap<_, Blake2_128Concat, DeparmentId, BlockNumberOf<T>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, DepartmentId, BlockNumberOf<T>, ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/main-docs/build/events-errors/
@@ -124,6 +133,7 @@ pub mod pallet {
 		LessThanMinStake,
 		CannotStakeNow,
 		ChoiceOutOfRange,
+		FundingMoreThanTippingValue,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -131,28 +141,31 @@ pub mod pallet {
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-
 		#[pallet::call_index(0)]
 		#[pallet::weight(0)]
 		pub fn add_project_stake(
 			origin: OriginFor<T>,
-			department_id: DeparmentId,
+			department_id: DepartmentId,
 			tipping_name: TippingName,
+			funding_needed: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-
 			let tipping_value = Self::value_of_tipping_name(tipping_name);
+			let max_tipping_value = tipping_value.max_tipping_value;
+			let stake_required = tipping_value.stake_required;
+			let project_id = Self::next_project_id();
 
+			let new_project: Project<T> = Project::new(project_id, department_id, tipping_name, funding_needed, who.clone());
 
-
-
+			ensure!(funding_needed <= max_tipping_value, Error::<T>::FundingMoreThanTippingValue);
 			// Check user has done kyc
 			let _ = <T as pallet::Config>::Currency::withdraw(
 				&who,
-				tipping_value.stake_required,
+				stake_required,
 				WithdrawReasons::TRANSFER,
 				ExistenceRequirement::AllowDeath,
 			)?;
+
 			// let stake = DepartmentStakeBalance::<T>::get(department_id);
 			// let total_balance = stake.saturating_add(deposit);
 			// DepartmentStakeBalance::<T>::insert(department_id, total_balance);
@@ -178,8 +191,7 @@ pub mod pallet {
 		#[pallet::weight(0)]
 		pub fn apply_staking_period(
 			origin: OriginFor<T>,
-			department_id: DeparmentId,
-
+			department_id: DepartmentId,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
@@ -222,7 +234,7 @@ pub mod pallet {
 		#[pallet::weight(0)]
 		pub fn apply_jurors_positive_externality(
 			origin: OriginFor<T>,
-			department_id: DeparmentId,
+			department_id: DepartmentId,
 			stake: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -246,7 +258,7 @@ pub mod pallet {
 
 		#[pallet::call_index(3)]
 		#[pallet::weight(0)]
-		pub fn pass_period(origin: OriginFor<T>, department_id: DeparmentId) -> DispatchResult {
+		pub fn pass_period(origin: OriginFor<T>, department_id: DepartmentId) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
 
 			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
@@ -267,7 +279,7 @@ pub mod pallet {
 		#[pallet::weight(0)]
 		pub fn draw_jurors_positive_externality(
 			origin: OriginFor<T>,
-			department_id: DeparmentId,
+			department_id: DepartmentId,
 			iterations: u64,
 		) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
@@ -290,7 +302,7 @@ pub mod pallet {
 		// Stop drawn juror to unstake ✔️
 		#[pallet::call_index(5)]
 		#[pallet::weight(0)]
-		pub fn unstaking(origin: OriginFor<T>, department_id: DeparmentId) -> DispatchResult {
+		pub fn unstaking(origin: OriginFor<T>, department_id: DepartmentId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
 
@@ -307,7 +319,7 @@ pub mod pallet {
 		#[pallet::weight(0)]
 		pub fn commit_vote(
 			origin: OriginFor<T>,
-			department_id: DeparmentId,
+			department_id: DepartmentId,
 			vote_commit: [u8; 32],
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -326,7 +338,7 @@ pub mod pallet {
 		#[pallet::weight(0)]
 		pub fn reveal_vote(
 			origin: OriginFor<T>,
-			department_id: DeparmentId,
+			department_id: DepartmentId,
 			choice: i64,
 			salt: Vec<u8>,
 		) -> DispatchResult {
@@ -347,7 +359,7 @@ pub mod pallet {
 
 		#[pallet::call_index(8)]
 		#[pallet::weight(0)]
-		pub fn get_incentives(origin: OriginFor<T>, department_id: DeparmentId) -> DispatchResult {
+		pub fn get_incentives(origin: OriginFor<T>, department_id: DepartmentId) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
 			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
 			let key = SumTreeName::DepartmentScore {
