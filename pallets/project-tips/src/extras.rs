@@ -1,5 +1,4 @@
 use crate::*;
-use types::{Project, TippingName, TippingValue};
 
 impl<T: Config> Project<T> {
 	pub fn new(
