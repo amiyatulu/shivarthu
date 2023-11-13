@@ -38,8 +38,8 @@ use schelling_game_shared::types::{Period, PhaseData, RangePoint, SchellingGameT
 use schelling_game_shared_link::SchellingGameSharedLink;
 use shared_storage_link::SharedStorageLink;
 use sortition_sum_game::types::SumTreeName;
-use types::{Project, TippingName, TippingValue};
 pub use types::PROJECT_ID;
+use types::{Project, TippingName, TippingValue};
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
@@ -60,7 +60,9 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config + schelling_game_shared::Config + pallet_timestamp::Config {
+	pub trait Config:
+		frame_system::Config + schelling_game_shared::Config + pallet_timestamp::Config
+	{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Type representing the weight of this pallet
@@ -104,6 +106,10 @@ pub mod pallet {
 		StorageValue<_, ProjectId, ValueQuery, DefaultForNextProjectId>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn get_project)]
+	pub type Projects<T: Config> = StorageMap<_, Blake2_128Concat, ProjectId, Project<T>>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn department_stake)]
 	pub type DepartmentStakeBalance<T: Config> =
 		StorageMap<_, Twox64Concat, DepartmentId, BalanceOf<T>, ValueQuery>;
@@ -120,7 +126,14 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
-		SomethingStored { something: u32, who: T::AccountId },
+		SomethingStored {
+			something: u32,
+			who: T::AccountId,
+		},
+		ProjectCreated {
+			account: T::AccountId,
+			project_id: ProjectId,
+		},
 	}
 
 	// Errors inform users that something went wrong.
@@ -143,7 +156,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		#[pallet::call_index(0)]
 		#[pallet::weight(0)]
-		pub fn add_project_stake(
+		pub fn create_project(
 			origin: OriginFor<T>,
 			department_id: DepartmentId,
 			tipping_name: TippingName,
@@ -153,10 +166,14 @@ pub mod pallet {
 			let tipping_value = Self::value_of_tipping_name(tipping_name);
 			let max_tipping_value = tipping_value.max_tipping_value;
 			let stake_required = tipping_value.stake_required;
-			let project_id = Self::next_project_id();
-
-			let new_project: Project<T> = Project::new(project_id, department_id, tipping_name, funding_needed, who.clone());
-
+			let new_project_id = Self::next_project_id();
+			let new_project: Project<T> = Project::new(
+				new_project_id,
+				department_id,
+				tipping_name,
+				funding_needed,
+				who.clone(),
+			);
 			ensure!(funding_needed <= max_tipping_value, Error::<T>::FundingMoreThanTippingValue);
 			// Check user has done kyc
 			let _ = <T as pallet::Config>::Currency::withdraw(
@@ -165,12 +182,12 @@ pub mod pallet {
 				WithdrawReasons::TRANSFER,
 				ExistenceRequirement::AllowDeath,
 			)?;
+			Projects::insert(new_project_id, new_project);
+			NextProjectId::<T>::mutate(|n| {
+				*n += 1;
+			});
 
-			// let stake = DepartmentStakeBalance::<T>::get(department_id);
-			// let total_balance = stake.saturating_add(deposit);
-			// DepartmentStakeBalance::<T>::insert(department_id, total_balance);
-
-			// emit event
+			Self::deposit_event(Event::ProjectCreated { account: who, project_id: new_project_id });
 			Ok(())
 		}
 

@@ -24,6 +24,7 @@ pub struct TippingValue<Balance> {
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+#[scale_info(skip_type_params(T))]
 pub struct Project<T: Config> {
 	pub created: WhoAndWhenOf<T>,
 	pub project_id: ProjectId,
