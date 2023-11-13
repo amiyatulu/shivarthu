@@ -109,15 +109,15 @@ pub mod pallet {
 	#[pallet::getter(fn get_project)]
 	pub type Projects<T: Config> = StorageMap<_, Blake2_128Concat, ProjectId, Project<T>>;
 
-	#[pallet::storage]
-	#[pallet::getter(fn department_stake)]
-	pub type DepartmentStakeBalance<T: Config> =
-		StorageMap<_, Twox64Concat, DepartmentId, BalanceOf<T>, ValueQuery>;
+	// #[pallet::storage]
+	// #[pallet::getter(fn department_stake)]
+	// pub type DepartmentStakeBalance<T: Config> =
+	// 	StorageMap<_, Twox64Concat, DepartmentId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn validation_department_block_number)]
-	pub type ValidationDepartmentBlock<T: Config> =
-		StorageMap<_, Blake2_128Concat, DepartmentId, BlockNumberOf<T>, ValueQuery>;
+	#[pallet::getter(fn validation_project_block_number)]
+	pub type ValidationProjectBlock<T: Config> =
+		StorageMap<_, Blake2_128Concat, ProjectId, BlockNumberOf<T>, ValueQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/main-docs/build/events-errors/
@@ -134,6 +134,11 @@ pub mod pallet {
 			account: T::AccountId,
 			project_id: ProjectId,
 		},
+		StakinPeriodStarted {
+			project_id: ProjectId,
+			block_number: BlockNumberOf<T>,
+
+		}
 	}
 
 	// Errors inform users that something went wrong.
@@ -147,6 +152,8 @@ pub mod pallet {
 		CannotStakeNow,
 		ChoiceOutOfRange,
 		FundingMoreThanTippingValue,
+		ProjectDontExists,
+		ProjectCreatorDontMatch,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -191,213 +198,180 @@ pub mod pallet {
 			Ok(())
 		}
 
-		// #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		// pub fn set_validate_positive_externality(
+		// Check update and discussion time over, only project creator can apply staking period
+		#[pallet::call_index(1)]
+		#[pallet::weight(0)]
+		pub fn apply_staking_period(origin: OriginFor<T>, project_id: ProjectId) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			// Self::ensure_validation_on_positive_externality(user_to_calculate.clone())?;
+			Self::ensure_user_is_project_creator_and_project_exists(project_id, who)?;
+
+			let now = <frame_system::Pallet<T>>::block_number();
+
+			let key = SumTreeName::ProjectTips { project_id, block_number: now.clone() };
+
+			<ValidationProjectBlock<T>>::insert(project_id, now.clone());
+			// check what if called again
+			T::SchellingGameSharedSource::set_to_staking_period_pe_link(key.clone(), now.clone())?;
+			T::SchellingGameSharedSource::create_tree_helper_link(key, 3)?;
+
+			Self::deposit_event(Event::StakinPeriodStarted { project_id: project_id, block_number: now});
+
+			Ok(())
+		}
+
+		// #[pallet::call_index(2)]
+		// #[pallet::weight(0)]
+		// pub fn apply_jurors_positive_externality(
 		// 	origin: OriginFor<T>,
-		// 	value: bool,
+		// 	department_id: DepartmentId,
+		// 	stake: BalanceOf<T>,
 		// ) -> DispatchResult {
 		// 	let who = ensure_signed(origin)?;
-		// 	// Check user has done kyc
 
-		// 	ValidatePositiveExternality::<T>::insert(&who, value);
-		// 	// emit event
+		// 	// Self::ensure_validation_on_positive_externality(user_to_calculate.clone())?;
+		// 	Self::ensure_min_stake_deparment(department_id)?;
+
+		// 	let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
+
+		// 	let key = SumTreeName::DepartmentScore {
+		// 		department_id,
+		// 		block_number: pe_block_number.clone(),
+		// 	};
+
+		// 	let phase_data = Self::get_phase_data();
+
+		// 	T::SchellingGameSharedSource::apply_jurors_helper_link(key, phase_data, who, stake)?;
+
 		// 	Ok(())
 		// }
 
-		#[pallet::call_index(1)]
-		#[pallet::weight(0)]
-		pub fn apply_staking_period(
-			origin: OriginFor<T>,
-			department_id: DepartmentId,
-		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
+		// #[pallet::call_index(3)]
+		// #[pallet::weight(0)]
+		// pub fn pass_period(origin: OriginFor<T>, department_id: DepartmentId) -> DispatchResult {
+		// 	let _who = ensure_signed(origin)?;
 
-			// Self::ensure_validation_on_positive_externality(user_to_calculate.clone())?;
-			Self::ensure_min_stake_deparment(department_id)?;
+		// 	let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
 
-			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
-			let now = <frame_system::Pallet<T>>::block_number();
-			let six_month_number = (6 * 30 * 24 * 60 * 60) / 6;
-			let six_month_block = Self::u64_to_block_saturated(six_month_number);
-			let modulus = now % six_month_block;
-			let storage_main_block = now - modulus;
-			// println!("{:?}", now);
-			// println!("{:?}", three_month_number);
-			// println!("{:?}", storage_main_block);
-			// println!("{:?}", pe_block_number);
+		// 	let key = SumTreeName::DepartmentScore {
+		// 		department_id,
+		// 		block_number: pe_block_number.clone(),
+		// 	};
 
-			let key = SumTreeName::DepartmentScore {
-				department_id,
-				block_number: storage_main_block.clone(),
-			};
+		// 	let now = <frame_system::Pallet<T>>::block_number();
+		// 	let phase_data = Self::get_phase_data();
+		// 	T::SchellingGameSharedSource::change_period_link(key, phase_data, now)?;
 
-			// let game_type = SchellingGameType::PositiveExternality;
+		// 	Ok(())
+		// }
 
-			if storage_main_block > pe_block_number {
-				<ValidationDepartmentBlock<T>>::insert(department_id, storage_main_block);
-				// check what if called again
-				T::SchellingGameSharedSource::set_to_staking_period_pe_link(key.clone(), now)?;
-				T::SchellingGameSharedSource::create_tree_helper_link(key, 3)?;
+		// #[pallet::call_index(4)]
+		// #[pallet::weight(0)]
+		// pub fn draw_jurors_positive_externality(
+		// 	origin: OriginFor<T>,
+		// 	department_id: DepartmentId,
+		// 	iterations: u64,
+		// ) -> DispatchResult {
+		// 	let _who = ensure_signed(origin)?;
 
-			//  println!("{:?}", data);
-			} else {
-				return Err(Error::<T>::CannotStakeNow.into());
-			}
+		// 	let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
 
-			Ok(())
-		}
+		// 	let key = SumTreeName::DepartmentScore {
+		// 		department_id,
+		// 		block_number: pe_block_number.clone(),
+		// 	};
 
-		#[pallet::call_index(2)]
-		#[pallet::weight(0)]
-		pub fn apply_jurors_positive_externality(
-			origin: OriginFor<T>,
-			department_id: DepartmentId,
-			stake: BalanceOf<T>,
-		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
+		// 	let phase_data = Self::get_phase_data();
 
-			// Self::ensure_validation_on_positive_externality(user_to_calculate.clone())?;
-			Self::ensure_min_stake_deparment(department_id)?;
+		// 	T::SchellingGameSharedSource::draw_jurors_helper_link(key, phase_data, iterations)?;
 
-			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
+		// 	Ok(())
+		// }
 
-			let key = SumTreeName::DepartmentScore {
-				department_id,
-				block_number: pe_block_number.clone(),
-			};
+		// // Unstaking
+		// // Stop drawn juror to unstake ✔️
+		// #[pallet::call_index(5)]
+		// #[pallet::weight(0)]
+		// pub fn unstaking(origin: OriginFor<T>, department_id: DepartmentId) -> DispatchResult {
+		// 	let who = ensure_signed(origin)?;
+		// 	let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
 
-			let phase_data = Self::get_phase_data();
+		// 	let key = SumTreeName::DepartmentScore {
+		// 		department_id,
+		// 		block_number: pe_block_number.clone(),
+		// 	};
 
-			T::SchellingGameSharedSource::apply_jurors_helper_link(key, phase_data, who, stake)?;
+		// 	T::SchellingGameSharedSource::unstaking_helper_link(key, who)?;
+		// 	Ok(())
+		// }
 
-			Ok(())
-		}
+		// #[pallet::call_index(6)]
+		// #[pallet::weight(0)]
+		// pub fn commit_vote(
+		// 	origin: OriginFor<T>,
+		// 	department_id: DepartmentId,
+		// 	vote_commit: [u8; 32],
+		// ) -> DispatchResult {
+		// 	let who = ensure_signed(origin)?;
+		// 	let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
 
-		#[pallet::call_index(3)]
-		#[pallet::weight(0)]
-		pub fn pass_period(origin: OriginFor<T>, department_id: DepartmentId) -> DispatchResult {
-			let _who = ensure_signed(origin)?;
+		// 	let key = SumTreeName::DepartmentScore {
+		// 		department_id,
+		// 		block_number: pe_block_number.clone(),
+		// 	};
 
-			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
+		// 	T::SchellingGameSharedSource::commit_vote_for_score_helper_link(key, who, vote_commit)?;
+		// 	Ok(())
+		// }
 
-			let key = SumTreeName::DepartmentScore {
-				department_id,
-				block_number: pe_block_number.clone(),
-			};
+		// #[pallet::call_index(7)]
+		// #[pallet::weight(0)]
+		// pub fn reveal_vote(
+		// 	origin: OriginFor<T>,
+		// 	department_id: DepartmentId,
+		// 	choice: i64,
+		// 	salt: Vec<u8>,
+		// ) -> DispatchResult {
+		// 	let who = ensure_signed(origin)?;
 
-			let now = <frame_system::Pallet<T>>::block_number();
-			let phase_data = Self::get_phase_data();
-			T::SchellingGameSharedSource::change_period_link(key, phase_data, now)?;
+		// 	ensure!(choice <= 5 && choice >= 1, Error::<T>::ChoiceOutOfRange);
 
-			Ok(())
-		}
+		// 	let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
 
-		#[pallet::call_index(4)]
-		#[pallet::weight(0)]
-		pub fn draw_jurors_positive_externality(
-			origin: OriginFor<T>,
-			department_id: DepartmentId,
-			iterations: u64,
-		) -> DispatchResult {
-			let _who = ensure_signed(origin)?;
+		// 	let key = SumTreeName::DepartmentScore {
+		// 		department_id,
+		// 		block_number: pe_block_number.clone(),
+		// 	};
 
-			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
+		// 	T::SchellingGameSharedSource::reveal_vote_score_helper_link(key, who, choice, salt)?;
+		// 	Ok(())
+		// }
 
-			let key = SumTreeName::DepartmentScore {
-				department_id,
-				block_number: pe_block_number.clone(),
-			};
+		// #[pallet::call_index(8)]
+		// #[pallet::weight(0)]
+		// pub fn get_incentives(origin: OriginFor<T>, department_id: DepartmentId) -> DispatchResult {
+		// 	let _who = ensure_signed(origin)?;
+		// 	let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
+		// 	let key = SumTreeName::DepartmentScore {
+		// 		department_id,
+		// 		block_number: pe_block_number.clone(),
+		// 	};
 
-			let phase_data = Self::get_phase_data();
+		// 	let phase_data = Self::get_phase_data();
+		// 	T::SchellingGameSharedSource::get_incentives_score_schelling_helper_link(
+		// 		key.clone(),
+		// 		phase_data,
+		// 		RangePoint::ZeroToFive,
+		// 	)?;
 
-			T::SchellingGameSharedSource::draw_jurors_helper_link(key, phase_data, iterations)?;
+		// 	let score = T::SchellingGameSharedSource::get_mean_value_link(key.clone());
+		// 	// // println!("Score {:?}", score);
 
-			Ok(())
-		}
+		// 	// To do
+		// 	// T::SharedStorageSource::set_positive_externality_link(user_to_calculate, score)?;
 
-		// Unstaking
-		// Stop drawn juror to unstake ✔️
-		#[pallet::call_index(5)]
-		#[pallet::weight(0)]
-		pub fn unstaking(origin: OriginFor<T>, department_id: DepartmentId) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
-
-			let key = SumTreeName::DepartmentScore {
-				department_id,
-				block_number: pe_block_number.clone(),
-			};
-
-			T::SchellingGameSharedSource::unstaking_helper_link(key, who)?;
-			Ok(())
-		}
-
-		#[pallet::call_index(6)]
-		#[pallet::weight(0)]
-		pub fn commit_vote(
-			origin: OriginFor<T>,
-			department_id: DepartmentId,
-			vote_commit: [u8; 32],
-		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
-
-			let key = SumTreeName::DepartmentScore {
-				department_id,
-				block_number: pe_block_number.clone(),
-			};
-
-			T::SchellingGameSharedSource::commit_vote_for_score_helper_link(key, who, vote_commit)?;
-			Ok(())
-		}
-
-		#[pallet::call_index(7)]
-		#[pallet::weight(0)]
-		pub fn reveal_vote(
-			origin: OriginFor<T>,
-			department_id: DepartmentId,
-			choice: i64,
-			salt: Vec<u8>,
-		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-
-			ensure!(choice <= 5 && choice >= 1, Error::<T>::ChoiceOutOfRange);
-
-			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
-
-			let key = SumTreeName::DepartmentScore {
-				department_id,
-				block_number: pe_block_number.clone(),
-			};
-
-			T::SchellingGameSharedSource::reveal_vote_score_helper_link(key, who, choice, salt)?;
-			Ok(())
-		}
-
-		#[pallet::call_index(8)]
-		#[pallet::weight(0)]
-		pub fn get_incentives(origin: OriginFor<T>, department_id: DepartmentId) -> DispatchResult {
-			let _who = ensure_signed(origin)?;
-			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
-			let key = SumTreeName::DepartmentScore {
-				department_id,
-				block_number: pe_block_number.clone(),
-			};
-
-			let phase_data = Self::get_phase_data();
-			T::SchellingGameSharedSource::get_incentives_score_schelling_helper_link(
-				key.clone(),
-				phase_data,
-				RangePoint::ZeroToFive,
-			)?;
-
-			let score = T::SchellingGameSharedSource::get_mean_value_link(key.clone());
-			// // println!("Score {:?}", score);
-
-			// To do
-			// T::SharedStorageSource::set_positive_externality_link(user_to_calculate, score)?;
-
-			Ok(())
-		}
+		// 	Ok(())
+		// }
 	}
 }

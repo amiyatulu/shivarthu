@@ -23,12 +23,19 @@ impl<T: Config> Pallet<T> {
 	pub(super) fn get_phase_data() -> PhaseData<T> {
 		T::SchellingGameSharedSource::create_phase_data(50, 5, 3, 100, (100, 100))
 	}
-	pub fn ensure_min_stake_deparment(department_id: DepartmentId) -> DispatchResult {
-		let stake = DepartmentStakeBalance::<T>::get(department_id);
-		let min_stake = MinimumDepartmentStake::<T>::get();
-		// println!("stake {:?}", stake);
-		// println!("min stake {:?}", min_stake);
-		ensure!(stake >= min_stake, Error::<T>::LessThanMinStake);
+
+	pub fn ensure_user_is_project_creator_and_project_exists(
+		project_id: ProjectId,
+		user: T::AccountId,
+	) -> DispatchResult {
+		let project_option: Option<Project<T>> = Projects::get(project_id);
+		match project_option {
+			Some(project) => {
+				let project_leader = project.project_leader;
+				ensure!(project_leader == user, Error::<T>::ProjectCreatorDontMatch);
+			},
+			None => Err(Error::<T>::ProjectDontExists)?,
+		}
 
 		Ok(())
 	}
