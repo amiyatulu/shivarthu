@@ -40,6 +40,14 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	pub fn ensure_staking_period_set_once_project_id(project_id: ProjectId) -> DispatchResult {
+		let block_number_option = <ValidationProjectBlock<T>>::get(project_id);
+		match block_number_option {
+			Some(_block) => Err(Error::<T>::ProjectIdStakingPeriodAlreadySet)?,
+			None => Ok(()),
+		}
+	}
+
 	pub(super) fn u64_to_balance_saturated(input: u64) -> BalanceOf<T> {
 		input.saturated_into::<BalanceOf<T>>()
 	}

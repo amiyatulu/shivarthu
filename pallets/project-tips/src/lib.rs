@@ -119,7 +119,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn validation_project_block_number)]
 	pub type ValidationProjectBlock<T: Config> =
-		StorageMap<_, Blake2_128Concat, ProjectId, BlockNumberOf<T>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, ProjectId, BlockNumberOf<T>>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/main-docs/build/events-errors/
@@ -156,6 +156,7 @@ pub mod pallet {
 		FundingMoreThanTippingValue,
 		ProjectDontExists,
 		ProjectCreatorDontMatch,
+		ProjectIdStakingPeriodAlreadySet,
 	}
 
 	// Check deparment exists, it will done using loose coupling 
@@ -201,18 +202,19 @@ pub mod pallet {
 		// Check update and discussion time over, only project creator can apply staking period
 		#[pallet::call_index(1)]
 		#[pallet::weight(0)]
-		pub fn apply_staking_period(origin: OriginFor<T>, project_id: ProjectId) -> DispatchResult {
+		pub fn apply_staking_period(origin: OriginFor<T>, project_id: ProjectId) -> DispatchResult {	
+			
 			let who = ensure_signed(origin)?;
 
-			// Self::ensure_validation_on_positive_externality(user_to_calculate.clone())?;
 			Self::ensure_user_is_project_creator_and_project_exists(project_id, who)?;
+			Self::ensure_staking_period_set_once_project_id(project_id)?;
 
 			let now = <frame_system::Pallet<T>>::block_number();
 
 			let key = SumTreeName::ProjectTips { project_id, block_number: now.clone() };
 
 			<ValidationProjectBlock<T>>::insert(project_id, now.clone());
-			// check what if called again
+			// check what if called again, its done with `ensure_staking_period_set_once_project_id`
 			T::SchellingGameSharedSource::set_to_staking_period_pe_link(key.clone(), now.clone())?;
 			T::SchellingGameSharedSource::create_tree_helper_link(key, 3)?;
 

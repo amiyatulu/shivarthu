@@ -69,5 +69,10 @@ fn check_apply_staking_period_function() {
 		System::assert_last_event(
 			Event::StakinPeriodStarted { project_id: 1, block_number: 1 }.into(),
 		);
+		System::set_block_number(5);
+		assert_noop!(
+			ProjectTips::apply_staking_period(RuntimeOrigin::signed(1), 1),
+			Error::<Test>::ProjectIdStakingPeriodAlreadySet
+		);
 	});
 }
