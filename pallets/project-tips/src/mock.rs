@@ -19,7 +19,7 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system,
-		TemplateModule: pallet_template,
+		ProjectTips: pallet_template,
 		Balances: pallet_balances,
 		Timestamp: pallet_timestamp,
 		SharedStorage:shared_storage,
