@@ -48,6 +48,17 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+	pub fn get_block_number_of_schelling_game(
+		project_id: ProjectId,
+	) -> Result<BlockNumberOf<T>, DispatchError> {
+		let block_number_option = <ValidationProjectBlock<T>>::get(project_id);
+		let block_number = match block_number_option {
+			Some(block_number) => block_number,
+			None => Err(Error::<T>::ProjectIdStakingPeriodAlreadySet)?,
+		};
+		Ok(block_number)
+	}
+
 	pub(super) fn u64_to_balance_saturated(input: u64) -> BalanceOf<T> {
 		input.saturated_into::<BalanceOf<T>>()
 	}
