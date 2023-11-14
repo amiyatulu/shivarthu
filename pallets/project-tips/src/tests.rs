@@ -39,3 +39,35 @@ fn check_create_project_function() {
 	});
 }
 
+#[test]
+fn check_apply_staking_period_function() {
+	new_test_ext().execute_with(|| {
+		System::set_block_number(1);
+		assert_noop!(
+			ProjectTips::apply_staking_period(RuntimeOrigin::signed(1), 2),
+			Error::<Test>::ProjectDontExists
+		);
+
+		let tipping_name = TippingName::SmallTipper;
+		let tipping_value = ProjectTips::value_of_tipping_name(tipping_name);
+		let max_tipping_value = tipping_value.max_tipping_value;
+		let funding_needed = max_tipping_value - 100;
+		assert_ok!(ProjectTips::create_project(
+			RuntimeOrigin::signed(1),
+			2,
+			tipping_name,
+			funding_needed
+		));
+
+		assert_noop!(
+			ProjectTips::apply_staking_period(RuntimeOrigin::signed(3), 1),
+			Error::<Test>::ProjectCreatorDontMatch
+		);
+
+		assert_ok!(ProjectTips::apply_staking_period(RuntimeOrigin::signed(1), 1));
+
+		System::assert_last_event(
+			Event::StakinPeriodStarted { project_id: 1, block_number: 1 }.into(),
+		);
+	});
+}
