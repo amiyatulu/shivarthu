@@ -3,6 +3,8 @@
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://docs.substrate.io/reference/frame-pallets/>
+
+// One can enhance validation measures by increasing staking power for local residents or individuals with positive externalities—those who contribute to the network for a good cause.
 pub use pallet::*;
 
 #[cfg(test)]
@@ -154,6 +156,7 @@ pub mod pallet {
 		ProjectDontExists,
 		ProjectCreatorDontMatch,
 		ProjectIdStakingPeriodAlreadySet,
+		BlockNumberProjectIdNotExists,
 	}
 
 	// Check deparment exists, it will done using loose coupling

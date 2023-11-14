@@ -54,7 +54,7 @@ impl<T: Config> Pallet<T> {
 		let block_number_option = <ValidationProjectBlock<T>>::get(project_id);
 		let block_number = match block_number_option {
 			Some(block_number) => block_number,
-			None => Err(Error::<T>::ProjectIdStakingPeriodAlreadySet)?,
+			None => Err(Error::<T>::BlockNumberProjectIdNotExists)?,
 		};
 		Ok(block_number)
 	}
