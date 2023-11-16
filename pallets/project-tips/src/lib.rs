@@ -3,7 +3,6 @@
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://docs.substrate.io/reference/frame-pallets/>
-
 // One can enhance validation measures by increasing staking power for local residents or individuals with positive externalities—those who contribute to the network for a good cause.
 pub use pallet::*;
 
@@ -140,6 +139,11 @@ pub mod pallet {
 			project_id: ProjectId,
 			block_number: BlockNumberOf<T>,
 		},
+		ApplyJurors {
+			project_id: ProjectId,
+			block_number: BlockNumberOf<T>,
+			account: T::AccountId,
+		},
 	}
 
 	// Errors inform users that something went wrong.
@@ -237,14 +241,15 @@ pub mod pallet {
 
 			let phase_data = Self::get_phase_data();
 
-			T::SchellingGameSharedSource::apply_jurors_helper_link(key, phase_data, who, stake)?;
+			T::SchellingGameSharedSource::apply_jurors_helper_link(key, phase_data, who.clone(), stake)?;
+			Self::deposit_event(Event::ApplyJurors { project_id, block_number, account: who });
 
 			Ok(())
 		}
 
 		#[pallet::call_index(3)]
 		#[pallet::weight(0)]
-		pub fn pass_period_project_tips(
+		pub fn pass_period(
 			origin: OriginFor<T>,
 			project_id: ProjectId,
 		) -> DispatchResult {
@@ -257,13 +262,12 @@ pub mod pallet {
 			let now = <frame_system::Pallet<T>>::block_number();
 			let phase_data = Self::get_phase_data();
 			T::SchellingGameSharedSource::change_period_link(key, phase_data, now)?;
-
 			Ok(())
 		}
 
 		#[pallet::call_index(4)]
 		#[pallet::weight(0)]
-		pub fn draw_jurors_project_tips(
+		pub fn draw_jurors(
 			origin: OriginFor<T>,
 			project_id: ProjectId,
 			iterations: u64,
@@ -285,7 +289,7 @@ pub mod pallet {
 		// Stop drawn juror to unstake ✔️
 		#[pallet::call_index(5)]
 		#[pallet::weight(0)]
-		pub fn unstaking_project_tips(
+		pub fn unstaking(
 			origin: OriginFor<T>,
 			project_id: ProjectId,
 		) -> DispatchResult {
@@ -299,7 +303,7 @@ pub mod pallet {
 
 		#[pallet::call_index(6)]
 		#[pallet::weight(0)]
-		pub fn commit_vote_project_tips(
+		pub fn commit_vote(
 			origin: OriginFor<T>,
 			project_id: ProjectId,
 			vote_commit: [u8; 32],
@@ -314,7 +318,7 @@ pub mod pallet {
 
 		#[pallet::call_index(7)]
 		#[pallet::weight(0)]
-		pub fn reveal_vote_project_tips(
+		pub fn reveal_vote(
 			origin: OriginFor<T>,
 			project_id: ProjectId,
 			choice: u128,
