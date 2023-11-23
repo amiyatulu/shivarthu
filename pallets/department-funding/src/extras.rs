@@ -1,4 +1,5 @@
 use crate::*;
+use types::{TIME_FOR_STAKING_FUNDING_STATUS_FAILED, TIME_FOR_STAKING_FUNDING_STATUS_PASSED};
 
 impl<T: Config> DepartmentRequiredFund<T> {
 	pub fn new(
@@ -24,7 +25,7 @@ impl<T: Config> Pallet<T> {
 		T::SchellingGameSharedSource::create_phase_data(50, 5, 3, 100, (100, 100))
 	}
 
-	pub fn ensure_validation_on_positive_externality(
+	pub fn ensure_validation_to_do(
 		department_required_fund_id: DepartmentRequiredFundId,
 	) -> DispatchResult {
 		let bool_data = ValidateDepartmentRequiredFund::<T>::get(department_required_fund_id);
@@ -36,7 +37,41 @@ impl<T: Config> Pallet<T> {
 	pub fn get_department_id_from_department_required_fund_id(
 		department_required_fund_id: DepartmentRequiredFundId,
 	) -> Result<DepartmentId, DispatchError> {
-		Ok(1)
+		let department_required_fund_option =
+			DepartmentRequiredFunds::<T>::get(department_required_fund_id);
+
+		match department_required_fund_option {
+			Some(department_required_fund) => Ok(department_required_fund.department_id),
+			None => Err(Error::<T>::DepartmentRequiredFundDontExits)?,
+		}
+	}
+
+	pub fn ensure_can_stake_using_status(
+		department_id: DepartmentId,
+	) -> Result<DepartmentFundingStatus<BlockNumberOf<T>, FundingStatus>, DispatchError> {
+		let department_status_option =
+			DepartmentFundingStatusForDepartmentId::<T>::get(department_id);
+		match department_status_option {
+			Some(department_status) => {
+				let funding_status = department_status.status;
+				if funding_status == FundingStatus::Processing {
+					Err(Error::<T>::FundingStatusProcessing.into())
+				} else {
+					// else check 3 month or 6 months passed then return new department_status
+					let three_month_number = TIME_FOR_STAKING_FUNDING_STATUS_FAILED;
+					let three_month_block = Self::u64_to_block_saturated(three_month_number);
+					Ok(department_status)
+				}
+			},
+			None => {
+				let now = <frame_system::Pallet<T>>::block_number();
+				let department_funding_status = DepartmentFundingStatus {
+					block_number: now,
+					status: FundingStatus::Processing,
+				};
+				Ok(department_funding_status)
+			},
+		}
 	}
 
 	// pub fn ensure_user_is_project_creator_and_project_exists(

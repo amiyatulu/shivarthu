@@ -40,7 +40,7 @@ use schelling_game_shared_link::SchellingGameSharedLink;
 use shared_storage_link::SharedStorageLink;
 use sortition_sum_game::types::SumTreeName;
 pub use types::DEPARTMENT_REQUIRED_FUND_ID;
-use types::{DepartmentRequiredFund, TippingName, TippingValue};
+use types::{DepartmentFundingStatus, DepartmentRequiredFund, TippingName, TippingValue, FundingStatus};
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
@@ -125,6 +125,15 @@ pub mod pallet {
 	pub type ValidationDepartmentRequiredFundsBlock<T: Config> =
 		StorageMap<_, Blake2_128Concat, DepartmentRequiredFundId, BlockNumberOf<T>>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn department_funding_status)]
+	pub type DepartmentFundingStatusForDepartmentId<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		DepartmentId,
+		DepartmentFundingStatus<BlockNumberOf<T>, FundingStatus>,
+	>;
+
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/main-docs/build/events-errors/
 	#[pallet::event]
@@ -162,6 +171,7 @@ pub mod pallet {
 		DepartmentRequiredFundDontExits,
 		BlockDepartmentRequiredFundIdNotExists,
 		ValidationForDepartmentRequiredFundIdIsOff,
+		FundingStatusProcessing,
 	}
 
 	// Check deparment exists, it will done using loose coupling
@@ -214,8 +224,9 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			department_required_fund_id: DepartmentRequiredFundId,
 		) -> DispatchResult {
+			Self::ensure_validation_to_do(department_required_fund_id)?;
+            let department_id = Self::get_department_id_from_department_required_fund_id(department_required_fund_id)?;
 
-			
 			Ok(())
 		}
 
