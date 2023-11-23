@@ -245,8 +245,6 @@ fn schelling_game_test() {
 			assert_ok!(ProjectTips::get_incentives(RuntimeOrigin::signed(14), 1));
 			let balance: u64 = Balances::free_balance(14);
 			assert_eq!(300025, balance);
-
-
 	})
 
 }

@@ -3,6 +3,7 @@
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://docs.substrate.io/reference/frame-pallets/>
+// One can enhance validation measures by increasing staking power for local residents or individuals with positive externalities—those who contribute to the network for a good cause.
 pub use pallet::*;
 
 #[cfg(test)]
@@ -17,13 +18,14 @@ pub mod weights;
 pub use weights::*;
 
 mod extras;
+mod types;
 
 use frame_support::sp_runtime::traits::Saturating;
 use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::prelude::*;
 use frame_support::{
 	dispatch::{DispatchError, DispatchResult},
-	ensure, fail,
+	ensure,
 };
 use frame_support::{
 	traits::{Currency, ExistenceRequirement, Get, ReservableCurrency, WithdrawReasons},
@@ -33,17 +35,21 @@ use pallet_support::{
 	ensure_content_is_valid, new_who_and_when, remove_from_vec, Content, PositiveExternalityPostId,
 	WhoAndWhen, WhoAndWhenOf,
 };
-use schelling_game_shared::types::{Period, RangePoint, SchellingGameType, PhaseData};
+use schelling_game_shared::types::{Period, PhaseData, RangePoint, SchellingGameType};
 use schelling_game_shared_link::SchellingGameSharedLink;
 use shared_storage_link::SharedStorageLink;
 use sortition_sum_game::types::SumTreeName;
+pub use types::DEPARTMENT_REQUIRED_FUND_ID;
+use types::{DepartmentRequiredFund, TippingName, TippingValue};
+
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
 pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
 pub type SumTreeNameType<T> = SumTreeName<AccountIdOf<T>, BlockNumberOf<T>>;
-type DeparmentId = u64;
+type DepartmentId = u64;
+type DepartmentRequiredFundId = u64;
 
-#[frame_support::pallet]
+#[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
@@ -55,7 +61,9 @@ pub mod pallet {
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
-	pub trait Config: frame_system::Config + schelling_game_shared::Config {
+	pub trait Config:
+		frame_system::Config + schelling_game_shared::Config + pallet_timestamp::Config
+	{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Type representing the weight of this pallet
@@ -71,7 +79,6 @@ pub mod pallet {
 			RangePoint = RangePoint,
 			Period = Period,
 			PhaseData = PhaseData<Self>,
-
 		>;
 		type Currency: ReservableCurrency<Self::AccountId>;
 	}
@@ -89,15 +96,34 @@ pub mod pallet {
 		10000u128.saturated_into::<BalanceOf<T>>()
 	}
 
-	#[pallet::storage]
-	#[pallet::getter(fn department_stake)]
-	pub type DepartmentStakeBalance<T: Config> =
-		StorageMap<_, Twox64Concat, DeparmentId, BalanceOf<T>, ValueQuery>;
+	#[pallet::type_value]
+	pub fn DefaultForNextDepartmentRequiredFundId() -> DepartmentRequiredFundId {
+		DEPARTMENT_REQUIRED_FUND_ID
+	}
 
 	#[pallet::storage]
-	#[pallet::getter(fn validation_department_block_number)]
-	pub type ValidationDepartmentBlock<T: Config> =
-		StorageMap<_, Blake2_128Concat, DeparmentId, BlockNumberOf<T>, ValueQuery>;
+	#[pallet::getter(fn next_department_required_fund_id)]
+	pub type NextDepartmentRequiredFundId<T: Config> = StorageValue<
+		_,
+		DepartmentRequiredFundId,
+		ValueQuery,
+		DefaultForNextDepartmentRequiredFundId,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_department_required_funds)]
+	pub type DepartmentRequiredFunds<T: Config> =
+		StorageMap<_, Blake2_128Concat, DepartmentRequiredFundId, DepartmentRequiredFund<T>>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn validate_positive_externality)]
+	pub type ValidateDepartmentRequiredFund<T: Config> =
+		StorageMap<_, Twox64Concat, DepartmentRequiredFundId, bool, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn validation_department_required_funds_block_number)]
+	pub type ValidationDepartmentRequiredFundsBlock<T: Config> =
+		StorageMap<_, Blake2_128Concat, DepartmentRequiredFundId, BlockNumberOf<T>>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/main-docs/build/events-errors/
@@ -107,6 +133,19 @@ pub mod pallet {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		SomethingStored { something: u32, who: T::AccountId },
+		ProjectCreated {
+			account: T::AccountId,
+			department_required_fund_id: DepartmentRequiredFundId,
+		},
+		StakinPeriodStarted {
+			department_required_fund_id: DepartmentRequiredFundId,
+			block_number: BlockNumberOf<T>,
+		},
+		ApplyJurors {
+			department_required_fund_id: DepartmentRequiredFundId,
+			block_number: BlockNumberOf<T>,
+			account: T::AccountId,
+		},
 	}
 
 	// Errors inform users that something went wrong.
@@ -119,152 +158,161 @@ pub mod pallet {
 		LessThanMinStake,
 		CannotStakeNow,
 		ChoiceOutOfRange,
+		FundingMoreThanTippingValue,
+		DepartmentRequiredFundDontExits,
+		BlockDepartmentRequiredFundIdNotExists,
+		ValidationForDepartmentRequiredFundIdIsOff,
 	}
 
-	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
-	// These functions materialize as "extrinsics", which are often compared to transactions.
-	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
+	// Check deparment exists, it will done using loose coupling
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-
 		#[pallet::call_index(0)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
-		pub fn add_department_stake(
+		#[pallet::weight(0)]
+		pub fn create_department_required_fund(
 			origin: OriginFor<T>,
-			department_id: DeparmentId,
-			deposit: BalanceOf<T>,
+			department_id: DepartmentId,
+			tipping_name: TippingName,
+			funding_needed: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			let tipping_value = Self::value_of_tipping_name(tipping_name);
+			let max_tipping_value = tipping_value.max_tipping_value;
+			let stake_required = tipping_value.stake_required;
+			let new_department_fund_id = Self::next_department_required_fund_id();
+			let new_department_fund: DepartmentRequiredFund<T> = DepartmentRequiredFund::new(
+				new_department_fund_id,
+				department_id,
+				tipping_name,
+				funding_needed,
+				who.clone(),
+			);
+			ensure!(funding_needed <= max_tipping_value, Error::<T>::FundingMoreThanTippingValue);
 			// Check user has done kyc
 			let _ = <T as pallet::Config>::Currency::withdraw(
 				&who,
-				deposit,
+				stake_required,
 				WithdrawReasons::TRANSFER,
 				ExistenceRequirement::AllowDeath,
 			)?;
-			let stake = DepartmentStakeBalance::<T>::get(department_id);
-			let total_balance = stake.saturating_add(deposit);
-			DepartmentStakeBalance::<T>::insert(department_id, total_balance);
+			DepartmentRequiredFunds::insert(new_department_fund_id, new_department_fund);
+			NextDepartmentRequiredFundId::<T>::mutate(|n| {
+				*n += 1;
+			});
 
-			// emit event
+			Self::deposit_event(Event::ProjectCreated {
+				account: who,
+				department_required_fund_id: new_department_fund_id,
+			});
 			Ok(())
 		}
 
-		// #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		// pub fn set_validate_positive_externality(
-		// 	origin: OriginFor<T>,
-		// 	value: bool,
-		// ) -> DispatchResult {
-		// 	let who = ensure_signed(origin)?;
-		// 	// Check user has done kyc
+		// Check update and discussion time over, only project creator can apply staking period
+		#[pallet::call_index(1)]
+		#[pallet::weight(0)]
+		pub fn apply_staking_period(
+			origin: OriginFor<T>,
+			department_required_fund_id: DepartmentRequiredFundId,
+		) -> DispatchResult {
 
-		// 	ValidatePositiveExternality::<T>::insert(&who, value);
-		// 	// emit event
+			
+			Ok(())
+		}
+
+		// // Check update and discussion time over, only project creator can apply staking period
+		// #[pallet::call_index(1)]
+		// #[pallet::weight(0)]
+		// pub fn apply_staking_period(origin: OriginFor<T>, department_required_fund_id: DepartmentRequiredFundId) -> DispatchResult {
+		// 	let who = ensure_signed(origin)?;
+
+		// 	Self::ensure_user_is_project_creator_and_project_exists(project_id, who)?;
+		// 	Self::ensure_staking_period_set_once_project_id(project_id)?;
+
+		// 	let now = <frame_system::Pallet<T>>::block_number();
+
+		// 	let key = SumTreeName::ProjectTips { project_id, block_number: now.clone() };
+
+		// 	<ValidationProjectBlock<T>>::insert(project_id, now.clone());
+		// 	// check what if called again, its done with `ensure_staking_period_set_once_project_id`
+		// 	T::SchellingGameSharedSource::set_to_staking_period_pe_link(key.clone(), now.clone())?;
+		// 	T::SchellingGameSharedSource::create_tree_helper_link(key, 3)?;
+
+		// 	Self::deposit_event(Event::StakinPeriodStarted { project_id, block_number: now });
+
 		// 	Ok(())
 		// }
 
-		#[pallet::call_index(1)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
-		pub fn apply_staking_period(
-			origin: OriginFor<T>,
-			department_id: DeparmentId,
-		) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-
-			// Self::ensure_validation_on_positive_externality(user_to_calculate.clone())?;
-			Self::ensure_min_stake_deparment(department_id)?;
-
-			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
-			let now = <frame_system::Pallet<T>>::block_number();
-			let six_month_number = (6 * 30 * 24 * 60 * 60) / 6;
-			let six_month_block = Self::u64_to_block_saturated(six_month_number);
-			let modulus = now % six_month_block;
-			let storage_main_block = now - modulus;
-			// println!("{:?}", now);
-			// println!("{:?}", three_month_number);
-			// println!("{:?}", storage_main_block);
-			// println!("{:?}", pe_block_number);
-
-			let key = SumTreeName::DepartmentScore {
-				department_id,
-				block_number: storage_main_block.clone(),
-			};
-
-			// let game_type = SchellingGameType::PositiveExternality;
-
-			if storage_main_block > pe_block_number {
-				<ValidationDepartmentBlock<T>>::insert(department_id, storage_main_block);
-				// check what if called again
-				T::SchellingGameSharedSource::set_to_staking_period_pe_link(key.clone(), now)?;
-				T::SchellingGameSharedSource::create_tree_helper_link(key, 3)?;
-
-			//  println!("{:?}", data);
-			} else {
-				return Err(Error::<T>::CannotStakeNow.into());
-			}
-
-			Ok(())
-		}
-
 		#[pallet::call_index(2)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
-		pub fn apply_jurors_positive_externality(
+		#[pallet::weight(0)]
+		pub fn apply_jurors_project_tips(
 			origin: OriginFor<T>,
-			department_id: DeparmentId,
+			department_required_fund_id: DepartmentRequiredFundId,
 			stake: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
-			// Self::ensure_validation_on_positive_externality(user_to_calculate.clone())?;
-			Self::ensure_min_stake_deparment(department_id)?;
+			let block_number =
+				Self::get_block_number_of_schelling_game(department_required_fund_id)?;
 
-			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
-
-			let key = SumTreeName::DepartmentScore {
-				department_id,
-				block_number: pe_block_number.clone(),
+			let key = SumTreeName::DepartmentRequiredFund {
+				department_required_fund_id,
+				block_number: block_number.clone(),
 			};
 
 			let phase_data = Self::get_phase_data();
 
-			T::SchellingGameSharedSource::apply_jurors_helper_link(key, phase_data, who, stake)?;
+			T::SchellingGameSharedSource::apply_jurors_helper_link(
+				key,
+				phase_data,
+				who.clone(),
+				stake,
+			)?;
+			Self::deposit_event(Event::ApplyJurors {
+				department_required_fund_id,
+				block_number,
+				account: who,
+			});
 
 			Ok(())
 		}
 
 		#[pallet::call_index(3)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
-		pub fn pass_period(origin: OriginFor<T>, department_id: DeparmentId) -> DispatchResult {
+		#[pallet::weight(0)]
+		pub fn pass_period(
+			origin: OriginFor<T>,
+			department_required_fund_id: DepartmentRequiredFundId,
+		) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
 
-			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
+			let block_number =
+				Self::get_block_number_of_schelling_game(department_required_fund_id)?;
 
-			let key = SumTreeName::DepartmentScore {
-				department_id,
-				block_number: pe_block_number.clone(),
+			let key = SumTreeName::DepartmentRequiredFund {
+				department_required_fund_id,
+				block_number: block_number.clone(),
 			};
 
 			let now = <frame_system::Pallet<T>>::block_number();
 			let phase_data = Self::get_phase_data();
 			T::SchellingGameSharedSource::change_period_link(key, phase_data, now)?;
-
 			Ok(())
 		}
 
 		#[pallet::call_index(4)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
-		pub fn draw_jurors_positive_externality(
+		#[pallet::weight(0)]
+		pub fn draw_jurors(
 			origin: OriginFor<T>,
-			department_id: DeparmentId,
+			department_required_fund_id: DepartmentRequiredFundId,
 			iterations: u64,
 		) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
 
-			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
+			let block_number =
+				Self::get_block_number_of_schelling_game(department_required_fund_id)?;
 
-			let key = SumTreeName::DepartmentScore {
-				department_id,
-				block_number: pe_block_number.clone(),
+			let key = SumTreeName::DepartmentRequiredFund {
+				department_required_fund_id,
+				block_number: block_number.clone(),
 			};
 
 			let phase_data = Self::get_phase_data();
@@ -277,14 +325,17 @@ pub mod pallet {
 		// Unstaking
 		// Stop drawn juror to unstake ✔️
 		#[pallet::call_index(5)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
-		pub fn unstaking(origin: OriginFor<T>, department_id: DeparmentId) -> DispatchResult {
+		#[pallet::weight(0)]
+		pub fn unstaking(
+			origin: OriginFor<T>,
+			department_required_fund_id: DepartmentRequiredFundId,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
-
-			let key = SumTreeName::DepartmentScore {
-				department_id,
-				block_number: pe_block_number.clone(),
+			let block_number =
+				Self::get_block_number_of_schelling_game(department_required_fund_id)?;
+			let key = SumTreeName::DepartmentRequiredFund {
+				department_required_fund_id,
+				block_number: block_number.clone(),
 			};
 
 			T::SchellingGameSharedSource::unstaking_helper_link(key, who)?;
@@ -292,70 +343,65 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(6)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn commit_vote(
 			origin: OriginFor<T>,
-			department_id: DeparmentId,
+			department_required_fund_id: DepartmentRequiredFundId,
 			vote_commit: [u8; 32],
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
-			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
-
-			let key = SumTreeName::DepartmentScore {
-				department_id,
-				block_number: pe_block_number.clone(),
+			let block_number =
+				Self::get_block_number_of_schelling_game(department_required_fund_id)?;
+			let key = SumTreeName::DepartmentRequiredFund {
+				department_required_fund_id,
+				block_number: block_number.clone(),
 			};
 
-			T::SchellingGameSharedSource::commit_vote_for_score_helper_link(key, who, vote_commit)?;
+			T::SchellingGameSharedSource::commit_vote_helper_link(key, who, vote_commit)?;
 			Ok(())
 		}
 
 		#[pallet::call_index(7)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
+		#[pallet::weight(0)]
 		pub fn reveal_vote(
 			origin: OriginFor<T>,
-			department_id: DeparmentId,
-			choice: i64,
+			department_required_fund_id: DepartmentRequiredFundId,
+			choice: u128,
 			salt: Vec<u8>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
-			ensure!(choice <= 5 && choice >= 1, Error::<T>::ChoiceOutOfRange);
-
-			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
-
-			let key = SumTreeName::DepartmentScore {
-				department_id,
-				block_number: pe_block_number.clone(),
+			let block_number =
+				Self::get_block_number_of_schelling_game(department_required_fund_id)?;
+			let key = SumTreeName::DepartmentRequiredFund {
+				department_required_fund_id,
+				block_number: block_number.clone(),
 			};
 
-			T::SchellingGameSharedSource::reveal_vote_score_helper_link(key, who, choice, salt)?;
+			T::SchellingGameSharedSource::reveal_vote_two_choice_helper_link(
+				key, who, choice, salt,
+			)?;
 			Ok(())
 		}
 
 		#[pallet::call_index(8)]
-		#[pallet::weight(Weight::from_parts(10_000, u64::MAX) + T::DbWeight::get().writes(1))]
-		pub fn get_incentives(origin: OriginFor<T>, department_id: DeparmentId) -> DispatchResult {
-			let _who = ensure_signed(origin)?;
-			let pe_block_number = <ValidationDepartmentBlock<T>>::get(department_id);
-			let key = SumTreeName::DepartmentScore {
-				department_id,
-				block_number: pe_block_number.clone(),
+		#[pallet::weight(0)]
+		pub fn get_incentives(
+			origin: OriginFor<T>,
+			department_required_fund_id: DepartmentRequiredFundId,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let block_number =
+				Self::get_block_number_of_schelling_game(department_required_fund_id)?;
+			let key = SumTreeName::DepartmentRequiredFund {
+				department_required_fund_id,
+				block_number: block_number.clone(),
 			};
 
 			let phase_data = Self::get_phase_data();
-			T::SchellingGameSharedSource::get_incentives_score_schelling_helper_link(
-				key.clone(),
-				phase_data,
-				RangePoint::ZeroToFive,
+			T::SchellingGameSharedSource::get_incentives_two_choice_helper_link(
+				key, phase_data, who,
 			)?;
-
-			let score = T::SchellingGameSharedSource::get_mean_value_link(key.clone());
-			// // println!("Score {:?}", score);
-
-			// To do
-			// T::SharedStorageSource::set_positive_externality_link(user_to_calculate, score)?;
-
 			Ok(())
 		}
 	}
