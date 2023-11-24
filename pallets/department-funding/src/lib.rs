@@ -144,7 +144,7 @@ pub mod pallet {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		SomethingStored { something: u32, who: T::AccountId },
-		ProjectCreated {
+		DepartmentFundCreated {
 			account: T::AccountId,
 			department_required_fund_id: DepartmentRequiredFundId,
 		},
@@ -214,7 +214,7 @@ pub mod pallet {
 				*n += 1;
 			});
 
-			Self::deposit_event(Event::ProjectCreated {
+			Self::deposit_event(Event::DepartmentFundCreated {
 				account: who,
 				department_required_fund_id: new_department_fund_id,
 			});
