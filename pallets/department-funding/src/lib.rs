@@ -148,7 +148,7 @@ pub mod pallet {
 			account: T::AccountId,
 			department_required_fund_id: DepartmentRequiredFundId,
 		},
-		StakinPeriodStarted {
+		StakingPeriodStarted {
 			department_required_fund_id: DepartmentRequiredFundId,
 			block_number: BlockNumberOf<T>,
 		},
@@ -228,6 +228,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			department_required_fund_id: DepartmentRequiredFundId,
 		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
 			Self::ensure_validation_to_do(department_required_fund_id)?;
 			let department_id = Self::get_department_id_from_department_required_fund_id(
 				department_required_fund_id,
@@ -237,6 +238,23 @@ pub mod pallet {
 				department_id,
 				department_funding_status,
 			);
+			let now = <frame_system::Pallet<T>>::block_number();
+			let key = SumTreeName::DepartmentRequiredFund {
+				department_required_fund_id,
+				block_number: now.clone(),
+			};
+			ValidationDepartmentRequiredFundsBlock::<T>::insert(
+				department_required_fund_id,
+				now.clone(),
+			);
+			T::SchellingGameSharedSource::set_to_staking_period_pe_link(key.clone(), now.clone())?;
+			T::SchellingGameSharedSource::create_tree_helper_link(key, 3)?;
+
+			Self::deposit_event(Event::StakingPeriodStarted {
+				department_required_fund_id,
+				block_number: now,
+			});
+
 			Ok(())
 		}
 
