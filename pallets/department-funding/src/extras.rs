@@ -51,26 +51,43 @@ impl<T: Config> Pallet<T> {
 	) -> Result<DepartmentFundingStatus<BlockNumberOf<T>, FundingStatus>, DispatchError> {
 		let department_status_option =
 			DepartmentFundingStatusForDepartmentId::<T>::get(department_id);
+		let now = <frame_system::Pallet<T>>::block_number();
+		let department_funding_status =
+			DepartmentFundingStatus { block_number: now, status: FundingStatus::Processing };
 		match department_status_option {
 			Some(department_status) => {
 				let funding_status = department_status.status;
 				if funding_status == FundingStatus::Processing {
 					Err(Error::<T>::FundingStatusProcessing.into())
+				} else if funding_status == FundingStatus::Failed {
+					// else check 3 month if status faild or 6 months if status success to reapply for funding
+					let status_failed_time = TIME_FOR_STAKING_FUNDING_STATUS_FAILED;
+					let status_failed_time_block = Self::u64_to_block_saturated(status_failed_time);
+					let funding_status_block = department_status.block_number;
+					let time =
+						now.checked_sub(&funding_status_block).expect("Overflow");
+					if time >= status_failed_time_block {
+						Ok(department_funding_status)
+					} else {
+						Err(Error::<T>::ReapplicationTimeNotReached.into())
+					}
+				} else if funding_status == FundingStatus::Success {
+					let status_success_time = TIME_FOR_STAKING_FUNDING_STATUS_PASSED;
+					let status_success_time_block =
+						Self::u64_to_block_saturated(status_success_time);
+					let funding_status_block = department_status.block_number;
+					let time =
+						now.checked_sub(&funding_status_block).expect("Overflow");
+					if time >= status_success_time_block {
+						Ok(department_funding_status)
+					} else {
+						Err(Error::<T>::ReapplicationTimeNotReached.into())
+					}
 				} else {
-					// else check 3 month or 6 months passed then return new department_status
-					let three_month_number = TIME_FOR_STAKING_FUNDING_STATUS_FAILED;
-					let three_month_block = Self::u64_to_block_saturated(three_month_number);
-					Ok(department_status)
+					Err(Error::<T>::ConditionDontMatch.into())
 				}
 			},
-			None => {
-				let now = <frame_system::Pallet<T>>::block_number();
-				let department_funding_status = DepartmentFundingStatus {
-					block_number: now,
-					status: FundingStatus::Processing,
-				};
-				Ok(department_funding_status)
-			},
+			None => Ok(department_funding_status),
 		}
 	}
 

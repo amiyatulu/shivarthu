@@ -20,7 +20,7 @@ pub use weights::*;
 mod extras;
 mod types;
 
-use frame_support::sp_runtime::traits::Saturating;
+use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
 use frame_support::sp_runtime::SaturatedConversion;
 use frame_support::sp_std::prelude::*;
 use frame_support::{
@@ -40,7 +40,9 @@ use schelling_game_shared_link::SchellingGameSharedLink;
 use shared_storage_link::SharedStorageLink;
 use sortition_sum_game::types::SumTreeName;
 pub use types::DEPARTMENT_REQUIRED_FUND_ID;
-use types::{DepartmentFundingStatus, DepartmentRequiredFund, TippingName, TippingValue, FundingStatus};
+use types::{
+	DepartmentFundingStatus, DepartmentRequiredFund, FundingStatus, TippingName, TippingValue,
+};
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::Balance;
@@ -172,6 +174,8 @@ pub mod pallet {
 		BlockDepartmentRequiredFundIdNotExists,
 		ValidationForDepartmentRequiredFundIdIsOff,
 		FundingStatusProcessing,
+		ReapplicationTimeNotReached,
+		ConditionDontMatch,
 	}
 
 	// Check deparment exists, it will done using loose coupling
@@ -225,8 +229,14 @@ pub mod pallet {
 			department_required_fund_id: DepartmentRequiredFundId,
 		) -> DispatchResult {
 			Self::ensure_validation_to_do(department_required_fund_id)?;
-            let department_id = Self::get_department_id_from_department_required_fund_id(department_required_fund_id)?;
-
+			let department_id = Self::get_department_id_from_department_required_fund_id(
+				department_required_fund_id,
+			)?;
+			let department_funding_status = Self::ensure_can_stake_using_status(department_id)?;
+			DepartmentFundingStatusForDepartmentId::<T>::insert(
+				department_id,
+				department_funding_status,
+			);
 			Ok(())
 		}
 
