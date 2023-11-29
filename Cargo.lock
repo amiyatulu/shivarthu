@@ -4540,6 +4540,7 @@ dependencies = [
 name = "node-template-runtime"
 version = "4.0.0-dev"
 dependencies = [
+ "department-funding",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
@@ -4560,6 +4561,7 @@ dependencies = [
  "positive-externality-validation",
  "profile-validation",
  "profile-validation-runtime-api",
+ "project-tips",
  "scale-info",
  "schelling-game-shared",
  "shared-storage",

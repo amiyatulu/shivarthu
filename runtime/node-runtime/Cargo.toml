@@ -63,6 +63,8 @@ profile-validation = {default-features=false, path="../../pallets/profile-valida
 shared-storage = {default-features=false, path="../../pallets/shared-storage"}
 profile-validation-runtime-api = {default-features=false, path="../../pallets/profile-validation/profile-validation-runtime-api"}
 positive-externality-validation = {default-features = false, path="../../pallets/positive-externality-validation"}
+department-funding = {default-features = false, path="../../pallets/department-funding"}
+project-tips = {default-features = false, path="../../pallets/project-tips"}
 
 
 [build-dependencies]

@@ -67,7 +67,6 @@ pub type Index = u32;
 /// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
 
-
 pub type ChallengePostId = u64;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
@@ -278,7 +277,6 @@ impl pallet_template::Config for Runtime {
 
 impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
 
-
 impl sortition_sum_game::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = sortition_sum_game::weights::SubstrateWeight<Runtime>;
@@ -286,7 +284,7 @@ impl sortition_sum_game::Config for Runtime {
 
 impl schelling_game_shared::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = schelling_game_shared::weights::SubstrateWeight<Runtime>;	
+	type WeightInfo = schelling_game_shared::weights::SubstrateWeight<Runtime>;
 	type Currency = Balances;
 	type RandomnessSource = RandomnessCollectiveFlip;
 	type Slash = ();
@@ -296,7 +294,7 @@ impl schelling_game_shared::Config for Runtime {
 
 impl profile_validation::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type WeightInfo = profile_validation::weights::SubstrateWeight<Runtime>;	
+	type WeightInfo = profile_validation::weights::SubstrateWeight<Runtime>;
 	type Currency = Balances;
 	type SchellingGameSharedSource = SchellingGameShared;
 	type Slash = ();
@@ -312,13 +310,25 @@ impl positive_externality_validation::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = positive_externality_validation::weights::SubstrateWeight<Runtime>;
 	type SharedStorageSource = SharedStorage;
-	type Currency = Balances; 
+	type Currency = Balances;
 	type SchellingGameSharedSource = SchellingGameShared;
 }
 
+impl department_funding::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = department_funding::weights::SubstrateWeight<Runtime>;
+	type SharedStorageSource = SharedStorage;
+	type Currency = Balances;
+	type SchellingGameSharedSource = SchellingGameShared;
+}
 
-
-
+impl project_tips::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = project_tips::weights::SubstrateWeight<Runtime>;
+	type SharedStorageSource = SharedStorage;
+	type Currency = Balances;
+	type SchellingGameSharedSource = SchellingGameShared;
+}
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -343,7 +353,8 @@ construct_runtime!(
 		ProfileValidation: profile_validation,
 		SharedStorage: shared_storage,
 		PositiveExternalityValidation: positive_externality_validation,
-
+		DepartmentFunding: department_funding,
+		ProjectTips: project_tips,
 	}
 );
 
@@ -634,7 +645,7 @@ impl_runtime_apis! {
 		fn get_evidence_period_end_block(profile_user_account: AccountId) -> Option<u32> {
 			ProfileValidation::get_evidence_period_end_block(profile_user_account)
 		}
-		
+
 		fn get_staking_period_end_block(profile_user_account: AccountId) -> Option<u32> {
 			ProfileValidation::get_staking_period_end_block(profile_user_account)
 		}
@@ -644,7 +655,7 @@ impl_runtime_apis! {
 		fn get_commit_period_end_block(profile_user_account: AccountId) -> Option<u32> {
 			ProfileValidation::get_commit_period_end_block(profile_user_account)
 		}
-	
+
 		fn get_vote_period_end_block(profile_user_account: AccountId) -> Option<u32> {
 			ProfileValidation::get_vote_period_end_block(profile_user_account)
 		}
@@ -652,7 +663,7 @@ impl_runtime_apis! {
 			ProfileValidation::selected_as_juror(profile_user_account, who)
 		}
 	}
-	
+
 }
 
 #[cfg(test)]
