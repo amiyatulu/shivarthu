@@ -100,35 +100,27 @@ Form a department with a location with some min members, say 3000, and get it ap
 
 Say we have 1,000,000 departments with 3000 population each.    
 
-Department funding operates on a tipping system where each department is categorized as either a SmallTipper, BigTipper, SmallSpender, MediumSpender, or BigSpender, each corresponding to an increased funding value.
+Mega department with 1,000,000 population, will get 300x more weightage funding.   
 
-The funding categories are represented by an enumeration:
+With score schelling game, we will get score between 0-10  
+Score schelling game: 0-10 scores  
+10 means 100% funding  
+1 means 10% funding  
+0 means no funding  
 
-```rust
-pub enum TippingName {
-    SmallTipper,
-    BigTipper,
-    SmallSpender,
-    MediumSpender,
-    BigSpender,
-}
-```
+ax+ 0.1bx + 0.2cx + 0.3dx + ..... + 0.9jx = Total fund   
 
-Department-appointed governors are required to apply for the spending value, which can take any numerical value but must not exceed the specified limit associated with the tipping name. For example, if the allowed limit for SmallTipper is 10,000 tokens, applications for SmallTipper must be for an amount less than or equal to 10,000 tokens.
+100% funding = x    
+0.1 when you get 1 score, 0.3 when you get 3 score etc.   
+a, b, c, etc. are a number of departments with particular scores. 
 
-Applying for larger funds necessitates a greater stake in the form of increased responsibilities or commitments.
+You have the option to assign a rating to the department on a scale of 0 to 5 or 0 to 10, without any knowledge of what ratings others are giving. If the "mean" rating of all the jurors closely matches your rating, you will receive incentives as a juror. However, if the "mean" rating deviates significantly from your assigned rating, your incentives will be deducted. Consequently, jurors will strive to align their ratings with what others are likely to assign based on the available information, rather than arbitrarily defecting from the consensus.
 
-The amount is released after it is validated by the Yes or No Schilling game.
+## Price discovery of projects through Score Schelling Game:
 
-To utilize department funds, there is a process called Project Tips, wherein individuals or teams apply using a procedure similar to that of determining department funding
-
-### Further improvements
-Create guidelines for department formation, e.g. specifying which values are allowed and which are not. These guidelines will serve as the basis upon which the maximum tipping amount is decided by the juror.
-
-## Price discovery of positive externality through Score Schelling Game:
-
-1) When you submit a positive externality that you made, you need to provide details of your work.
-2) Here is how the score Schelling game works to calculate score. For example, you can have a score between -10 and +10. The range of -10 to +10 poses a problem because the mean works best without extreme values. If someone gives -10, and others give 1, the mean result can be skewed due to the -10 outlier. The trick is to remove outliers by computing the standard deviation and eliminating all values more than one standard deviation away from the mean. Subsequently, we calculate the new mean of the remaining values, which consist of 68.27% of the dataset. This new mean becomes the score. If your given score is close to the new mean, you receive incentives. If it deviates from the new mean, a portion of your staking value is deducted. Commit and reveal scheme is used. 
+1) When you submit a project, you need to provide details of the funding needed for work to be done.
+2) Then, we will have a percentage Schelling game to predict the price. That is, you can predict whether to increase or decrease the funding amount in percentage. Score values will remain from -10 to +10, -10 means 100% decrease, +10 means 100% increase
+The range of -10 to +10 has a problem because the mean works best without extreme values. So, if someone gives -10, and others give 1, the mean result can get screwed due to the -10 outlier. So the trick is to remove outliers by computing the standard deviation. Remove all values more than one standard deviation away from the mean. Then, we calculate the new mean of the left values (it consists of 68.27% data of the set).
 
 
 Code to calculate new mean:
@@ -182,12 +174,38 @@ calculate_new_mean(items3)
 # -1.4
 # ********************
 ```
-
-3) Then, we will do quality score voting Schelling game that checks the quality or impact of positive externality. The score range is 0-5
-4) A fixed amount of tokens is released for each score. The highest amount of tokens will be released for a score of 5, fewer tokens for a score of 1, and no tokens for a score of 0. 
+<img src="Project_score_schelling_game.svg" alt="Score Schelling Game" height="600"/>  
 
 
+3) Then, we will do quality score voting Schelling game that checks the project meets the quality guidelines. The score range is 0-5
+4) The amount of funding will be directly proportional to (Predicted Price) * (Quality Score/5*2)
+Code:
+```python
+total_fund = 200000
 
+
+predictprice = [(17411)*(5/5*2), (411)*(5/5*2), (17411)*(5/5*2), (1741)*(2/5*2)]
+
+total_predictprices = 0
+for x in predictprice:
+    total_predictprices = total_predictprices + x
+
+predicted_price_percentage = []
+for x in predictprice:
+    percentage = x / total_predictprices * 100
+    predicted_price_percentage.append(percentage)
+
+
+money_distribution = []
+for x in predicted_price_percentage:
+    money = x * total_fund/100
+    money_distribution.append(money)
+
+
+print(money_distribution)
+```
+
+The algorithm tries to meet the values of teal organization through reduced compensation inequality.
 
 
 ### Randomized Tax collection
