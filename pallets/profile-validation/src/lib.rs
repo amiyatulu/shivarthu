@@ -301,8 +301,45 @@ pub mod pallet {
 			}
 		}
 
-		/// Crowdfunding of profile
-		/// Add time 3 days before staking, to get feedback on upload
+		/// # Crowdfunding of Profile
+		///
+		/// Allows users to contribute funds to a profile and manages the associated data for crowdfunding.
+		///
+		/// ## Parameters
+		///
+		/// - `origin`: The origin of the transaction.
+		/// - `profile_user_account`: The account ID of the profile to fund.
+		/// - `amount_to_fund`: The amount of funds to be added to the profile's crowdfunding.
+		///
+		/// ## Errors
+		///
+		/// This function can return an error if the amount to fund is greater than the required fund.
+		///
+		/// ## Storage
+		///
+		/// - `ProfileValidationBlock`:  Stores the block number to be used for the profile's validation when `amount_to_fund` equals `required_fund`.
+		/// - `ProfileFundDetails`: Stores details of funds deposited by users for a specific profile.
+		/// - `ProfileTotalFundCollected`: Keeps track of the total funds collected for each profile.
+		/// - `RegistrationFee`: Retrieves the registration fee required for profile validation.
+		/// - `GetCitizenId`: Storage map that associates a citizen's account address with their Citizen ID.
+		///
+		/// ## Usage
+		///
+		/// Call this function to contribute funds to a profile and update the associated storage items.
+		/// Checks are performed to ensure the profile exists and that the funded amount is not greater
+		/// than required. If the funded amount matches the required amount, the profile validation is marked
+		/// as completed, and a link is set to the evidence period in the Schelling Game.
+		///
+		/// ```
+		/// #[pallet::call]
+		/// fn add_profile_stake(
+		///     origin: OriginFor<T>,
+		///     profile_user_account: T::AccountId,
+		///     amount_to_fund: BalanceOf<T>,
+		/// ) -> DispatchResult {
+		///     // implementation
+		/// }
+		/// ```
 
 		#[pallet::call_index(1)]
 		#[pallet::weight(0)]
@@ -312,14 +349,24 @@ pub mod pallet {
 			amount_to_fund: BalanceOf<T>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
+			    
+			// Ensure that the `profile_user_account`` exists in `GetCitizenId` storage.
 			Self::ensure_account_id_has_profile(profile_user_account.clone())?;
 
+			// Retrieve the registration fee required for profile validation.
 			let registration_fee = <RegistrationFee<T>>::get();
+
+			// Get the total funds already collected for the profile.
 			let total_funded = <ProfileTotalFundCollected<T>>::get(profile_user_account.clone());
 
+			// Calculate the required fund by subtracting the total funded from the registration fee.
 			let required_fund = registration_fee.checked_sub(&total_funded).expect("Overflow");
+			
+			// Check if the amount_to_fund is less than or equal to the required fund.
 			if amount_to_fund <= required_fund {
 				if amount_to_fund == required_fund {
+
+					// If the funded amount matches the required amount, update variables required for profile validation.
 					let now = <frame_system::Pallet<T>>::block_number();
 					let key = SumTreeName::ProfileValidation {
 						citizen_address: profile_user_account.clone(),
@@ -327,8 +374,11 @@ pub mod pallet {
 					};
 					<ProfileValidationBlock<T>>::insert(&profile_user_account, now);
 
+					// Set a link to the evidence period in the Schelling Game.
 					T::SchellingGameSharedSource::set_to_evidence_period_link(key, now)?;
 				}
+
+				// Withdraw funds from the funder's account.
 				let _ = <T as pallet::Config>::Currency::withdraw(
 					&who,
 					amount_to_fund.clone(),
@@ -336,6 +386,7 @@ pub mod pallet {
 					ExistenceRequirement::AllowDeath,
 				)?;
 
+				// Update the profile fund details for the funder.
 				match <ProfileFundDetails<T>>::get(profile_user_account.clone(), who.clone()) {
 					Some(mut profile_fund_info) => {
 						let deposit = profile_fund_info.deposit;
@@ -362,17 +413,20 @@ pub mod pallet {
 					},
 				}
 
+				// Update the total funds collected for the profile.
 				let next_total_fund = total_funded.checked_add(&amount_to_fund).expect("overflow");
 				<ProfileTotalFundCollected<T>>::insert(
 					profile_user_account.clone(),
 					next_total_fund,
 				);
 
+				// Emit a ProfileFund event.
 				Self::deposit_event(Event::ProfileFund {
 					profile: profile_user_account,
 					funder: who,
 				});
 			} else {
+				// Return an error if the funded amount is greater than required.
 				Err(Error::<T>::AmountFundedGreaterThanRequired)?
 			}
 
