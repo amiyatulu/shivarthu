@@ -20,6 +20,20 @@ pub trait SchellingGameSharedLink {
 		min_juror_stake: u64,
 		juror_incentives: (u64, u64),
 	) -> Self::PhaseData;
+
+	fn create_phase_with_all_data(
+		evidence_length: u64,
+		end_of_staking_time: u64,
+		staking_length: u64,
+		drawing_length: u64,
+		commit_length: u64,
+		vote_length: u64,
+		appeal_length: u64,
+		max_draws: u64,
+		min_number_juror_staked: u64,
+		min_juror_stake: u64,
+		juror_incentives: (u64, u64),
+	) -> Self::PhaseData;
 	fn get_period_link(key: Self::SumTreeName) -> Option<Self::Period>;
 
 	fn set_to_evidence_period_link(
@@ -130,6 +144,4 @@ pub trait SchellingGameSharedLink {
 	fn get_drawn_jurors(key: Self::SumTreeName) -> Vec<(Self::AccountId, u64)>;
 
 	fn get_winning_decision_value_link(key: Self::SumTreeName) -> Self::WinningDecision;
-
-
 }

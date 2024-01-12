@@ -1,6 +1,33 @@
 use crate::*;
 
 impl<T: Config> Pallet<T> {
+	pub(super) fn create_phase_with_all_data(
+		evidence_length: u64,
+		end_of_staking_time: u64,
+		staking_length: u64,
+		drawing_length: u64,
+		commit_length: u64,
+		vote_length: u64,
+		appeal_length: u64,
+		max_draws: u64,
+		min_number_juror_staked: u64,
+		min_juror_stake: u64,
+		juror_incentives: (u64, u64),
+	) -> PhaseDataOf<T> {
+		PhaseData::create_phase_with_all_data(
+			evidence_length,
+			end_of_staking_time,
+			staking_length,
+			drawing_length,
+			commit_length,
+			vote_length,
+			appeal_length,
+			max_draws,
+			min_number_juror_staked,
+			min_juror_stake,
+			juror_incentives,
+		)
+	}
 	pub(super) fn create_phase_data(
 		block_length: u64,
 		max_draws: u64,

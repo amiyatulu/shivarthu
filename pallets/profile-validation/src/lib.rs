@@ -330,7 +330,7 @@ pub mod pallet {
 		/// than required. If the funded amount matches the required amount, the profile validation is marked
 		/// as completed, and a link is set to the evidence period in the Schelling Game.
 		///
-		/// ```
+		/// ```rust,ignore
 		/// #[pallet::call]
 		/// fn add_profile_stake(
 		///     origin: OriginFor<T>,
