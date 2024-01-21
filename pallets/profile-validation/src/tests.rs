@@ -425,3 +425,49 @@ fn schelling_game_test() {
 		assert_eq!(300025, balance);
 	})
 }
+
+#[test]
+fn test_draw_juror() {
+	new_test_ext().execute_with(|| {
+		System::set_block_number(1);
+		let content: Content = Content::IPFS(
+			"bafkreiaiq24be2iioasr6ftyaum3icmj7amtjkom2jeokov5k5ojwzhvqy"
+				.as_bytes()
+				.to_vec(),
+		);
+		assert_ok!(ProfileValidation::add_citizen(RuntimeOrigin::signed(1), content.clone()));
+
+		assert_ok!(ProfileValidation::add_profile_stake(RuntimeOrigin::signed(3), 1, 1000));
+		let challenge_content: Content = Content::IPFS(
+			"bafkreiaiq24be2iioasr6ftyaum3icmj7amtjkom2jeokov5k5ojwzhabc"
+				.as_bytes()
+				.to_vec(),
+		);
+		let phase_data = ProfileValidation::get_phase_data();
+		System::set_block_number(phase_data.evidence_length + 1);
+		assert_ok!(ProfileValidation::challenge_profile(
+			RuntimeOrigin::signed(4),
+			1,
+			challenge_content.clone()
+		));
+
+
+		assert_ok!(ProfileValidation::apply_jurors(RuntimeOrigin::signed(5), 1, 100));
+		assert_ok!(ProfileValidation::apply_jurors(RuntimeOrigin::signed(6), 1, 500));
+		assert_ok!(ProfileValidation::apply_jurors(RuntimeOrigin::signed(7), 1, 1000));
+		assert_ok!(ProfileValidation::apply_jurors(RuntimeOrigin::signed(8), 1, 1500));
+		assert_ok!(ProfileValidation::apply_jurors(RuntimeOrigin::signed(9), 1, 2000));
+
+		System::set_block_number(phase_data.evidence_length + 1 + phase_data.staking_length);
+
+		assert_ok!(ProfileValidation::pass_period(RuntimeOrigin::signed(5), 1));
+
+		assert_ok!(ProfileValidation::draw_jurors(RuntimeOrigin::signed(5), 1, 6));
+
+		// assert_ok!(ProfileValidation::draw_jurors(RuntimeOrigin::signed(5), 1, 5));
+
+
+
+
+	})
+}

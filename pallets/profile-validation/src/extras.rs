@@ -53,7 +53,7 @@ impl<T: Config> ChallengeEvidencePost<T> {
 
 impl<T: Config> Pallet<T> {
 	pub(super) fn get_phase_data() -> PhaseData<T> {
-		T::SchellingGameSharedSource::create_phase_with_all_data(10, 100, 100, 100, 100, 100, 100, 5, 3, 100, (100, 100))
+		T::SchellingGameSharedSource::create_phase_with_all_data(10, 100, 100, 100, 100, 100, 100, 5, 5, 100, (100, 100))
 		// T::SchellingGameSharedSource::create_phase_data(100, 5, 3, 100, (100, 100))
 	}
 
