@@ -1,7 +1,6 @@
 # Shivarthu
 
-### Its now archived, latest development on https://github.com/reaudito-org/shivarthu
-
+### Its now archived, latest development on https://github.com/reaudito/shivarthu
 ### Decentralized democracy with experts as leaders.
 https://shivarthu.reaudito.com/#/
 
