@@ -3,10 +3,14 @@
 ### Its now archived, latest development on https://github.com/reaudito/shivarthu
 ### Decentralized democracy with experts as leaders.
 https://shivarthu.reaudito.com/#/
+## Leptos Frontend
+https://github.com/reaudito/shivarthu-client
+## Frontend Tests
+https://github.com/reaudito/shivarthu-client-tests
 
-## Yew/Rust Frontend
+## Yew/Rust Frontend (archived)
 https://github.com/amiyatulu/shivarthu_client
-## React Frontend
+## React Frontend (archived)
 https://github.com/amiyatulu/shivarthu_frontend
 
 ## Whitepaper
